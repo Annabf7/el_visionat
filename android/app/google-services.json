@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "110254435620",
+    "project_id": "el-visionat",
+    "storage_bucket": "el-visionat.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:110254435620:android:51a114850c418a5dc997b1",
+        "android_client_info": {
+          "package_name": "com.example.el_visionat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAEqhN9-7UrLLrMIcOfUtCXLhqaKMwpm3I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

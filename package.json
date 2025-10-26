@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "firebase-admin": "^13.5.0"
+  },
+  "scripts": {
+    "seed": "ts-node -r tsconfig-paths/register scripts/seed_registry.ts"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "tsconfig-paths": "^4.2.0"
+  }
+}

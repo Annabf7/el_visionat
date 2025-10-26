@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2020",
+    "lib": [
+      "es2020"
+    ],
+    "esModuleInterop": true,
+    "strict": true,
+    "rootDir": "src",
+    "outDir": "lib",
+    "resolveJsonModule": true,
+    // LA SOLUCIÓ: Aquesta opció fa que el compilador ignori els errors a les llibreries de node_modules
+    "skipLibCheck": true, 
+  },
+  "compileOnSave": true,
+  "include": [
+    "src"
+  ]
+}

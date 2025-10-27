@@ -42,7 +42,8 @@
       "port": 9099
     },
     "functions": {
-      "port": 5001
+      "port": 5001,
+      "cors": "cors.json"
     },
     "firestore": {
       "port": 8080

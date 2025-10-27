@@ -1,5 +1,9 @@
+import 'package:el_visionat/providers/auth_provider.dart';
+import 'package:el_visionat/screens/login_page.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 
 class SideNavigationMenu extends StatelessWidget {
   const SideNavigationMenu({super.key});
@@ -7,6 +11,24 @@ class SideNavigationMenu extends StatelessWidget {
   // La URL del logo que vam obtenir de Firebase Storage
   final String logoUrl =
       'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/xiulet.svg?alt=media&token=bfac6951-619d-4c2d-962b-ea4a301843ed';
+
+  void _handleProfileTap(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      // L'usuari no ha iniciat sessió, reseteja l'estat i navega a LoginPage
+      context.read<AuthProvider>().reset();
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+    } else {
+      // L'usuari ha iniciat sessió, navega a una pàgina de perfil
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfilePage()),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,12 +84,51 @@ class SideNavigationMenu extends StatelessWidget {
               ],
             ),
           ),
-          const _NavigationItem(
+          _NavigationItem(
             icon: Icons.person,
             text: 'Perfil i configuració',
+            onTap: () => _handleProfileTap(context),
           ),
           const SizedBox(height: 32),
         ],
+      ),
+    );
+  }
+}
+
+/// Pàgina de perfil de marcador de posició per a usuaris que han iniciat sessió.
+class ProfilePage extends StatelessWidget {
+  const ProfilePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('El Meu Perfil'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Has iniciat sessió com: \n${user?.email ?? 'Usuari desconegut'}',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                // Tanquem la pàgina de perfil per tornar a la HomePage
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Tancar Sessió'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -77,11 +138,13 @@ class _NavigationItem extends StatelessWidget {
   final IconData icon;
   final String text;
   final bool isSelected;
+  final VoidCallback? onTap;
 
   const _NavigationItem({
     required this.icon,
     required this.text,
     this.isSelected = false,
+    this.onTap,
   });
 
   @override
@@ -89,30 +152,32 @@ class _NavigationItem extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final backgroundColor = isSelected
-        ? colorScheme.primary.withAlpha(51)
-        : Colors.transparent;
+    final backgroundColor =
+        isSelected ? colorScheme.primary.withAlpha(51) : Colors.transparent;
     final itemColor = isSelected ? colorScheme.primary : colorScheme.onSurface;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: backgroundColor,
+    return Material(
+      color: backgroundColor,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: itemColor),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              text,
-              overflow: TextOverflow.ellipsis,
-              style: textTheme.bodyLarge?.copyWith(color: itemColor),
-            ),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Icon(icon, color: itemColor),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  text,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyLarge?.copyWith(color: itemColor),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

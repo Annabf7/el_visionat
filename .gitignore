@@ -46,3 +46,9 @@ app.*.map.json
 
 
 /lib/firebase_options.dart
+
+# 🔒 Firebase service account (clau privada)
+serviceAccountKey.json
+*.pem
+*.key
+*.p12

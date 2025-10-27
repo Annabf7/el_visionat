@@ -46,7 +46,7 @@ export const validateLicenseRegister = functions.https.onCall(async (request, co
 
         const registryData = registryDoc.data() as LicenseProfile;
 
-        // 3. Comprovació d'Extricta Coincidència de Dades (TFG Error #6)
+        // 3. Comprovació d'Extricta Coincidència de Dades
         const emailMatch = registryData.email.toLowerCase() === email.toLowerCase();
         const nomMatch = registryData.nom.toLowerCase() === nom.toLowerCase();
         const cognomsMatch = registryData.cognoms.toLowerCase() === cognoms.toLowerCase();

@@ -1,3 +1,19 @@
+
+// Importacions per a les nostres funcions
+import { validateLicenseRegister } from './auth/validate_license_register';
+import { lookupLicense } from './auth/lookup_license';
+
+// Exportacions perquè Firebase les reconegui
+exports.validateLicenseRegister = validateLicenseRegister;
+exports.lookupLicense = lookupLicense;
+
+
+
+
+
+
+
+
 /**
  * Import function triggers from their respective submodules:
  *
@@ -5,7 +21,7 @@
  * import {onDocumentWritten} from "firebase-functions/v2/firestore";
  *
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
+ 
 
 import {onRequest} from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
@@ -17,3 +33,4 @@ import * as logger from "firebase-functions/logger";
 //   logger.info("Hello logs!", {structuredData: true});
 //   response.send("Hello from Firebase!");
 // });
+**/

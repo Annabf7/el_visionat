@@ -1,9 +1,12 @@
 {
+  "name": "el_visionat_scripts",
+  "version": "1.0.0",
+  "type": "module",
   "dependencies": {
-    "firebase-admin": "^13.5.0"
+    "firebase-admin": "^12.0.0"
   },
   "scripts": {
-    "seed": "ts-node -r tsconfig-paths/register scripts/seed_registry.ts"
+    "seed": "node --loader ts-node/esm --no-warnings scripts/seed_registry.ts"
   },
   "devDependencies": {
     "ts-node": "^10.9.2",
@@ -11,3 +14,4 @@
     "tsconfig-paths": "^4.2.0"
   }
 }
+

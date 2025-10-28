@@ -5,7 +5,6 @@ import { fileURLToPath } from 'url'; // Per obtenir __dirname en mòduls ESM
 import { type RefereeLicenseProfile } from './models.js'; // Importació de tipus ESM
 
 // Obtenció de rutes en entorns ESM (necessari per a la funció fs.readFileSync)
-// NOTA: Afegeix ".js" al final de la importació de './models' si TypeScript es queixa.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -17,6 +16,11 @@ interface RawRefereeData {
   categoria: string;
   rrtt: string;
 }
+
+// [NOU - CONNEXIÓ EMULADOR]
+// Aquesta línia li diu a l'SDK d'Admin que apunti al teu Firestore local
+// en lloc del de producció.
+process.env['FIRESTORE_EMULATOR_HOST'] = 'localhost:8080';
 
 // Inicialitza l'SDK d'Admin per a l'Emulador
 if (admin.apps.length === 0) {
@@ -31,6 +35,7 @@ async function seedRegistry() {
   console.log('--- Iniciant Càrrega Massiva de Dades de Llicències (Seeding) ---');
 
   // 1. Llegir l'arxiu JSON
+  // Aquesta ruta assumeix que 'registre_complet.json' està a la mateixa carpeta 'scripts'
   const jsonPath = path.join(__dirname, 'registre_complet.json');
   let rawData: RawRefereeData[];
   try {
@@ -59,7 +64,6 @@ async function seedRegistry() {
     const categoriaCompleta = `${rawReferee.categoria ? String(rawReferee.categoria).trim() : ''} ${rawReferee.rrtt ? String(rawReferee.rrtt).trim() : ''}`.trim();
 
     // Transformem les dades del JSON al nostre model de Firestore
-    // El camp 'email' no s'inclou, ja que és opcional (marcat amb '?')
     const transformedData: RefereeLicenseProfile = {
       llissenciaId: cleanedLicencia,
       nom: String(rawReferee.nom).trim(),

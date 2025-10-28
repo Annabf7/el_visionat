@@ -18,9 +18,7 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
+# VS Code (descomenta si vols ignorar tota la configuració de VSCode)
 #.vscode/
 
 # Flutter/Dart/Pub related
@@ -39,16 +37,23 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# Android Studio build artifacts
 /android/app/debug
 /android/app/profile
 /android/app/release
 
-
-/lib/firebase_options.dart
-
-# 🔒 Firebase service account (clau privada)
-serviceAccountKey.json
+# 🔐 Firebase & config
+/lib/firebase_options.dart             # autogenerat, es pot regenerar amb flutterfire cli
+serviceAccountKey.json                # CLAU PRIVADA, MAI fer commit!
 *.pem
 *.key
 *.p12
+
+# 🔐 AFEGIT: Google Services autogenerats
+android/app/google-services.json      # Firebase Android config
+ios/Runner/GoogleService-Info.plist   # Firebase iOS config
+
+# (Opcional) Scripts locals
+*.local
+firebase-debug.log
+firebase-debug.*.log

@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
+import '../providers/auth_provider.dart'; // Importem el provider actualitzat
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // The AuthProvider state is now reset from the navigation source.
+    // Nota: El reset del provider es fa des d'on es navega cap aquí (ex: side_navigation_menu)
+    // o quan es tanca sessió.
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: LayoutBuilder(
         builder: (context, constraints) {
           if (constraints.maxWidth < 900) {
-            return const _LoginPageMobile();
+            // Passem el AuthProvider per poder afegir el listener al TabController
+            return _LoginPageMobile(authProvider: context.read<AuthProvider>());
           } else {
             return const _LoginPageDesktop();
           }
@@ -25,31 +27,72 @@ class LoginPage extends StatelessWidget {
 }
 
 // --- Mobile Layout (Tabs) ---
-class _LoginPageMobile extends StatelessWidget {
-  const _LoginPageMobile();
+class _LoginPageMobile extends StatefulWidget {
+  final AuthProvider authProvider;
+  const _LoginPageMobile({required this.authProvider});
+
+  @override
+  State<_LoginPageMobile> createState() => _LoginPageMobileState();
+}
+
+class _LoginPageMobileState extends State<_LoginPageMobile>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_handleTabSelection);
+  }
+
+  void _handleTabSelection() {
+    // Si l'usuari canvia de pestanya DES DE la de registre CAP A la de login,
+    // fem un reset de l'estat del flux de registre.
+    if (!_tabController.indexIsChanging &&
+        _tabController.previousIndex == 1 &&
+        _tabController.index == 0) {
+      // Comprovem si encara existeix el widget abans de cridar mètodes del provider
+      if (mounted) {
+        widget.authProvider.reset();
+        debugPrint("AuthProvider reset due to tab change.");
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_handleTabSelection);
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          toolbarHeight: 0, // We only want the bottom part of the AppBar
-          bottom: TabBar(
-            tabs: const [
-              Tab(text: 'INICIAR SESSIÓ'),
-              Tab(text: 'REGISTRAR-SE'),
-            ],
-            labelStyle: Theme.of(context).textTheme.labelLarge,
-            unselectedLabelStyle: Theme.of(context).textTheme.labelLarge,
-          ),
-        ),
-        body: const TabBarView(
-          children: [
-            _LoginView(),
-            _RegisterView(),
+    return Scaffold(
+      appBar: AppBar(
+        // leading: IconButton( // Opcional: botó per tornar enrere
+        //   icon: const Icon(Icons.arrow_back),
+        //   onPressed: () => Navigator.of(context).pop(),
+        // ),
+        title: const Text("Accés / Registre"), // Títol més descriptiu
+        toolbarHeight: kToolbarHeight, // Restaurem l'alçada per al títol
+        bottom: TabBar(
+          controller: _tabController, // Important assignar el controlador
+          tabs: const [
+            Tab(text: 'INICIAR SESSIÓ'),
+            Tab(text: 'REGISTRAR-SE'),
           ],
+          labelStyle: Theme.of(context).textTheme.labelLarge,
+          unselectedLabelStyle: Theme.of(context).textTheme.labelLarge,
         ),
+      ),
+      body: TabBarView(
+        controller: _tabController, // Important assignar el controlador
+        children: const [
+          Center(child: _LoginView()), // Centrem per consistència
+          Center(child: _RegisterView()), // Centrem per consistència
+        ],
       ),
     );
   }
@@ -63,19 +106,16 @@ class _LoginPageDesktop extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Row(
       children: [
-        Expanded(
-          child: Center(child: _LoginView()),
-        ),
-        VerticalDivider(width: 1),
-        Expanded(
-          child: Center(child: _RegisterView()),
-        ),
+        Expanded(child: Center(child: _LoginView())),
+        VerticalDivider(width: 1, thickness: 1), // Fem el divisor visible
+        Expanded(child: Center(child: _RegisterView())),
       ],
     );
   }
 }
 
-// --- Reusable Login Form ---
+// --- Reusable Login Form (_LoginView) ---
+// (Aquest widget no canvia significativament, només ajustem la comprovació de l'error)
 class _LoginView extends StatefulWidget {
   const _LoginView();
 
@@ -96,26 +136,29 @@ class _LoginViewState extends State<_LoginView> {
   }
 
   Future<void> _submit() async {
+    // Amaguem el teclat si està obert
+    FocusScope.of(context).unfocus();
     if (_formKey.currentState?.validate() ?? false) {
-      final success = await context.read<AuthProvider>().signIn(
-            _emailController.text.trim(),
-            _passwordController.text.trim(),
-          );
-      if (!success && mounted) {
-        // Error message is already handled by the provider's listener
-      }
+      // La navegació en cas d'èxit es gestiona per un Listener a authStateChanges (fora d'aquí)
+      await context.read<AuthProvider>().signIn(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+      );
+      // L'error es mostra via el listener del watch a build()
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Use watch only for parts that need to rebuild on error/loading changes
     final authProvider = context.watch<AuthProvider>();
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    // We only want to show login-related errors here.
-    // The registration flow has its own error display area.
-    final showError = authProvider.errorMessage != null && !authProvider.isLicenseVerified;
+    // Mostrem error només si NO estem enmig del flux de registre
+    final bool showError =
+        authProvider.errorMessage != null &&
+        authProvider.currentStep == RegistrationStep.initial;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32.0),
@@ -127,35 +170,60 @@ class _LoginViewState extends State<_LoginView> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Iniciar Sessió', style: textTheme.displayMedium),
+              Text(
+                'Ja tens compte?',
+                style: textTheme.headlineMedium,
+              ), // Ajustem estil
               const SizedBox(height: 24),
               TextFormField(
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Correu Electrònic'),
+                decoration: const InputDecoration(labelText: 'Email'),
                 keyboardType: TextInputType.emailAddress,
-                validator: (value) => (value == null || !value.contains('@')) ? 'Introdueix un correu vàlid' : null,
+                validator: (value) => (value == null || !value.contains('@'))
+                    ? 'Introdueix un correu vàlid'
+                    : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _passwordController,
                 decoration: const InputDecoration(labelText: 'Contrasenya'),
                 obscureText: true,
-                validator: (value) => (value == null || value.length < 6) ? 'La contrasenya ha de tenir almenys 6 caràcters' : null,
+                validator: (value) => (value == null || value.length < 6)
+                    ? 'Mínim 6 caràcters'
+                    : null,
+                onFieldSubmitted: (_) => _submit(), // Permet enviar amb Enter
               ),
-              const SizedBox(height: 24),
-              if (authProvider.isLoading && !authProvider.isLicenseVerified)
+              const SizedBox(height: 8),
+              Align(
+                // Alineem el botó de "oblidar contrasenya"
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    /* TODO: Implementar recuperació contrasenya */
+                  },
+                  child: const Text('He oblidat la meva contrasenya'),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Mostrem l'indicador només si estem carregant AQUEST formulari
+              if (authProvider.isLoading &&
+                  authProvider.currentStep == RegistrationStep.initial)
                 const Center(child: CircularProgressIndicator())
               else
                 ElevatedButton(
-                  onPressed: _submit,
-                  child: const Text('ENTRAR'),
+                  onPressed: authProvider.isLoading
+                      ? null
+                      : _submit, // Desactivem si carrega
+                  child: const Text('Iniciar sessió'),
                 ),
               if (showError)
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0),
                   child: Text(
                     authProvider.errorMessage!,
-                    style: textTheme.bodyMedium?.copyWith(color: colorScheme.error),
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.error,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -167,37 +235,90 @@ class _LoginViewState extends State<_LoginView> {
   }
 }
 
-// --- Reusable Register Flow Container ---
+// --- Register Flow Container (_RegisterView) ---
+// (Aquest és el widget que canvia més)
 class _RegisterView extends StatelessWidget {
   const _RegisterView();
 
   @override
   Widget build(BuildContext context) {
+    // Observem el provider per reaccionar als canvis de 'currentStep'
     final authProvider = context.watch<AuthProvider>();
 
-    // The PopScope was removed. The logic to reset the state is now
-    // handled by a TabController listener in the _LoginPageMobile widget.
+    // Usem AnimatedSwitcher per a una transició suau entre passos
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       transitionBuilder: (child, animation) {
+        // Podem fer un Fade o Slide
         return FadeTransition(opacity: animation, child: child);
+        // return SlideTransition(
+        //   position: Tween<Offset>(
+        //     begin: const Offset(1.0, 0.0), // Entra des de la dreta
+        //     end: Offset.zero,
+        //   ).animate(animation),
+        //   child: child,
+        // );
       },
-      child: authProvider.isLicenseVerified
-          ? _RegisterStep2(key: const ValueKey('RegisterStep2'))
-          : _RegisterStep1(key: const ValueKey('RegisterStep1')),
+      // La Key és important per a AnimatedSwitcher
+      // Canviem el widget mostrat segons el pas actual
+      child: switch (authProvider.currentStep) {
+        // Pas inicial o mentre es verifica la llicència
+        RegistrationStep.initial || RegistrationStep.licenseLookup =>
+          const _RegisterStep1License(key: ValueKey('RegisterStep1')),
+
+        // Pas on es mostra info i es demana email, o s'està enviant
+        RegistrationStep.licenseVerified ||
+        RegistrationStep.requestingRegistration => const _RegisterStep2Email(
+          key: ValueKey('RegisterStep2'),
+        ),
+
+        // Pas on es mostra la confirmació d'enviament
+        RegistrationStep.requestSent => const _RegisterStep3RequestSent(
+          key: ValueKey('RegisterStep3'),
+        ),
+
+        // Si hi ha error, mostrem el pas on va ocórrer l'error
+        RegistrationStep.error => _buildErrorStep(context, authProvider),
+
+        // Aquests estats no es gestionen aquí, sinó en una altra pantalla
+        // o per navegació automàtica. Mostrem un estat per defecte o loading.
+        // [NOU] Afegim el cas que faltava aquí
+        RegistrationStep.approvedNeedPassword => const Center(
+          key: ValueKey('ApprovedLoading'), // Key diferent per si de cas
+          child: CircularProgressIndicator(),
+        ),
+        // Aquests estats també mostren loading o són gestionats per navegació
+        RegistrationStep.completingRegistration ||
+        RegistrationStep.registrationComplete => const Center(
+          key: ValueKey('RegisterLoading'),
+          child: CircularProgressIndicator(),
+        ),
+      },
     );
+  }
+
+  // Helper per decidir quin widget mostrar quan hi ha error
+  Widget _buildErrorStep(BuildContext context, AuthProvider authProvider) {
+    // Podríem tenir una lògica més complexa per saber a quin pas tornar,
+    // però de moment, si hi ha dades de llicència, mostrem el pas 2, sinó el 1.
+    if (authProvider.verifiedLicenseData != null) {
+      return const _RegisterStep2Email(key: ValueKey('RegisterStep2_Error'));
+    } else {
+      return const _RegisterStep1License(key: ValueKey('RegisterStep1_Error'));
+    }
   }
 }
 
-// --- Register Step 1: Verify License ---
-class _RegisterStep1 extends StatefulWidget {
-  const _RegisterStep1({super.key});
+// --- Register Step 1: Verify License (_RegisterStep1License) ---
+// (Abans _RegisterStep1)
+class _RegisterStep1License extends StatefulWidget {
+  const _RegisterStep1License({super.key});
 
   @override
-  State<_RegisterStep1> createState() => _RegisterStep1State();
+  State<_RegisterStep1License> createState() => _RegisterStep1LicenseState();
 }
 
-class _RegisterStep1State extends State<_RegisterStep1> {
+class _RegisterStep1LicenseState extends State<_RegisterStep1License> {
   final _licenseController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
@@ -208,16 +329,30 @@ class _RegisterStep1State extends State<_RegisterStep1> {
   }
 
   Future<void> _submit() async {
+    FocusScope.of(context).unfocus(); // Amaga teclat
     if (_formKey.currentState?.validate() ?? false) {
-      await context.read<AuthProvider>().verifyLicense(_licenseController.text.trim());
+      // Cridem al mètode del provider. La navegació/canvi d'estat
+      // es gestiona automàticament gràcies al watch a _RegisterView.
+      await context.read<AuthProvider>().verifyLicense(
+        _licenseController.text.trim(),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Escoltem canvis per mostrar loading/error
     final authProvider = context.watch<AuthProvider>();
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
+
+    final bool isCurrentlyLoading =
+        authProvider.isLoading &&
+        authProvider.currentStep == RegistrationStep.licenseLookup;
+    final bool showError =
+        authProvider.errorMessage != null &&
+        (authProvider.currentStep == RegistrationStep.error &&
+            authProvider.verifiedLicenseData == null);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32.0),
@@ -229,29 +364,39 @@ class _RegisterStep1State extends State<_RegisterStep1> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Registrar-se', style: textTheme.displayMedium),
-              const SizedBox(height: 8),
-              Text('Pas 1: Verificació de la llicència', style: textTheme.bodyLarge),
+              Text(
+                'Ets nou? Verifica la teva llicència',
+                style: textTheme.headlineMedium,
+              ),
+              // Text('Pas 1 de 3', style: textTheme.bodyLarge?.copyWith(color: colorScheme.primary)),
               const SizedBox(height: 24),
               TextFormField(
                 controller: _licenseController,
-                decoration: const InputDecoration(labelText: 'Número de Llicència'),
-                validator: (value) => (value == null || value.isEmpty) ? 'Introdueix el número de llicència' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Número de Llicència',
+                ),
+                validator: (value) => (value == null || value.trim().isEmpty)
+                    ? 'Introdueix el número de llicència'
+                    : null,
+                onFieldSubmitted: (_) => _submit(),
               ),
               const SizedBox(height: 24),
-              if (authProvider.isLoading)
+              if (isCurrentlyLoading)
                 const Center(child: CircularProgressIndicator())
               else
                 ElevatedButton(
-                  onPressed: _submit,
-                  child: const Text('VERIFICAR LLICÈNCIA'),
+                  // Desactivem si ja està carregant
+                  onPressed: authProvider.isLoading ? null : _submit,
+                  child: const Text('Verificar Llicència'),
                 ),
-              if (authProvider.errorMessage != null)
+              if (showError)
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0),
                   child: Text(
                     authProvider.errorMessage!,
-                    style: textTheme.bodyMedium?.copyWith(color: colorScheme.error),
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.error,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -263,15 +408,16 @@ class _RegisterStep1State extends State<_RegisterStep1> {
   }
 }
 
-// --- Register Step 2: Email Verification ---
-class _RegisterStep2 extends StatefulWidget {
-  const _RegisterStep2({super.key});
+// --- Register Step 2: Request Registration (_RegisterStep2Email) ---
+// (Nou widget basat en l'antic _RegisterStep2 i verifyEmail.jpg)
+class _RegisterStep2Email extends StatefulWidget {
+  const _RegisterStep2Email({super.key});
 
   @override
-  State<_RegisterStep2> createState() => _RegisterStep2State();
+  State<_RegisterStep2Email> createState() => _RegisterStep2EmailState();
 }
 
-class _RegisterStep2State extends State<_RegisterStep2> {
+class _RegisterStep2EmailState extends State<_RegisterStep2Email> {
   final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
@@ -281,12 +427,12 @@ class _RegisterStep2State extends State<_RegisterStep2> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
     if (_formKey.currentState?.validate() ?? false) {
-      // This will be implemented in the next task.
-      // context.read<AuthProvider>().requestEmailVerification(_emailController.text.trim());
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Funció "requestEmailVerification" no implementada encara.')),
+      // Cridem al mètode del provider per enviar la sol·licitud
+      await context.read<AuthProvider>().submitRegistrationRequest(
+        _emailController.text.trim(),
       );
     }
   }
@@ -294,16 +440,28 @@ class _RegisterStep2State extends State<_RegisterStep2> {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-    final userData = authProvider.verifiedUserData;
+    // Agafem les dades verificades del provider
+    final licenseData = authProvider.verifiedLicenseData;
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    if (userData == null) {
-      // This is a fallback. Should not be reached if logic is correct.
-      // It will show a loading or an empty container while transitioning.
-      return const Center(child: CircularProgressIndicator());
+    final bool isCurrentlyLoading =
+        authProvider.isLoading &&
+        authProvider.currentStep == RegistrationStep.requestingRegistration;
+    final bool showError =
+        authProvider.errorMessage != null &&
+        (authProvider.currentStep == RegistrationStep.error &&
+            authProvider.verifiedLicenseData != null);
+
+    // Fallback per si les dades no estan disponibles (no hauria de passar)
+    if (licenseData == null) {
+      return const Center(
+        key: ValueKey('Step2Loading'),
+        child: CircularProgressIndicator(),
+      );
     }
 
+    // Construïm la UI basada en verifyEmail.jpg
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32.0),
       child: ConstrainedBox(
@@ -314,42 +472,71 @@ class _RegisterStep2State extends State<_RegisterStep2> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Verificació del correu', style: textTheme.displayMedium),
+              Text('Dades Verificades!', style: textTheme.headlineMedium),
+              // Text('Pas 2 de 3', style: textTheme.bodyLarge?.copyWith(color: colorScheme.primary)),
+              const SizedBox(height: 16),
+              Text(
+                'Hola ${licenseData['nom'] ?? ''}! Hem confirmat la teva identitat.',
+                style: textTheme.bodyLarge,
+              ),
               const SizedBox(height: 8),
-              Text('Pas 2 de 2', style: textTheme.bodyLarge?.copyWith(color: colorScheme.primary)),
-              const SizedBox(height: 24),
-              _buildUserInfoTile('Nom', userData['nom'] ?? '', context),
-              _buildUserInfoTile('Cognoms', userData['cognoms'] ?? '', context),
-              _buildUserInfoTile('Delegació', userData['delegacio'] ?? '', context),
+              // Mostrem les dades obtingudes
+              _buildReadOnlyData(
+                'Nom',
+                '${licenseData['nom'] ?? ''} ${licenseData['cognoms'] ?? ''}',
+              ),
+              _buildReadOnlyData(
+                'Categoria',
+                licenseData['categoriaRrtt'] ?? 'N/A',
+              ),
               const SizedBox(height: 24),
               Text(
-                "Introdueix el teu correu electrònic per a crear el compte. T'enviarem un enllaç de verificació.",
+                "Si us plau, introdueix el teu correu electrònic. El teu compte requerirà una verificació manual abans de poder crear la contrasenya.",
                 style: textTheme.bodyMedium,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Correu Electrònic'),
+                decoration: const InputDecoration(
+                  labelText: 'Introdueix el correu electrònic',
+                ),
                 keyboardType: TextInputType.emailAddress,
-                validator: (value) => (value == null || !value.contains('@')) ? 'Introdueix un correu vàlid' : null,
+                validator: (value) => (value == null || !value.contains('@'))
+                    ? 'Introdueix un correu vàlid'
+                    : null,
+                onFieldSubmitted: (_) => _submit(),
               ),
               const SizedBox(height: 24),
-              if (authProvider.isLoading)
+              if (isCurrentlyLoading)
                 const Center(child: CircularProgressIndicator())
               else
                 ElevatedButton(
-                  onPressed: _submit,
-                  child: const Text('ENVIAR CORREU DE VERIFICACIÓ'),
+                  onPressed: authProvider.isLoading ? null : _submit,
+                  child: const Text('Enviar correu de verificació'),
                 ),
-              if (authProvider.errorMessage != null)
+              if (showError)
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0),
                   child: Text(
                     authProvider.errorMessage!,
-                    style: textTheme.bodyMedium?.copyWith(color: colorScheme.error),
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.error,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
+              // Botó per tornar enrere (opcional, reseteja l'estat)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: TextButton(
+                  onPressed: () {
+                    if (mounted) {
+                      context.read<AuthProvider>().reset();
+                    }
+                  },
+                  child: const Text('Tornar a introduir llicència'),
+                ),
+              ),
             ],
           ),
         ),
@@ -357,17 +544,88 @@ class _RegisterStep2State extends State<_RegisterStep2> {
     );
   }
 
-  Widget _buildUserInfoTile(String label, String value, BuildContext context) {
+  // Helper per mostrar les dades llegides (similar al _buildUserInfoTile anterior)
+  Widget _buildReadOnlyData(String label, String value) {
     final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: RichText(
         text: TextSpan(
-          style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurface),
+          style: textTheme.bodyLarge?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
           children: [
-            TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
+            TextSpan(
+              text: '$label: ',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             TextSpan(text: value),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// --- Register Step 3: Request Sent Confirmation (_RegisterStep3RequestSent) ---
+// (Nou widget basat en verifyEmail_exit.jpg)
+class _RegisterStep3RequestSent extends StatelessWidget {
+  const _RegisterStep3RequestSent({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+    final email =
+        authProvider.pendingEmail ??
+        'el teu correu'; // Email guardat al provider
+
+    return Padding(
+      padding: const EdgeInsets.all(32.0),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Icon(
+              Icons.check_circle_outline,
+              size: 60,
+              color: colorScheme.primary,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Sol·licitud Enviada!',
+              style: textTheme.headlineMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Gràcies, ${authProvider.verifiedLicenseData?['nom'] ?? 'usuari'}! Hem rebut la teva sol·licitud per registrar el compte amb $email.',
+              style: textTheme.bodyLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Rebràs un correu electrònic un cop la teva sol·licitud hagi estat revisada i aprovada. Llavors podràs accedir a l\'aplicació per crear la teva contrasenya.',
+              style: textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            // Botó per "tancar" o tornar a l'inici del login
+            OutlinedButton(
+              onPressed: () {
+                // Reseteja l'estat i torna al pas 1 (o a la vista de login)
+                // Ja no cal 'if (mounted)' aquí perquè estem en un StatelessWidget
+                context.read<AuthProvider>().reset();
+                // Opcional: Podríem forçar el canvi de Tab si som a mòbil
+                // (Això requeriria passar el TabController o buscar-lo d'una altra manera)
+                // final tabController = DefaultTabController.of(context);
+                // tabController?.animateTo(0);
+              },
+              child: const Text('Tornar a l\'inici'),
+            ),
           ],
         ),
       ),

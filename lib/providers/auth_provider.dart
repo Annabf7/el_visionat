@@ -1,76 +1,258 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Importem per als codis d'error
+
+/// Defineix els diferents passos del procés de registre manual.
+enum RegistrationStep {
+  initial, // Estat inicial, abans de verificar la llicència
+  licenseLookup, // Verificant la llicència
+  licenseVerified, // Llicència verificada, mostrant dades, esperant email
+  requestingRegistration, // Enviant la sol·licitud d'aprovació
+  requestSent, // Sol·licitud enviada, esperant aprovació manual
+  approvedNeedPassword, // [NOU] Detectat aprovat durant login, redirigir a crear contrasenya
+  completingRegistration, // Enviant contrasenya per finalitzar
+  registrationComplete, // Registre completat amb èxit
+  error, // Hi ha hagut un error en algun pas
+}
 
 class AuthProvider with ChangeNotifier {
   final AuthService authService;
 
   AuthProvider({required this.authService});
 
+  // --- Estats Generals ---
   bool _isLoading = false;
   String? _errorMessage;
-  bool _isLicenseVerified = false;
-  Map<String, dynamic>? _verifiedUserData;
+  RegistrationStep _currentStep = RegistrationStep.initial;
 
+  // --- Estats Específics del Registre ---
+  Map<String, dynamic>? _verifiedLicenseData;
+  String? _pendingLicenseId;
+  String? _pendingEmail;
+
+  // --- Getters Públics ---
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  bool get isLicenseVerified => _isLicenseVerified;
-  Map<String, dynamic>? get verifiedUserData => _verifiedUserData;
+  RegistrationStep get currentStep => _currentStep;
+  Map<String, dynamic>? get verifiedLicenseData => _verifiedLicenseData;
+  String? get pendingLicenseId => _pendingLicenseId;
+  String? get pendingEmail => _pendingEmail;
 
+  // --- Mètodes Privats per Gestionar Estat ---
   void _setLoading(bool loading) {
     if (_isLoading != loading) {
       _isLoading = loading;
-      notifyListeners();
     }
   }
 
-  void _setError(String? message) {
-    if (_errorMessage != message) {
-      _errorMessage = message;
-      notifyListeners();
+  void _setError(
+    String? message, {
+    bool notify = true,
+    RegistrationStep? errorStep,
+  }) {
+    _errorMessage = message;
+    // Si no especifiquem un pas d'error, per defecte anem a 'error'.
+    // Si ho especifiquem (ex: durant login), mantenim el pas actual o anem a 'initial'.
+    _currentStep = errorStep ?? RegistrationStep.error;
+    _isLoading = false;
+    if (notify) notifyListeners();
+  }
+
+  void _clearError() {
+    if (_errorMessage != null) {
+      _errorMessage = null;
     }
   }
 
-  /// Verifies a license ID by calling the auth service.
-  /// Returns true on success, false on failure.
-  Future<bool> verifyLicense(String licenseId) async {
+  // --- Mètodes Públics per a les Accions ---
+
+  /// PAS 1: Verifica la llicència ID.
+  Future<void> verifyLicense(String licenseId) async {
     _setLoading(true);
-    _setError(null);
+    _clearError();
+    _currentStep = RegistrationStep.licenseLookup;
+    notifyListeners();
+
     try {
-      final userData = await authService.lookupLicense(licenseId);
-      _verifiedUserData = userData;
-      _isLicenseVerified = true;
+      final data = await authService.lookupLicense(licenseId);
+      _verifiedLicenseData = data;
+      _pendingLicenseId = licenseId;
+      _currentStep = RegistrationStep.licenseVerified;
       _setLoading(false);
-      notifyListeners(); // Final notification after all state changes
-      return true;
+      notifyListeners();
     } on Exception catch (e) {
-      _setError(e.toString().replaceFirst('Exception: ', ''));
-      _setLoading(false);
-      return false;
+      _setError(e.toString().replaceFirst('Exception: ', ''), notify: true);
     }
   }
 
-  /// Signs in a user with email and password.
-  /// Returns true on success, false on failure.
+  /// PAS 2: Envia la sol·licitud de registre amb l'email.
+  Future<void> submitRegistrationRequest(String email) async {
+    if (_currentStep != RegistrationStep.licenseVerified ||
+        _pendingLicenseId == null) {
+      _setError("Estat invàlid per enviar la sol·licitud.", notify: true);
+      return;
+    }
+    _setLoading(true);
+    _clearError();
+    _currentStep = RegistrationStep.requestingRegistration;
+    notifyListeners();
+
+    try {
+      await authService.requestRegistration(
+        llissenciaId: _pendingLicenseId!,
+        email: email,
+      );
+      _pendingEmail = email;
+      _currentStep = RegistrationStep.requestSent;
+      _setLoading(false);
+      notifyListeners();
+    } on Exception catch (e) {
+      if (!e.toString().contains('already-exists')) {
+        _currentStep = RegistrationStep.licenseVerified;
+      }
+      _setError(e.toString().replaceFirst('Exception: ', ''), notify: true);
+    }
+  }
+
+  /// PAS 3: Completa el registre amb la contrasenya (després d'aprovació manual).
+  Future<void> completeRegistrationProcess(String password) async {
+    // Ara agafem licenseId i email de les variables pending guardades
+    if (_pendingLicenseId == null || _pendingEmail == null) {
+      _setError(
+        "Falten dades (llicència/email) per completar.",
+        notify: true,
+        errorStep: RegistrationStep.initial,
+      );
+      return;
+    }
+
+    _setLoading(true);
+    _clearError();
+    _currentStep = RegistrationStep.completingRegistration;
+    notifyListeners();
+
+    try {
+      await authService.completeRegistration(
+        llissenciaId: _pendingLicenseId!,
+        email: _pendingEmail!,
+        password: password,
+      );
+      _currentStep =
+          RegistrationStep.registrationComplete; // L'usuari ara està logat
+      _setLoading(false);
+      // No fem reset aquí, deixem que authStateChanges gestioni la navegació
+      notifyListeners();
+    } on Exception catch (e) {
+      // Si hi ha error aquí, probablement l'usuari haurà de tornar a començar o contactar suport.
+      _setError(
+        e.toString().replaceFirst('Exception: ', ''),
+        notify: true,
+        errorStep: RegistrationStep.error,
+      ); // Error final
+    }
+  }
+
+  /// Inicia sessió amb email i contrasenya (per a usuaris existents).
+  /// [NOU] Comprova si l'error és per falta de contrasenya en un compte aprovat.
   Future<bool> signIn(String email, String password) async {
     _setLoading(true);
-    _setError(null);
+    _clearError();
+    // Mantenim l'estat inicial durant el login normal
+    _currentStep = RegistrationStep.initial;
+    notifyListeners();
+
     try {
       await authService.signInWithEmail(email, password);
       _setLoading(false);
-      return true;
-    } on Exception catch (e) {
-      _setError(e.toString().replaceFirst('Exception: ', ''));
+      // reset(); // Opcional: netejar estats de registre si el login funciona
+      notifyListeners(); // Notifica isLoading = false
+      return true; // Login exitós
+    } on FirebaseAuthException catch (e) {
+      // Captura específica per codis d'error
+      debugPrint(
+        "FirebaseAuthException during signIn: ${e.code}",
+      ); // Mostrem el codi
+
+      // [NOU] Comprovem si l'error és 'wrong-password' o 'invalid-credential' (més nou)
+      // I si l'email no és buit (necessari per a la comprovació)
+      if ((e.code == 'wrong-password' || e.code == 'invalid-credential') &&
+          email.isNotEmpty) {
+        debugPrint(
+          "Possible pending registration for $email. Checking status...",
+        );
+        try {
+          // Cridem a la nova funció per comprovar l'estat
+          // *** IMPORTANT: Aquest mètode 'checkApprovedStatus' l'hem d'afegir a AuthService ***
+          final result = await authService.checkApprovedStatus(email);
+
+          if (result['isApproved'] == true && result['licenseId'] != null) {
+            debugPrint(
+              "Registration approved for $email, license ${result['licenseId']}. Redirecting to create password.",
+            );
+            // Guardem les dades necessàries per a CreatePasswordPage
+            _pendingEmail = email;
+            _pendingLicenseId = result['licenseId'];
+            _currentStep = RegistrationStep.approvedNeedPassword; // Nou estat!
+            _setLoading(false);
+            notifyListeners();
+            return false; // Indiquem que el login va fallar, però hem canviat d'estat
+          } else {
+            debugPrint("No approved registration found for $email.");
+            // Si no està aprovat, mostrem l'error de login original
+            _setError(
+              e.message ?? "Credencials incorrectes.",
+              notify: false,
+              errorStep: RegistrationStep.initial,
+            );
+          }
+        } catch (checkError) {
+          // Si falla la comprovació d'estat, mostrem l'error original de login
+          debugPrint("Error checking registration status: $checkError");
+          _setError(
+            e.message ?? "Credencials incorrectes.",
+            notify: false,
+            errorStep: RegistrationStep.initial,
+          );
+        }
+      } else {
+        // Si l'error no és wrong-password/invalid-credential, mostrem l'error directament
+        _setError(
+          e.message ?? "Error en iniciar sessió.",
+          notify: false,
+          errorStep: RegistrationStep.initial,
+        );
+      }
+
       _setLoading(false);
-      return false;
+      notifyListeners(); // Notifica l'error (si s'ha establert) i isLoading=false
+      return false; // Login fallit
+    } on Exception catch (e) {
+      // Captura genèrica per a altres errors
+      _setError(
+        e.toString().replaceFirst('Exception: ', ''),
+        notify: false,
+        errorStep: RegistrationStep.initial,
+      );
+      _setLoading(false);
+      notifyListeners();
+      return false; // Login fallit
     }
   }
 
-  /// Resets the provider state to its initial values.
+  /// Tanca la sessió de l'usuari actual.
+  Future<void> signOut() async {
+    await authService.signOut();
+    reset();
+  }
+
+  /// Restaura l'estat inicial del provider.
   void reset() {
     _isLoading = false;
     _errorMessage = null;
-    _isLicenseVerified = false;
-    _verifiedUserData = null;
+    _currentStep = RegistrationStep.initial;
+    _verifiedLicenseData = null;
+    _pendingLicenseId = null;
+    _pendingEmail = null;
     notifyListeners();
   }
 }

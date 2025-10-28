@@ -1,40 +1,38 @@
-import { onCall, HttpsError } from "firebase-functions/v2/https"; // <-- CANVI CLAU
+// functions/src/auth/lookup_license.ts
+// Versió original amb onCall v2
+
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 
-// Assegura't que l'SDK d'Admin estigui inicialitzat
-if (admin.apps.length === 0) {
-  admin.initializeApp();
-}
 const db = admin.firestore();
 
 /**
- * Funció Callable (Pas 2 del flux)
- * Busca una llicència al registre i retorna les dades si és vàlida.
- *
- * @param {string} llissenciaId - El número de llicència introduït per l'usuari.
- * @returns {Promise<{nom: string, cognoms: string, categoriaRrtt: string}>}
- * Retorna les dades públiques de l'àrbitre si es troba i està pendent.
- * @throws {HttpsError}
- * - 'invalid-argument': Si no es proporciona 'llissenciaId'.
- * - 'not-found': Si la llicència no existeix al registre.
- * - 'already-exists': Si la llicència ja té un compte actiu.
+ * Funció Callable (Pas 1 del flux)
+ * Busca una llicència al registre i retorna les dades si és vàlida i pendent.
  */
-export const lookupLicense = onCall(async (request) => { // <-- CANVI CLAU
+export const lookupLicense = onCall(async (request) => { 
+  // Afegim un log aquí per veure si arriba la crida
+  console.log('[lookupLicense onCall] Received request with data:', JSON.stringify(request.data));
+
   const llissenciaId = String(request.data.llissenciaId || '').trim();
 
   if (!llissenciaId) {
-    throw new HttpsError( // <-- CANVI CLAU
+    console.warn('[lookupLicense onCall] Invalid argument: Missing llissenciaId');
+    throw new HttpsError(
       'invalid-argument',
       'No s\'ha proporcionat un número de llicència.'
     );
   }
+
+  console.log(`[lookupLicense onCall] Looking up license: ${llissenciaId}`);
 
   try {
     const registryDocRef = db.collection('referees_registry').doc(llissenciaId);
     const registryDoc = await registryDocRef.get();
 
     if (!registryDoc.exists) {
-      throw new HttpsError( // <-- CANVI CLAU
+      console.warn(`[lookupLicense onCall] Not found: License ${llissenciaId}`);
+      throw new HttpsError(
         'not-found',
         'El número de llicència no s\'ha trobat al nostre registre. Si us plau, verifica-ho.'
       );
@@ -42,18 +40,29 @@ export const lookupLicense = onCall(async (request) => { // <-- CANVI CLAU
 
     const registryData = registryDoc.data();
     if (!registryData) {
-      throw new HttpsError('internal', 'Error llegint les dades del registre.'); // <-- CANVI CLAU
+      console.error(`[lookupLicense onCall] Internal error: Could not read data for license ${llissenciaId}`);
+      throw new HttpsError('internal', 'Error llegint les dades del registre.');
     }
+     console.log(`[lookupLicense onCall] Found data:`, registryData);
 
-    // Comprovem si el compte ja està actiu
+
     if (registryData.accountStatus === 'active') {
-      throw new HttpsError( // <-- CANVI CLAU
+       console.warn(`[lookupLicense onCall] Already exists: License ${llissenciaId} is active`);
+      throw new HttpsError(
         'already-exists',
         'Aquesta llicència ja està associada a un compte actiu.'
       );
     }
+    if (registryData.accountStatus !== 'pending') {
+         console.warn(`[lookupLicense onCall] Failed precondition: License ${llissenciaId} has unexpected status: ${registryData.accountStatus}`);
+         throw new HttpsError(
+           'failed-precondition',
+           `L'estat de la llicència (${registryData.accountStatus}) no permet el registre.`
+         );
+       }
 
-    // Èxit: La llicència és vàlida i està pendent de registre
+
+    console.log(`[lookupLicense onCall] Success for license ${llissenciaId}`);
     return {
       nom: registryData.nom,
       cognoms: registryData.cognoms,
@@ -61,12 +70,11 @@ export const lookupLicense = onCall(async (request) => { // <-- CANVI CLAU
     };
 
   } catch (error) {
-    if (error instanceof HttpsError) { // <-- CANVI CLAU
-      throw error; // Re-llancem els errors HttpsError que hem creat nosaltres
+     console.error(`[lookupLicense onCall] Error during execution for license ${llissenciaId}:`, error);
+    if (error instanceof HttpsError) {
+      throw error; // Re-llancem els HttpsError que hem creat nosaltres
     }
     // Per a qualsevol altre error inesperat
-    console.error('Error a lookupLicense:', error);
-    throw new HttpsError('internal', 'Ha ocorregut un error inesperat.'); // <-- CANVI CLAU
+    throw new HttpsError('internal', 'Ha ocorregut un error inesperat durant la verificació.');
   }
 });
-

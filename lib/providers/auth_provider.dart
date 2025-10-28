@@ -152,55 +152,59 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  /// Inicia sessió amb email i contrasenya (per a usuaris existents).
-  /// [NOU] Comprova si l'error és per falta de contrasenya en un compte aprovat.
+  /// Inicia sessió amb email i contrasenya.
+  /// Si falla, comprova si hi ha una sol·licitud aprovada per redirigir a crear contrasenya.
   Future<bool> signIn(String email, String password) async {
     _setLoading(true);
     _clearError();
-    // Mantenim l'estat inicial durant el login normal
-    _currentStep = RegistrationStep.initial;
+    _currentStep = RegistrationStep.initial; // Estat per a login normal
     notifyListeners();
 
     try {
+      // 1. Intentem iniciar sessió normalment
       await authService.signInWithEmail(email, password);
       _setLoading(false);
-      // reset(); // Opcional: netejar estats de registre si el login funciona
+      // reset(); // Opcional si vols netejar estat de registre en login exitós
       notifyListeners(); // Notifica isLoading = false
       return true; // Login exitós
     } on FirebaseAuthException catch (e) {
-      // Captura específica per codis d'error
+      // 2. Captura errors específics d'Auth
       debugPrint(
-        "FirebaseAuthException during signIn: ${e.code}",
-      ); // Mostrem el codi
+        "FirebaseAuthException during signIn: Code='${e.code}', Message='${e.message}'",
+      );
 
-      // [NOU] Comprovem si l'error és 'wrong-password' o 'invalid-credential' (més nou)
-      // I si l'email no és buit (necessari per a la comprovació)
-      if ((e.code == 'wrong-password' || e.code == 'invalid-credential') &&
-          email.isNotEmpty) {
+      // 3. SEMPRE comprovem l'estat si l'email no és buit i és un error típic de login
+      //    (user-not-found, wrong-password, invalid-credential)
+      final relevantErrorCodes = [
+        'user-not-found',
+        'wrong-password',
+        'invalid-credential',
+      ];
+      if (email.isNotEmpty && relevantErrorCodes.contains(e.code)) {
         debugPrint(
           "Possible pending registration for $email. Checking status...",
         );
         try {
-          // Cridem a la nova funció per comprovar l'estat
-          // *** IMPORTANT: Aquest mètode 'checkApprovedStatus' l'hem d'afegir a AuthService ***
+          // 4. Cridem a la funció per comprovar l'estat
           final result = await authService.checkApprovedStatus(email);
 
+          // 5. Si està aprovat, canviem l'estat per a la redirecció
           if (result['isApproved'] == true && result['licenseId'] != null) {
             debugPrint(
-              "Registration approved for $email, license ${result['licenseId']}. Redirecting to create password.",
+              "Registration approved for $email, license ${result['licenseId']}. Triggering create password flow.",
             );
-            // Guardem les dades necessàries per a CreatePasswordPage
             _pendingEmail = email;
             _pendingLicenseId = result['licenseId'];
-            _currentStep = RegistrationStep.approvedNeedPassword; // Nou estat!
+            _currentStep =
+                RegistrationStep.approvedNeedPassword; // Canvi d'estat clau!
             _setLoading(false);
-            notifyListeners();
+            notifyListeners(); // Notifiquem el canvi d'estat
             return false; // Indiquem que el login va fallar, però hem canviat d'estat
           } else {
             debugPrint("No approved registration found for $email.");
-            // Si no està aprovat, mostrem l'error de login original
+            // Si no està aprovat, establim l'error de login original
             _setError(
-              e.message ?? "Credencials incorrectes.",
+              e.message ?? "L'usuari o la contrasenya són incorrectes.",
               notify: false,
               errorStep: RegistrationStep.initial,
             );
@@ -209,13 +213,13 @@ class AuthProvider with ChangeNotifier {
           // Si falla la comprovació d'estat, mostrem l'error original de login
           debugPrint("Error checking registration status: $checkError");
           _setError(
-            e.message ?? "Credencials incorrectes.",
+            e.message ?? "L'usuari o la contrasenya són incorrectes.",
             notify: false,
             errorStep: RegistrationStep.initial,
           );
         }
       } else {
-        // Si l'error no és wrong-password/invalid-credential, mostrem l'error directament
+        // Si l'error d'Auth no és dels rellevants, mostrem l'error directament
         _setError(
           e.message ?? "Error en iniciar sessió.",
           notify: false,
@@ -223,11 +227,13 @@ class AuthProvider with ChangeNotifier {
         );
       }
 
+      // En tots els casos d'error d'Auth, acabem aquí
       _setLoading(false);
       notifyListeners(); // Notifica l'error (si s'ha establert) i isLoading=false
       return false; // Login fallit
     } on Exception catch (e) {
-      // Captura genèrica per a altres errors
+      // 6. Captura genèrica per a altres errors
+      debugPrint("Generic Exception during signIn: $e");
       _setError(
         e.toString().replaceFirst('Exception: ', ''),
         notify: false,

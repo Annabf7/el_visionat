@@ -2,11 +2,11 @@
 // Versió amb onCall v2, regió especificada, i logs de depuració
 
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import * as admin from "firebase-admin";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { RegistrationRequest } from "../models/registration_request";
 import { LicenseProfile } from "../models/license_profile"; // Importem LicenseProfile
 
-const db = admin.firestore();
+const db = getFirestore();
 
 interface RequestRegistrationData {
   llissenciaId: string;
@@ -14,7 +14,7 @@ interface RequestRegistrationData {
 }
 
 // Assegurem la regió aquí
-export const requestRegistration = onCall({ region: 'europe-west1' }, async (request) => {
+export const requestRegistration = onCall(async (request) => {
   // Log inicial
   console.log('[requestRegistration onCall] Received request with data:', JSON.stringify(request.data));
 
@@ -112,7 +112,7 @@ export const requestRegistration = onCall({ region: 'europe-west1' }, async (req
         nom: registryData.nom, // Agafem nom/cognoms del document llegit dins la transacció
         cognoms: registryData.cognoms,
         status: 'pending',
-        createdAt: admin.firestore.Timestamp.now(),
+        createdAt: FieldValue.serverTimestamp(),
       };
 
       transaction.set(newRequestRef, newRequestData);

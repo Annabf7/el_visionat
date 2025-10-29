@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart'; // Importem el provider
+import '../providers/auth_provider.dart';
 
 // Arguments necessaris per a aquesta pàgina
-// Ara és una classe simple i immutable
-@immutable // Bona pràctica marcar-la com immutable
 class CreatePasswordPageArguments {
   final String licenseId;
   final String email;
-
-  // Constructor const amb camps final
   const CreatePasswordPageArguments({
     required this.licenseId,
     required this.email,
@@ -21,31 +17,24 @@ class CreatePasswordPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Obtenim els arguments de forma segura DINS del mètode build
-    final Object? argsRaw = ModalRoute.of(context)?.settings.arguments;
+    // [CANVI CLAU] Llegim els arguments des de la ruta per al Navigator
+    final argsRaw = ModalRoute.of(context)?.settings.arguments;
 
-    // Validem si els arguments són del tipus esperat
     if (argsRaw is! CreatePasswordPageArguments) {
-      // Si no tenim els arguments correctes, gestionem l'error
-      // (potser tornant enrere i mostrant un missatge)
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (Navigator.canPop(context)) {
           Navigator.of(context).pop();
         }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Error: No s\'han pogut carregar les dades per crear la contrasenya.',
-            ),
+            content: Text('Error: Faltaven dades per crear la contrasenya.'),
             backgroundColor: Colors.red,
           ),
         );
       });
-      // Retornem un widget temporal mentre es gestiona la navegació/error
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // Si hem arribat aquí, tenim els arguments correctes
     final CreatePasswordPageArguments args = argsRaw;
 
     return Scaffold(
@@ -59,8 +48,8 @@ class CreatePasswordPage extends StatelessWidget {
           // Centrem el formulari
           return Center(
             child: _CreatePasswordForm(
-              licenseId: args.licenseId,
-              email: args.email,
+              licenseId: args.licenseId, // Passem la dada rebuda
+              email: args.email, // Passem la dada rebuda
             ),
           );
         },
@@ -70,15 +59,11 @@ class CreatePasswordPage extends StatelessWidget {
 }
 
 // --- Formulari per Crear Contrasenya ---
-// (Aquest widget no hauria de tenir errors)
 class _CreatePasswordForm extends StatefulWidget {
   final String licenseId;
   final String email;
 
-  const _CreatePasswordForm({
-    required this.licenseId,
-    required this.email,
-  }); // Eliminem key
+  const _CreatePasswordForm({required this.licenseId, required this.email});
 
   @override
   State<_CreatePasswordForm> createState() => _CreatePasswordFormState();
@@ -96,23 +81,33 @@ class _CreatePasswordFormState extends State<_CreatePasswordForm> {
     super.dispose();
   }
 
+  // Dins de la classe _CreatePasswordFormState
+
   Future<void> _submit() async {
-    FocusScope.of(context).unfocus(); // Amaga teclat
+    FocusScope.of(context).unfocus();
     if (_formKey.currentState?.validate() ?? false) {
       final authProvider = context.read<AuthProvider>();
 
-      // Passem totes les dades necessàries a completeRegistrationProcess
-      await authProvider.completeRegistrationProcess(
-        // Només cal la contrasenya aquí, ja que el provider hauria de
-        // tenir guardats licenseId i email del pas anterior.
-        // Si haguéssim perdut l'estat del provider (poc probable si la navegació és correcta),
-        // podríem passar widget.licenseId i widget.email també.
-        // Però confiem que el provider manté l'estat entre passos correctes.
-        _passwordController.text,
-      );
+      try {
+        // 1. Completem el registre (això crea i loga l'usuari)
+        await authProvider.completeRegistrationProcess(
+          _passwordController.text,
+        );
 
-      // Després de cridar, comprovem l'estat del provider (en el 'build')
-      // per veure si hi ha error. La navegació en cas d'èxit es gestionarà fora.
+        // 2. Si l'operació anterior té èxit, naveguem immediatament a la HomePage
+        // No cal comprovar firebaseUser, ja que la crida anterior loga l'usuari
+        if (mounted) {
+          // [CANVI CLAU] Redirecció final a HomePage i neteja de la pila.
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/home',
+            (route) =>
+                false, // Elimina la pila: AuthWrapper, LoginPage, CreatePasswordPage
+          );
+        }
+      } catch (e) {
+        // Qualsevol error serà gestionat pel provider (mostrar error a la UI)
+        // No fem res aquí, ja que el provider notifica l'error
+      }
     }
   }
 
@@ -128,7 +123,6 @@ class _CreatePasswordFormState extends State<_CreatePasswordForm> {
     final bool showError =
         authProvider.errorMessage != null &&
         authProvider.currentStep == RegistrationStep.error;
-    // Podríem refinar la condició d'error si cal
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32.0),

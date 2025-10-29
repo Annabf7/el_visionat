@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 
 /**
  * Model d'usuari per a la col·lecció /users/{uid} a Firestore.
@@ -10,7 +10,7 @@ export interface AppUser {
     displayName: string;
     role: 'referee' | 'admin' | 'table_official';
     isSubscribed: boolean; // La variable crítica de negoci
-    createdAt: Timestamp;
+    createdAt: Timestamp | FieldValue;
     
     // Dades de la llicència
     llissenciaId: string;

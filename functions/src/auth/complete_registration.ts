@@ -1,14 +1,15 @@
 // functions/src/auth/complete_registration.ts
 
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import * as admin from "firebase-admin";
-import { RegistrationRequest } from "../models/registration_request"; // Importem el model de sol·licitud
-import { AppUser } from "../models/app_user"; // Importem el model d'usuari final
-import { LicenseProfile } from "../models/license_profile"; // Importem el model del registre <--- NOM CORREGIT
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getAuth, UserRecord } from "firebase-admin/auth";
+import { RegistrationRequest } from "../models/registration_request";
+import { AppUser } from "../models/app_user";
+import { LicenseProfile } from "../models/license_profile";
 
 // NOTA: No cal admin.initializeApp() aquí, ja es fa a index.ts
-const db = admin.firestore();
-const auth = admin.auth();
+const db = getFirestore();
+const auth = getAuth();
 
 /**
  * Interfície per tipar les dades que arriben des de Flutter (pantalla createPassword).
@@ -87,7 +88,6 @@ export const completeRegistration = onCall(async (request) => {
 
     // Tenim una sol·licitud aprovada
     const approvedRequestDoc = requestSnapshot.docs[0];
-    const approvedRequestData = approvedRequestDoc.data() as RegistrationRequest;
 
     // 3. Transacció Atòmica per crear usuari i actualitzar estats
     const newUid = await db.runTransaction(async (transaction) => {
@@ -100,7 +100,7 @@ export const completeRegistration = onCall(async (request) => {
       const registryData = registryDoc.data() as LicenseProfile;
 
       // 3b. Crear l'usuari a Firebase Authentication
-      let userRecord: admin.auth.UserRecord;
+      let userRecord: UserRecord;
       try {
         userRecord = await auth.createUser({
           email: normalizedEmail,
@@ -126,7 +126,7 @@ export const completeRegistration = onCall(async (request) => {
         llissenciaId: llissenciaId,
         categoriaRrtt: registryData.categoriaRrtt,
         isSubscribed: false, // Estat inicial de subscripció
-        createdAt: admin.firestore.Timestamp.now(),
+        createdAt: FieldValue.serverTimestamp(),
       };
       const userDocRef = usersCollectionRef.doc(createdUid);
       transaction.set(userDocRef, newUserProfile);
@@ -137,7 +137,7 @@ export const completeRegistration = onCall(async (request) => {
       // 3e. Actualitzar l'estat a /registration_requests/{requestId} a 'completed'
       transaction.update(approvedRequestDoc.ref, {
          status: 'completed', // Marquem com a completada
-         updatedAt: admin.firestore.Timestamp.now()
+         updatedAt: FieldValue.serverTimestamp()
       });
 
       return createdUid; // La transacció retorna el UID del nou usuari

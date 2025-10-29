@@ -1,3 +1,4 @@
+import 'package:el_visionat/screens/create_password_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart'; // Importem el provider actualitzat
@@ -139,12 +140,33 @@ class _LoginViewState extends State<_LoginView> {
     // Amaguem el teclat si està obert
     FocusScope.of(context).unfocus();
     if (_formKey.currentState?.validate() ?? false) {
-      // La navegació en cas d'èxit es gestiona per un Listener a authStateChanges (fora d'aquí)
-      await context.read<AuthProvider>().signIn(
+      final authProvider = context.read<AuthProvider>();
+      final result = await authProvider.signIn(
         _emailController.text.trim(),
         _passwordController.text.trim(),
       );
-      // L'error es mostra via el listener del watch a build()
+
+      // Si el login detecta que l'usuari està aprovat i necessita crear
+      // una contrasenya, naveguem des d'aquí.
+      if (result == RegistrationStep.approvedNeedPassword) {
+        // Assegurem que el widget encara està muntat abans de navegar
+        if (mounted) {
+          final licenseId = authProvider.pendingLicenseId;
+          final email = authProvider.pendingEmail;
+          if (licenseId != null && email != null) {
+            Navigator.of(context).pushReplacementNamed(
+              '/create-password',
+              arguments: CreatePasswordPageArguments(
+                licenseId: licenseId,
+                email: email,
+              ),
+            );
+          }
+        }
+      }
+      // En altres casos (login exitós o error), no fem res.
+      // El login exitós serà gestionat per l'AuthWrapper (que veurà el canvi a User)
+      // i l'error es mostrarà a la UI gràcies al `watch` al mètode build.
     }
   }
 

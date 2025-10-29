@@ -1,6 +1,6 @@
 // functions/src/models/registration_request.ts
 
-import * as admin from 'firebase-admin';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 
 /**
  * Model de dades per als documents a la col·lecció /registration_requests.
@@ -25,12 +25,12 @@ export interface RegistrationRequest {
   /** Data i hora en què es va crear la sol·licitud.
    * Permet Timestamp (lectura) o FieldValue (escriptura de serverTimestamp).
    */
-  createdAt: admin.firestore.Timestamp | admin.firestore.FieldValue; // 
+  createdAt: Timestamp | FieldValue; // 
 
   /** Data i hora de l'última actualització (opcional).
    * Permet Timestamp (lectura) o FieldValue (escriptura de serverTimestamp).
    */
-  updatedAt?: admin.firestore.Timestamp | admin.firestore.FieldValue; // 
+  updatedAt?: Timestamp | FieldValue; // 
 
   /** Motiu del rebuig (opcional, si status és 'rejected'). */
   rejectionReason?: string;

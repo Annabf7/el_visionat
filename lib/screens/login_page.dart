@@ -1,4 +1,5 @@
 import 'package:el_visionat/screens/create_password_page.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart'; // Importem el provider actualitzat
@@ -70,6 +71,24 @@ class _LoginPageMobileState extends State<_LoginPageMobile>
 
   @override
   Widget build(BuildContext context) {
+    // [NOU] Obtenim l'usuari de Firebase des del provider.
+    // La directiva `watch` fa que el widget es reconstrueixi si l'estat de l'usuari canvia.
+    final firebaseUser = context.watch<User?>();
+
+    // Si l'usuari ha iniciat sessió (no és null), mostrem una vista simple de perfil sense pestanyes.
+    // Segons l'enunciat, _LoginView ja gestiona la visualització del perfil.
+    if (firebaseUser != null) {
+      return Scaffold(
+        appBar: AppBar(
+          // Canviem el títol per reflectir que és la pàgina de perfil.
+          title: const Text("El meu Perfil / Configuració"),
+        ),
+        body: const Center(child: _LoginView()),
+      );
+    }
+
+    // Si l'usuari NO ha iniciat sessió, mantenim el disseny de pestanyes
+    // per permetre iniciar sessió o registrar-se.
     return Scaffold(
       appBar: AppBar(
         // leading: IconButton( // Opcional: botó per tornar enrere
@@ -105,6 +124,18 @@ class _LoginPageDesktop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // [NOU] Obtenim l'usuari de Firebase des del provider.
+    // La directiva `watch` fa que el widget es reconstrueixi si l'estat de l'usuari canvia.
+    final firebaseUser = context.watch<User?>();
+
+    // Si l'usuari ha iniciat sessió (no és null), només mostrem la vista de perfil.
+    // Segons l'enunciat, _LoginView ja gestiona la visualització del perfil.
+    if (firebaseUser != null) {
+      return const Center(child: _LoginView());
+    }
+
+    // Si l'usuari NO ha iniciat sessió, mostrem el disseny de dues columnes
+    // per permetre iniciar sessió o registrar-se.
     return const Row(
       children: [
         Expanded(child: Center(child: _LoginView())),

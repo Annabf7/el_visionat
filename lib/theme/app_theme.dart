@@ -39,6 +39,20 @@ class AppTheme {
         labelSmall: TextStyle(fontFamily: 'Inter', color: grisPistacho),
       ),
       fontFamily: 'Inter',
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: porpraFosc,
+          foregroundColor: grisPistacho,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+              8,
+            ), // Cantonades menys arrodonides
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: porpraFosc),
+      ),
     );
   }
 }

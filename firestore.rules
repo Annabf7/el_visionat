@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Regles per a la col·lecció de la Llista Mestra
+    match /referees_registry/{licenseId} {
+      // Només el backend pot crear/actualitzar (seeding), i només es pot llegir si hi ha autenticació.
+      allow read: if request.auth != null;
+      allow write: if false; // Totes les escriptures es fan via Cloud Functions
+    }
+
+    // Regles per a les Sol·licituds de Registre
+    match /registration_requests/{requestId} {
+      // La lectura i escriptura es fa a través de Cloud Functions o l'admin (Anna)
+      allow read, write: if request.auth != null; 
+    }
+
+    // Regles per a la col·lecció d'Equips [NOU]
+    match /teams/{teamId} {
+      // Els usuaris logats (qualsevol rol) poden LLEGIR les dades dels equips
+      allow read: if request.auth != null;
+      // Només els administradors/backend poden crear, actualitzar o eliminar equips
+      allow create, update, delete: if false; 
+    }
+
+    // Regla de seguretat per defecte (bloqueja tot el que no es troba a dalt)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

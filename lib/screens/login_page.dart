@@ -71,12 +71,12 @@ class _LoginPageMobileState extends State<_LoginPageMobile>
 
   @override
   Widget build(BuildContext context) {
-    // [NOU] Obtenim l'usuari de Firebase des del provider.
+    // Obtenim l'usuari de Firebase des del provider.
     // La directiva `watch` fa que el widget es reconstrueixi si l'estat de l'usuari canvia.
     final firebaseUser = context.watch<User?>();
 
     // Si l'usuari ha iniciat sessió (no és null), mostrem una vista simple de perfil sense pestanyes.
-    // Segons l'enunciat, _LoginView ja gestiona la visualització del perfil.
+    // La vista _LoginView ara gestiona internament si mostrar el perfil o el formulari de login.
     if (firebaseUser != null) {
       return Scaffold(
         appBar: AppBar(
@@ -91,10 +91,6 @@ class _LoginPageMobileState extends State<_LoginPageMobile>
     // per permetre iniciar sessió o registrar-se.
     return Scaffold(
       appBar: AppBar(
-        // leading: IconButton( // Opcional: botó per tornar enrere
-        //   icon: const Icon(Icons.arrow_back),
-        //   onPressed: () => Navigator.of(context).pop(),
-        // ),
         title: const Text("Accés / Registre"), // Títol més descriptiu
         toolbarHeight: kToolbarHeight, // Restaurem l'alçada per al títol
         bottom: TabBar(
@@ -110,8 +106,8 @@ class _LoginPageMobileState extends State<_LoginPageMobile>
       body: TabBarView(
         controller: _tabController, // Important assignar el controlador
         children: const [
-          Center(child: _LoginView()), // Centrem per consistència
-          Center(child: _RegisterView()), // Centrem per consistència
+          Center(child: _LoginView()), // Aquesta vista mostrarà el formulari de login
+          Center(child: _RegisterView()), // Aquesta vista mostrarà el formulari de registre
         ],
       ),
     );
@@ -124,12 +120,12 @@ class _LoginPageDesktop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // [NOU] Obtenim l'usuari de Firebase des del provider.
+    // Obtenim l'usuari de Firebase des del provider.
     // La directiva `watch` fa que el widget es reconstrueixi si l'estat de l'usuari canvia.
     final firebaseUser = context.watch<User?>();
 
     // Si l'usuari ha iniciat sessió (no és null), només mostrem la vista de perfil.
-    // Segons l'enunciat, _LoginView ja gestiona la visualització del perfil.
+    // La vista _LoginView ara gestiona internament si mostrar el perfil o el formulari de login.
     if (firebaseUser != null) {
       return const Center(child: _LoginView());
     }
@@ -146,8 +142,8 @@ class _LoginPageDesktop extends StatelessWidget {
   }
 }
 
-// --- Reusable Login Form (_LoginView) ---
-// (Aquest widget no canvia significativament, només ajustem la comprovació de l'error)
+// --- Reusable Login/Profile View (_LoginView) ---
+// [MODIFICAT] Aquest widget ara gestiona tant el login com la vista de perfil.
 class _LoginView extends StatefulWidget {
   const _LoginView();
 
@@ -203,14 +199,75 @@ class _LoginViewState extends State<_LoginView> {
 
   @override
   Widget build(BuildContext context) {
-    // Use watch only for parts that need to rebuild on error/loading changes
+    // Mirem l'usuari de Firebase per decidir què mostrar.
+    final firebaseUser = context.watch<User?>();
     final authProvider = context.watch<AuthProvider>();
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    // Mostrem error només si NO estem enmig del flux de registre
-    final bool showError =
-        authProvider.errorMessage != null &&
+    // **NOU: Si l'usuari està connectat, mostrem la vista de perfil/logout.**
+    if (firebaseUser != null) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(32.0),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'El meu Perfil',
+                style: textTheme.headlineMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              if (firebaseUser.photoURL != null &&
+                  firebaseUser.photoURL!.isNotEmpty) ...[
+                CircleAvatar(
+                  radius: 40,
+                  backgroundImage: NetworkImage(firebaseUser.photoURL!),
+                ),
+                const SizedBox(height: 16),
+              ] else ...[
+                const CircleAvatar(
+                  radius: 40,
+                  child: Icon(Icons.person, size: 40),
+                ),
+                const SizedBox(height: 16),
+              ],
+              Text(
+                firebaseUser.displayName ?? 'Usuari',
+                style: textTheme.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                firebaseUser.email!,
+                style: textTheme.bodyLarge,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.logout),
+                label: const Text('Tancar Sessió'),
+                onPressed: () async {
+                  // Cridem al mètode signOut del provider.
+                  await authProvider.signOut();
+                  // No cal navegar, el wrapper s'encarregarà de redirigir.
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colorScheme.errorContainer,
+                  foregroundColor: colorScheme.onErrorContainer,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // **VISTA ANTIGA: Si l'usuari NO està connectat, mostrem el formulari de login.**
+    final bool showError = authProvider.errorMessage != null &&
         authProvider.currentStep == RegistrationStep.initial;
 
     return SingleChildScrollView(

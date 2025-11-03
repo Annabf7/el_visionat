@@ -371,40 +371,41 @@ class _RegisterView extends StatelessWidget {
       },
       // La Key és important per a AnimatedSwitcher
       // Canviem el widget mostrat segons el pas actual
-      child: switch (authProvider.currentStep) {
-        // Pas inicial o mentre es verifica la llicència
-        RegistrationStep.initial || RegistrationStep.licenseLookup =>
-          const _RegisterStep1License(key: ValueKey('RegisterStep1')),
+      child: _registerStepChild(context, authProvider),
+    );
+  }
 
-        // Pas on es mostra info i es demana email, o s'està enviant
-        RegistrationStep.licenseVerified ||
-        RegistrationStep.requestingRegistration => const _RegisterStep2Email(
-          key: ValueKey('RegisterStep2'),
-        ),
+  // Helper to map RegistrationStep to the widget to display. Replaces
+  // the Dart 3 switch-expression to keep compatibility with older analyzers.
+  Widget _registerStepChild(BuildContext context, AuthProvider authProvider) {
+    switch (authProvider.currentStep) {
+      case RegistrationStep.initial:
+      case RegistrationStep.licenseLookup:
+        return const _RegisterStep1License(key: ValueKey('RegisterStep1'));
 
-        // Pas on es mostra la confirmació d'enviament
-        RegistrationStep.requestSent => const _RegisterStep3RequestSent(
-          key: ValueKey('RegisterStep3'),
-        ),
+      case RegistrationStep.licenseVerified:
+      case RegistrationStep.requestingRegistration:
+        return const _RegisterStep2Email(key: ValueKey('RegisterStep2'));
 
-        // Si hi ha error, mostrem el pas on va ocórrer l'error
-        RegistrationStep.error => _buildErrorStep(context, authProvider),
+      case RegistrationStep.requestSent:
+        return const _RegisterStep3RequestSent(key: ValueKey('RegisterStep3'));
 
-        // Aquests estats no es gestionen aquí, sinó en una altra pantalla
-        // o per navegació automàtica. Mostrem un estat per defecte o loading.
-        // [NOU] Afegim el cas que faltava aquí
-        RegistrationStep.approvedNeedPassword => const Center(
-          key: ValueKey('ApprovedLoading'), // Key diferent per si de cas
+      case RegistrationStep.error:
+        return _buildErrorStep(context, authProvider);
+
+      case RegistrationStep.approvedNeedPassword:
+        return const Center(
+          key: ValueKey('ApprovedLoading'),
           child: CircularProgressIndicator(),
-        ),
-        // Aquests estats també mostren loading o són gestionats per navegació
-        RegistrationStep.completingRegistration ||
-        RegistrationStep.registrationComplete => const Center(
+        );
+
+      case RegistrationStep.completingRegistration:
+      case RegistrationStep.registrationComplete:
+        return const Center(
           key: ValueKey('RegisterLoading'),
           child: CircularProgressIndicator(),
-        ),
-      },
-    );
+        );
+    }
   }
 
   // Helper per decidir quin widget mostrar quan hi ha error

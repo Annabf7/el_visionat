@@ -4,6 +4,9 @@ import 'package:el_visionat/screens/create_password_page.dart';
 import 'package:el_visionat/screens/home_page.dart';
 import 'package:el_visionat/screens/login_page.dart';
 import 'package:el_visionat/services/auth_service.dart';
+import 'package:el_visionat/services/isar_service.dart';
+import 'package:el_visionat/services/team_data_service.dart';
+import 'package:el_visionat/services/firestore_seeder.dart';
 import 'package:el_visionat/theme/app_theme.dart';
 import 'package:el_visionat/providers/home_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
@@ -38,10 +41,30 @@ void main() async {
     functions: functionsInstance,
   );
 
+  // --- Inicialització Isar i TeamDataService (persistència local) ---
+  // If running on web, ensure the teams collection is seeded so the UI can
+  // fetch the teams directly from Firestore (we bypass Isar on web).
+  if (kIsWeb) {
+    await seedTeamsIfEmpty(FirebaseFirestore.instance);
+  }
+
+  final isarService = IsarService();
+  // Assegurem que la BBDD està oberta abans d'arrencar l'app
+  await isarService.openDB();
+
+  // Instanciem el servei de dades d'equips passant Isar i Firestore
+  final teamDataService = TeamDataService(
+    isarService,
+    FirebaseFirestore.instance,
+  );
+
   runApp(
     // --- Configuració dels Providers ---
     MultiProvider(
       providers: [
+        // Injecció dels serveis de persistència (disponibles globalment)
+        Provider<IsarService>.value(value: isarService),
+        Provider<TeamDataService>.value(value: teamDataService),
         // Proveïdor per a l'estat d'autenticació de Firebase (User?)
         StreamProvider<User?>.value(
           value: authService

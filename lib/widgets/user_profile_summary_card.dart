@@ -74,14 +74,18 @@ class UserProfileSummaryCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Row(
+              child: Row(
+                mainAxisSize: MainAxisSize.max,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.play_arrow, color: AppTheme.grisPistacho),
-                  SizedBox(width: 8),
-                  Text(
-                    'Veure entrevista',
-                    style: TextStyle(color: AppTheme.grisPistacho),
+                  const Icon(Icons.play_arrow, color: AppTheme.grisPistacho),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Veure entrevista',
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: AppTheme.grisPistacho),
+                    ),
                   ),
                 ],
               ),
@@ -107,16 +111,14 @@ class UserProfileSummaryCard extends StatelessWidget {
               ),
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: const TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textBlackLow,
-              ),
+          Text(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textBlackLow,
             ),
           ),
         ],

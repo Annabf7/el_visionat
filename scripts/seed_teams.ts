@@ -5,10 +5,26 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 // [CORRECCIÓ 1] Importem l'enum de gènere directament des del seu fitxer font
-import { TeamGender } from '../functions/src/models/team_gender.js'; // <-- FONT CORRECTA
-// [CORRECCIÓ 2] Importem el model Team des del seu fitxer font
-import { Team } from '../functions/src/models/team.js'; 
+// Handle CommonJS/ESM interop for imports from the functions package when running
+// this script under `ts-node/esm`. Some compiled files under `functions/src`
+// may be CommonJS, so import the default and extract the named export.
 import { Timestamp } from 'firebase-admin/firestore';
+
+// Instead of importing runtime types from the functions package (which may be
+// compiled to CommonJS/TS and cause interop issues when running under
+// ts-node/esm), declare a local lightweight type and use plain string values
+// for gender. This avoids module-format problems when seeding from scripts.
+type TeamGender = 'Masculina' | 'Femenina';
+
+interface TeamType {
+    id: string;
+    name: string;
+    acronym: string;
+    gender: TeamGender;
+    logoUrl: string;
+    colorHex: string;
+    lastUpdated: any;
+}
 
 // Obtenció de rutes en entorns ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -66,11 +82,11 @@ async function seedTeamsRegistry() {
         }
         
         // Transformem les dades del JSON al nostre model de Firestore
-        const transformedData: Team = {
+    const transformedData: TeamType = {
             id: rawTeam.id,
             name: rawTeam.name.trim(),
             acronym: rawTeam.acronym.trim(),
-            gender: rawTeam.gender === 'Masculina' ? TeamGender.Masculina : TeamGender.Femenina,
+            gender: rawTeam.gender === 'Masculina' ? 'Masculina' : 'Femenina',
             logoUrl: rawTeam.logoUrl.trim(),
             colorHex: rawTeam.colorHex.trim(),
             lastUpdated: updateTime, // Utilitzem la marca de temps

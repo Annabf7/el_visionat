@@ -25,6 +25,12 @@ class _VotingSectionState extends State<VotingSection> {
   Future<void> _loadTeams() async {
     try {
       final teams = await context.read<TeamDataService>().getTeams();
+      debugPrint('VotingSection: _loadTeams fetched ${teams.length} teams');
+      if (teams.isNotEmpty) {
+        debugPrint(
+          'VotingSection: first 5 teams: ${teams.take(5).map((t) => t.name).toList()}',
+        );
+      }
       if (mounted) {
         setState(() {
           _teams = teams;
@@ -45,6 +51,9 @@ class _VotingSectionState extends State<VotingSection> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<HomeProvider>();
+    debugPrint(
+      'VotingSection: build called — _isLoading=$_isLoading, _teams.length=${_teams.length}',
+    );
 
     return Container(
       padding: const EdgeInsets.all(24.0),
@@ -95,6 +104,20 @@ class _VotingSectionState extends State<VotingSection> {
                 );
               });
             }()),
+          // DEBUG: show a compact visible list of first 8 team names to ensure UI renders data
+          if (!_isLoading && _teams.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            const Text(
+              'DEBUG: equips carregats:',
+              style: TextStyle(color: AppTheme.grisPistacho),
+            ),
+            const SizedBox(height: 6),
+            for (var i = 0; i < (_teams.length > 8 ? 8 : _teams.length); i++)
+              Text(
+                '- ${_teams[i].name}',
+                style: const TextStyle(color: AppTheme.grisPistacho),
+              ),
+          ],
           const SizedBox(height: 16),
           Center(
             child: ElevatedButton(

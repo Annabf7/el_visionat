@@ -1,5 +1,5 @@
 import 'package:el_visionat/models/team_platform.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -16,11 +16,7 @@ class IsarService {
   Future<Isar> openDB() async {
     if (Isar.instanceNames.isEmpty) {
       if (kIsWeb) {
-        return await Isar.open(
-          [TeamSchema],
-          directory: '',
-          inspector: true,
-        );
+        return await Isar.open([TeamSchema], directory: '', inspector: true);
       } else {
         final dir = await getApplicationDocumentsDirectory();
         return await Isar.open(
@@ -35,13 +31,22 @@ class IsarService {
 
   Future<void> saveAll(List<Team> teams) async {
     final isar = await db;
-    await isar.writeTxn(() async {
-      await isar.teams.putAll(teams);
-    });
+    try {
+      debugPrint('IsarService: saving ${teams.length} teams to Isar');
+      await isar.writeTxn(() async {
+        await isar.teams.putAll(teams);
+      });
+      debugPrint('IsarService: saved ${teams.length} teams to Isar');
+    } catch (e, st) {
+      debugPrint('IsarService: error saving teams to Isar: $e\n$st');
+      rethrow;
+    }
   }
 
   Future<List<Team>> getAllTeams() async {
     final isar = await db;
-    return await isar.teams.where().findAll();
+    final list = await isar.teams.where().findAll();
+    debugPrint('IsarService: getAllTeams returned ${list.length} records');
+    return list;
   }
 }

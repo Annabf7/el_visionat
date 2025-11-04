@@ -85,9 +85,14 @@ class _VotingSectionState extends State<VotingSection> {
         .toList();
   }
 
-  String _format(String iso) {
+  String _formatDate(String iso) {
     final dt = DateTime.parse(iso).toLocal();
-    return DateFormat('dd/MM/yyyy • HH:mm', 'ca_ES').format(dt);
+    return DateFormat('dd/MM/yyyy', 'ca_ES').format(dt);
+  }
+
+  String _formatTime(String iso) {
+    final dt = DateTime.parse(iso).toLocal();
+    return DateFormat('HH:mm', 'ca_ES').format(dt);
   }
 
   String _initials(String name) {
@@ -102,7 +107,8 @@ class _VotingSectionState extends State<VotingSection> {
     return Container(
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
-        color: AppTheme.porpraFosc,
+        // Use the lighter 'white' tone from AppTheme (D9D9D9) as requested
+        color: AppTheme.white,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -113,9 +119,10 @@ class _VotingSectionState extends State<VotingSection> {
             children: [
               Text(
                 'Jornada 14',
-                style: GoogleFonts.montserrat(
+                style: GoogleFonts.inter(
                   textStyle: const TextStyle(
-                    color: AppTheme.grisPistacho,
+                    // Inter family and grey body color
+                    color: AppTheme.grisBody,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),
@@ -127,8 +134,8 @@ class _VotingSectionState extends State<VotingSection> {
                   const SizedBox(width: 6),
                   Text(
                     'Votació Oberta',
-                    style: GoogleFonts.montserrat(
-                      textStyle: const TextStyle(color: AppTheme.grisPistacho),
+                    style: GoogleFonts.inter(
+                      textStyle: const TextStyle(color: AppTheme.grisBody),
                     ),
                   ),
                 ],
@@ -151,8 +158,8 @@ class _VotingSectionState extends State<VotingSection> {
                   padding: const EdgeInsets.all(12.0),
                   child: Text(
                     'Error carregant enfrontaments',
-                    style: GoogleFonts.montserrat(
-                      textStyle: const TextStyle(color: AppTheme.grisPistacho),
+                    style: GoogleFonts.inter(
+                      textStyle: const TextStyle(color: AppTheme.grisBody),
                     ),
                   ),
                 );
@@ -164,8 +171,8 @@ class _VotingSectionState extends State<VotingSection> {
                   padding: const EdgeInsets.all(12.0),
                   child: Text(
                     'No hi ha enfrontaments',
-                    style: GoogleFonts.montserrat(
-                      textStyle: const TextStyle(color: AppTheme.grisPistacho),
+                    style: GoogleFonts.inter(
+                      textStyle: const TextStyle(color: AppTheme.grisBody),
                     ),
                   ),
                 );
@@ -213,9 +220,7 @@ class _VotingSectionState extends State<VotingSection> {
                       child: Text(
                         'Veure tots',
                         style: GoogleFonts.montserrat(
-                          textStyle: const TextStyle(
-                            color: Colors.orangeAccent,
-                          ),
+                          textStyle: const TextStyle(color: Colors.black45),
                         ),
                       ),
                     ),
@@ -232,7 +237,8 @@ class _VotingSectionState extends State<VotingSection> {
   Widget _cardFor(MatchSeed m) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
-      color: const Color(0xFF2C2C3A),
+      // Remove the dark/purple rectangle — make the card surface match the section (light)
+      color: AppTheme.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -242,11 +248,11 @@ class _VotingSectionState extends State<VotingSection> {
             LayoutBuilder(
               builder: (context, constraints) {
                 final w = constraints.maxWidth;
-                double logoSize = 48;
+                double logoSize = 130;
                 if (w >= 800) {
                   logoSize = 96;
                 } else if (w >= 400) {
-                  logoSize = 72;
+                  logoSize = 172;
                 }
                 final compact = w < 420;
 
@@ -254,25 +260,35 @@ class _VotingSectionState extends State<VotingSection> {
                   final asset = logo.isNotEmpty
                       ? 'assets/images/teams/$logo'
                       : '';
+                  // Per design: use lilaMitja circular background for logos (no rectangle)
+                  final bg = AppTheme.white;
                   if (asset.isNotEmpty) {
-                    return ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image(
-                        image: ResizeImage(
-                          AssetImage(asset),
-                          width: logoSize.round(),
-                        ),
-                        width: logoSize,
-                        height: logoSize,
-                        fit: BoxFit.contain,
-                        semanticLabel: name,
-                        errorBuilder: (c, e, s) => CircleAvatar(
-                          radius: logoSize / 2,
-                          backgroundColor: Colors.grey[700],
-                          child: Text(
-                            _initials(name),
-                            style: GoogleFonts.montserrat(
-                              textStyle: const TextStyle(color: Colors.white),
+                    return Container(
+                      width: logoSize,
+                      height: logoSize,
+                      decoration: BoxDecoration(
+                        color: bg,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: ClipOval(
+                        child: Image(
+                          image: ResizeImage(
+                            AssetImage(asset),
+                            width: (logoSize * 0.8).round(),
+                          ),
+                          width: logoSize * 0.8,
+                          height: logoSize * 0.8,
+                          fit: BoxFit.contain,
+                          semanticLabel: name,
+                          errorBuilder: (c, e, s) => CircleAvatar(
+                            radius: (logoSize * 0.4),
+                            backgroundColor: bg,
+                            child: Text(
+                              _initials(name),
+                              style: GoogleFonts.montserrat(
+                                textStyle: const TextStyle(color: Colors.white),
+                              ),
                             ),
                           ),
                         ),
@@ -281,7 +297,7 @@ class _VotingSectionState extends State<VotingSection> {
                   }
                   return CircleAvatar(
                     radius: logoSize / 2,
-                    backgroundColor: Colors.grey[700],
+                    backgroundColor: bg,
                     child: Text(
                       _initials(name),
                       style: GoogleFonts.montserrat(
@@ -311,8 +327,10 @@ class _VotingSectionState extends State<VotingSection> {
                             name,
                             overflow: TextOverflow.ellipsis,
                             maxLines: 2,
-                            style: GoogleFonts.montserrat(
-                              textStyle: const TextStyle(color: Colors.white),
+                            style: GoogleFonts.inter(
+                              textStyle: const TextStyle(
+                                color: AppTheme.porpraFosc,
+                              ),
                             ),
                           ),
                         ),
@@ -325,26 +343,41 @@ class _VotingSectionState extends State<VotingSection> {
                   return Column(
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           logoWidget(m.homeName, m.homeLogo),
                           Text(
                             'vs',
-                            style: GoogleFonts.montserrat(
-                              textStyle: const TextStyle(color: Colors.white70),
+                            style: GoogleFonts.inter(
+                              textStyle: const TextStyle(
+                                color: AppTheme.porpraFosc,
+                              ),
                             ),
                           ),
                           logoWidget(m.awayName, m.awayLogo),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       Center(
-                        child: Text(
-                          _format(m.dateTime),
-                          style: TextStyle(
-                            color: Colors.grey[400],
-                            fontSize: 12,
-                          ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _formatDate(m.dateTime),
+                              style: TextStyle(
+                                color: AppTheme.porpraFosc,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _formatTime(m.dateTime),
+                              style: TextStyle(
+                                color: AppTheme.porpraFosc,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -361,7 +394,9 @@ class _VotingSectionState extends State<VotingSection> {
                           child: Text(
                             'vs',
                             style: GoogleFonts.montserrat(
-                              textStyle: const TextStyle(color: Colors.white70),
+                              textStyle: const TextStyle(
+                                color: AppTheme.porpraFosc,
+                              ),
                             ),
                           ),
                         ),
@@ -377,11 +412,27 @@ class _VotingSectionState extends State<VotingSection> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Center(
-                      child: Text(
-                        _format(m.dateTime),
-                        style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _formatDate(m.dateTime),
+                            style: TextStyle(
+                              color: AppTheme.porpraFosc,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _formatTime(m.dateTime),
+                            style: TextStyle(
+                              color: AppTheme.porpraFosc,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -389,20 +440,35 @@ class _VotingSectionState extends State<VotingSection> {
               },
             ),
             const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
+            Center(
               child: ElevatedButton.icon(
                 onPressed: () =>
                     debugPrint('Voted for ${m.homeName} vs ${m.awayName}'),
-                icon: const Icon(Icons.how_to_vote, size: 18),
+                icon: const Icon(
+                  Icons.how_to_vote,
+                  size: 14,
+                  color: AppTheme.white,
+                ),
                 label: Text(
                   'Votar',
-                  style: GoogleFonts.montserrat(
-                    textStyle: const TextStyle(fontSize: 12),
+                  style: GoogleFonts.inter(
+                    textStyle: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.white,
+                    ),
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orangeAccent,
+                  backgroundColor: AppTheme.porpraFosc,
+                  foregroundColor: AppTheme.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  minimumSize: const Size(64, 36),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ),

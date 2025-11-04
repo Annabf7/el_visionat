@@ -1,0 +1,74 @@
+[
+  {
+    "jornada": 14,
+    "home": { "name": "FC MARTINENC BÀSQUET A", "logo": "fc-martinenc-basquet-a.webp" },
+    "away": { "name": "INTERSPORT OLARIA - SAMÀ VILANOVA SAM", "logo": "intersport-olaria-sama-vilanova-sam.webp" },
+    "dateTime": "2026-01-10T17:30:00",
+    "timezone": "Europe/Madrid",
+    "gender": "male",
+    "source": "screenshot-j14-20251104"
+  },
+  {
+    "jornada": 14,
+    "home": { "name": "MARISTES ADEMAR A", "logo": "maristes-ademar-a.webp" },
+    "away": { "name": "CB IPSI A", "logo": "cb-ipsi-a.webp" },
+    "dateTime": "2026-01-10T17:45:00",
+    "timezone": "Europe/Madrid",
+    "gender": "male",
+    "source": "screenshot-j14-20251104"
+  },
+  {
+    "jornada": 14,
+    "home": { "name": "CLUB BASQUET SANTFELIUENC", "logo": "club-basquet-santfeliuenc.webp" },
+    "away": { "name": "CBVIC 2 - UNIVERSITAT DE VIC", "logo": "cbvic-2-universitat-de-vic.webp" },
+    "dateTime": "2026-01-10T18:15:00",
+    "timezone": "Europe/Madrid",
+    "gender": "male",
+    "source": "screenshot-j14-20251104"
+  },
+  {
+    "jornada": 14,
+    "home": { "name": "JAC SANTS BARCELONA", "logo": "jac-sants-barcelona.webp" },
+    "away": { "name": "CB ALPICAT A", "logo": "cb-alpicat-a.webp" },
+    "dateTime": "2026-01-10T19:00:00",
+    "timezone": "Europe/Madrid",
+    "gender": "male",
+    "source": "screenshot-j14-20251104"
+  },
+  {
+    "jornada": 14,
+    "home": { "name": "SD ESPANYOL", "logo": "sd-espanyol.webp" },
+    "away": { "name": "CB ARTÉS", "logo": "cb-artes.webp" },
+    "dateTime": "2026-01-10T19:30:00",
+    "timezone": "Europe/Madrid",
+    "gender": "male",
+    "source": "screenshot-j14-20251104"
+  },
+  {
+    "jornada": 14,
+    "home": { "name": "SALAS CE SANT NICOLAU", "logo": "salas-ce-sant-nicolau.webp" },
+    "away": { "name": "AE MINGUELLA A - PURE CUISINE", "logo": "ae-minguella-a-pure-cuisine.webp" },
+    "dateTime": "2026-01-10T19:45:00",
+    "timezone": "Europe/Madrid",
+    "gender": "male",
+    "source": "screenshot-j14-20251104"
+  },
+  {
+    "jornada": 14,
+    "home": { "name": "RAMON SOLER CB SALT", "logo": "ramon-soler-cb-salt.webp" },
+    "away": { "name": "UE.MONTGAT", "logo": "ue-montgat.webp" },
+    "dateTime": "2026-01-11T17:00:00",
+    "timezone": "Europe/Madrid",
+    "gender": "male",
+    "source": "screenshot-j14-20251104"
+  },
+  {
+    "jornada": 14,
+    "home": { "name": "CB MARTORELL A", "logo": "cb-martorell-a.webp" },
+    "away": { "name": "CBU LLORET SAMBA HOTELS", "logo": "cbu-lloret-samba-hotels.webp" },
+    "dateTime": "2026-01-11T18:15:00",
+    "timezone": "Europe/Madrid",
+    "gender": "male",
+    "source": "screenshot-j14-20251104"
+  }
+]

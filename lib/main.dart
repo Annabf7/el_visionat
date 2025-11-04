@@ -16,6 +16,8 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart'; // Importat per kDebugMode
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 
 void main() async {
   // --- Configuració Inicial ---
@@ -57,6 +59,11 @@ void main() async {
     isarService,
     FirebaseFirestore.instance,
   );
+
+  // Inicialitzem les dades de localització per a DateFormat (evita LocaleDataException)
+  // Assegura't d'afegir la localització que utilitzis, p.ex. 'ca_ES'.
+  await initializeDateFormatting('ca_ES');
+  Intl.defaultLocale = 'ca_ES';
 
   runApp(
     // --- Configuració dels Providers ---

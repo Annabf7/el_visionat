@@ -57,6 +57,11 @@ class AuthService {
     required String email,
   }) async {
     final callable = functions.httpsCallable('requestRegistration');
+    // Debug: log outgoing payload to help diagnose invalid-email errors.
+    // ignore: avoid_print
+    print(
+      'AuthService.requestRegistration -> llissenciaId=$llissenciaId, email=$email',
+    );
     try {
       final result = await callable.call<Map<String, dynamic>>({
         'llissenciaId': llissenciaId,

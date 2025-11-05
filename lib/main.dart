@@ -192,15 +192,71 @@ class MyApp extends StatelessWidget {
 }
 
 // --- Auth Wrapper: Decideix la Pantalla Inicial ---
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  // Cache the latest check to avoid spamming the backend on rebuilds.
+  Future<bool>? _registrationCheck;
+  String? _checkedUserUid;
 
   @override
   Widget build(BuildContext context) {
     final firebaseUser = context.watch<User?>();
-    // Si l'usuari està logat, mostrem la HomePage.
-    // Si no, mostrem la LoginPage. La LoginPage s'encarregarà de la navegació
-    // a la creació de contrasenya si és necessari.
-    return firebaseUser != null ? const HomePage() : const LoginPage();
+
+    // No user -> show login/register flow
+    if (firebaseUser == null) return const LoginPage();
+
+    // If we already checked this user, reuse the future.
+    if (_checkedUserUid != firebaseUser.uid || _registrationCheck == null) {
+      _checkedUserUid = firebaseUser.uid;
+      // Use BackendState to access AuthService (it was provided at startup).
+      final backend = Provider.of<BackendState?>(context, listen: false);
+      if (backend == null) {
+        // If BackendState is not available for some reason, be conservative and sign out.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.read<AuthProvider>().signOut();
+        });
+        return const LoginPage();
+      }
+
+      // Perform server-side check: is this email approved / registered?
+      final email = firebaseUser.email ?? '';
+      _registrationCheck = backend.authService
+          .checkApprovedStatus(email)
+          .then((map) => map['isApproved'] == true)
+          .catchError((_) => false);
+    }
+
+    return FutureBuilder<bool>(
+      future: _registrationCheck,
+      builder: (context, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          // Show a small loading while we verify registration on the server.
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final allowed = snap.data == true;
+        if (!allowed) {
+          // Not approved: sign out and show login. Use post-frame to avoid calling
+          // signOut synchronously during build.
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            try {
+              await context.read<AuthProvider>().signOut();
+            } catch (_) {}
+          });
+          return const LoginPage();
+        }
+
+        // Approved: show the HomePage
+        return const HomePage();
+      },
+    );
   }
 }

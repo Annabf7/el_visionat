@@ -98,6 +98,20 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      // Client-side validation that mirrors the server regex to avoid
+      // unexpected rejections and to provide immediate feedback.
+      final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+      if (!emailRegex.hasMatch(email)) {
+        _setError('El format del correu electrònic no és vàlid.', notify: true);
+        _setLoading(false);
+        return;
+      }
+
+      // Debug: log the payload we are about to send to the Cloud Function.
+      // ignore: avoid_print
+      print(
+        'Submitting registration request: license=$_pendingLicenseId, email=$email',
+      );
       await authService.requestRegistration(
         llissenciaId: _pendingLicenseId!,
         email: email,
@@ -201,7 +215,6 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
       notifyListeners();
       return _currentStep; // Retornem 'initial' o 'error'
-
     } on Exception catch (e) {
       // Captura genèrica per a altres errors
       _setError(

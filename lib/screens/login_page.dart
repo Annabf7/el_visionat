@@ -730,18 +730,32 @@ class _RegisterStep3RequestSent extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-            // Botó per "tancar" o tornar a l'inici del login
+            // Botó per tornar a la vista d'inici de sessió.
+            // En vista mòbil (pantalla dividida amb pestanyes) fem switch a la pestanya
+            // d'INICIAR SESSIÓ perquè l'usuari pugui introduir el seu correu i contrasenya.
             OutlinedButton(
               onPressed: () {
-                // Reseteja l'estat i torna al pas 1 (o a la vista de login)
-                // Ja no cal 'if (mounted)' aquí perquè estem en un StatelessWidget
+                // Reseteja l'estat local del flux de registre
                 context.read<AuthProvider>().reset();
-                // Opcional: Podríem forçar el canvi de Tab si som a mòbil
-                // (Això requeriria passar el TabController o buscar-lo d'una altra manera)
-                // final tabController = DefaultTabController.of(context);
-                // tabController?.animateTo(0);
+
+                // Si som dins de la versió mòbil amb TabController, intentem trobar
+                // l'estat pare `_LoginPageMobileState` i forçar el canvi de pestanya.
+                final mobileState = context
+                    .findAncestorStateOfType<_LoginPageMobileState>();
+                if (mobileState != null) {
+                  try {
+                    mobileState._tabController.animateTo(0);
+                    return;
+                  } catch (_) {
+                    // Si per alguna raó no podem canviar la pestanya, caurem al fallback
+                  }
+                }
+
+                // Fallback: no som en la vista mòbil amb TabController — naveguem
+                // a la ruta de login per mostrar la vista d'inici.
+                Navigator.of(context).pushReplacementNamed('/login');
               },
-              child: const Text('Tornar a l\'inici'),
+              child: const Text('Iniciar sessió'),
             ),
           ],
         ),

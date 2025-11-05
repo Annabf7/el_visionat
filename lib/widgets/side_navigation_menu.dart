@@ -13,13 +13,14 @@ class SideNavigationMenu extends StatelessWidget {
       'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/xiulet.svg?alt=media&token=bfac6951-619d-4c2d-962b-ea4a301843ed';
 
   void _handleProfileTap(BuildContext context) {
-    // Fem servir el StreamProvider<User?> registrat a `main.dart` per obtenir
-    // l'estat d'usuari de forma consistent (evita condicions de carrera amb
-    // l'estat intern de FirebaseAuth que pot ser restaurat asíncronament).
-    final user = context.read<User?>();
+    // Use FirebaseAuth.instance.currentUser here for an immediate, synchronous
+    // presence check inside this tap handler. The StreamProvider remains the
+    // source of truth for UI rebuilds; this is only to avoid transient provider
+    // timing issues in action callbacks.
+    final firebaseUser = FirebaseAuth.instance.currentUser;
     final authProvider = context.read<AuthProvider>();
 
-    if (user == null) {
+    if (firebaseUser == null) {
       // L'usuari no ha iniciat sessió, reseteja l'estat del provider i navega a LoginPage
       authProvider.reset();
       Navigator.push(

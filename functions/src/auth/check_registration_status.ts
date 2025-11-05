@@ -57,6 +57,18 @@ export const checkRegistrationStatus = onCall(async (request) => {
     // 3. Retornar el resultat
     if (requestSnapshot.empty) {
       // No hi ha cap sol·licitud aprovada per aquest email
+      // Però pot ser que l'usuari ja existeixi com a perfil a /users (creat manualment)
+      // En aquest cas, retornem isApproved=true perquè el client pugui mostrar
+      // el flux per establir contrasenya o donar instruccions més clares.
+      const usersRef = db.collection('users');
+      const userQuery = usersRef.where('email', '==', normalizedEmail).limit(1);
+      const userSnapshot = await userQuery.get();
+      if (!userSnapshot.empty) {
+        const userData = userSnapshot.docs[0].data();
+        // Si trobem un perfil d'usuari, intentem extreure la llicència associada
+        const licenseId = userData.llissenciaId || null;
+        return { isApproved: true, licenseId };
+      }
       return { isApproved: false, licenseId: null };
     } else {
       // Hem trobat una sol·licitud aprovada! Retornem 'true' i la llicència

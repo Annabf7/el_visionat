@@ -11,6 +11,7 @@ import 'package:el_visionat/widgets/team_card.dart';
 import 'package:el_visionat/providers/backend_state.dart';
 import 'package:el_visionat/providers/auth_provider.dart';
 import '../theme/app_theme.dart';
+import 'package:el_visionat/services/vote_service.dart';
 
 /// Lightweight Match model used by VeureTotsPage (same shape as jornada_14_matches.json)
 class MatchSeedVT {
@@ -18,6 +19,16 @@ class MatchSeedVT {
   final String homeLogo;
   final String awayName;
   final String awayLogo;
+
+  /// Número de jornada per aquest enfrontament.
+  ///
+  /// Català: "jornada" representa el número de la jornada (round/matchday) del
+  /// partit. S'espera que es carregui des d
+  /// `assets/data/jornada_14_matches.json` i s'utilitza per crear un
+  /// identificador únic del partit (per exemple, `j14_0`) i també s'envia al
+  /// backend quan l'usuari emet un vot.
+
+  final int jornada;
   final String dateTime;
 
   MatchSeedVT({
@@ -25,12 +36,24 @@ class MatchSeedVT {
     required this.homeLogo,
     required this.awayName,
     required this.awayLogo,
+    required this.jornada,
     required this.dateTime,
   });
 
   factory MatchSeedVT.fromJson(Map<String, dynamic> json) {
     final home = json['home'] as Map<String, dynamic>?;
     final away = json['away'] as Map<String, dynamic>?;
+    // robust parsing for jornada: accept int, num, or numeric string; fallback to 0
+    int parseJornada(dynamic v) {
+      if (v == null) return 0;
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      if (v is String) {
+        return int.tryParse(v) ?? 0;
+      }
+      return 0;
+    }
+
     return MatchSeedVT(
       homeName: home != null && home['name'] != null
           ? home['name'] as String
@@ -44,6 +67,7 @@ class MatchSeedVT {
       awayLogo: away != null && away['logo'] != null
           ? away['logo'] as String
           : (json['awayLogo'] as String? ?? ''),
+      jornada: parseJornada(json['jornada']),
       dateTime: json['dateTime'] as String? ?? '',
     );
   }
@@ -60,6 +84,7 @@ class _VeureTotsPageState extends State<VeureTotsPage> {
   Future<List<MatchSeedVT>>? _matchesFuture;
   final Set<int> _votedIndexes =
       {}; // local mock: which match indexes user voted
+  final Map<int, int> _voteCounts = {};
 
   @override
   void initState() {
@@ -76,6 +101,22 @@ class _VeureTotsPageState extends State<VeureTotsPage> {
         .map((e) => MatchSeedVT.fromJson(e as Map<String, dynamic>))
         .toList();
   }
+
+  String _slug(String s) => s
+      .toLowerCase()
+      .replaceAll(RegExp(r"[^a-z0-9]+"), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .trim();
+
+  String _matchIdFor(MatchSeedVT m) {
+    // stable id built from jornada + home + away
+    final h = _slug(m.homeName);
+    final a = _slug(m.awayName);
+    return 'j${m.jornada}_${h}_$a';
+  }
+
+  final Set<int> _checkedJornadas =
+      {}; // avoid refetching user vote per jornada
 
   String _formatDate(String iso) {
     try {
@@ -98,7 +139,12 @@ class _VeureTotsPageState extends State<VeureTotsPage> {
   @override
   Widget build(BuildContext context) {
     final backend = Provider.of<BackendState?>(context, listen: true);
-    final firebaseUser = context.watch<User?>();
+    // Keep the StreamProvider-based watch here so the UI can react when the
+    // user signs in/out. Action handlers below will read the synchronous
+    // FirebaseAuth.instance.currentUser to avoid transient provider nulls.
+    // Keep the StreamProvider watch to trigger rebuilds on auth changes.
+    context.watch<User?>();
+    final voteService = VoteService();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Veure tots')),
@@ -135,6 +181,53 @@ class _VeureTotsPageState extends State<VeureTotsPage> {
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final m = pageMatches[index];
+                    final matchId = _matchIdFor(m);
+                    // fetch vote counts lazily if not present
+                    if (!_voteCounts.containsKey(index)) {
+                      voteService
+                          .getVoteCount(matchId: matchId)
+                          .then((count) {
+                            if (!mounted) {
+                              return;
+                            }
+                            setState(() {
+                              _voteCounts[index] = count;
+                            });
+                          })
+                          .catchError((_) {});
+                    }
+                    // fetch user's vote for this jornada once so we can show
+                    // which match they previously voted for and allow changing it.
+                    // Prefer a synchronous read from FirebaseAuth for background
+                    // fetches to avoid races with provider-based watches.
+                    final currentUserForFetch =
+                        FirebaseAuth.instance.currentUser;
+                    if (currentUserForFetch != null &&
+                        !_checkedJornadas.contains(m.jornada)) {
+                      _checkedJornadas.add(m.jornada);
+                      voteService
+                          .getUserVoteForJornada(jornada: m.jornada)
+                          .then((voteDoc) {
+                            if (!mounted) {
+                              return;
+                            }
+                            if (voteDoc == null) {
+                              return;
+                            }
+                            final existingMatchId =
+                                voteDoc['matchId'] as String?;
+                            if (existingMatchId == null) return;
+                            final found = pageMatches.indexWhere(
+                              (pm) => _matchIdFor(pm) == existingMatchId,
+                            );
+                            if (found != -1) {
+                              setState(() {
+                                _votedIndexes.add(found);
+                              });
+                            }
+                          })
+                          .catchError((_) {});
+                    }
                     return Card(
                       color: AppTheme.white,
                       shape: RoundedRectangleBorder(
@@ -219,10 +312,26 @@ class _VeureTotsPageState extends State<VeureTotsPage> {
                               children: [
                                 ElevatedButton.icon(
                                   onPressed: () async {
+                                    // Capture user synchronously before any awaits.
+                                    var firebaseUserLocal =
+                                        FirebaseAuth.instance.currentUser;
+                                    // Capture ScaffoldMessenger and a local
+                                    // BuildContext reference early so we don't
+                                    // call State.context after async gaps
+                                    // (avoids the use_build_context_synchronously
+                                    // analyzer warning).
+                                    final messenger = ScaffoldMessenger.of(
+                                      context,
+                                    );
+                                    final dialogContext = context;
+                                    // ignore: avoid_print
+                                    print(
+                                      'User before VeureTots vote handler (initial): ${firebaseUserLocal?.uid}',
+                                    );
                                     final backendLocal = backend;
                                     if (backendLocal == null) {
                                       await showDialog<void>(
-                                        context: context,
+                                        context: dialogContext,
                                         builder: (ctx) => AlertDialog(
                                           title: const Text(
                                             'Estat no disponible',
@@ -242,8 +351,9 @@ class _VeureTotsPageState extends State<VeureTotsPage> {
                                       return;
                                     }
                                     if (!backendLocal.available) {
+                                      final auth = context.read<AuthProvider>();
                                       await showDialog<void>(
-                                        context: context,
+                                        context: dialogContext,
                                         builder: (ctx) => AlertDialog(
                                           title: const Text(
                                             'Back-end no disponible',
@@ -262,9 +372,7 @@ class _VeureTotsPageState extends State<VeureTotsPage> {
                                             TextButton(
                                               onPressed: () async {
                                                 Navigator.of(ctx).pop();
-                                                await context
-                                                    .read<AuthProvider>()
-                                                    .signOut();
+                                                await auth.signOut();
                                               },
                                               child: const Text('Desconnectar'),
                                             ),
@@ -273,48 +381,160 @@ class _VeureTotsPageState extends State<VeureTotsPage> {
                                       );
                                       return;
                                     }
-                                    if (firebaseUser == null) {
-                                      await showDialog<void>(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          title: const Text(
-                                            'Cal iniciar sessió',
-                                          ),
+                                    // Defensive quick-check: if null, wait briefly for any
+                                    // authStateChanges propagation (small timeout).
+                                    if (firebaseUserLocal == null) {
+                                      try {
+                                        final ev = await FirebaseAuth.instance
+                                            .authStateChanges()
+                                            .first
+                                            .timeout(
+                                              const Duration(milliseconds: 250),
+                                            );
+                                        // ignore: avoid_print
+                                        print(
+                                          'Auth quick-check returned: ${ev?.uid}',
+                                        );
+                                        firebaseUserLocal = ev;
+                                      } catch (_) {
+                                        // no event — continue
+                                      }
+                                    }
+                                    if (!dialogContext.mounted) {
+                                      return; // Ensure dialogContext is still valid after awaits
+                                    }
+
+                                    if (firebaseUserLocal == null) {
+                                      // User not signed in — show a non-blocking snackbar
+                                      // with an action to go to the login screen instead
+                                      // of a modal dialog that blocks voting.
+                                      messenger.showSnackBar(
+                                        SnackBar(
                                           content: const Text(
-                                            'Has d\'iniciar sessió per poder votar. Vols anar a la pantalla d\'accés?',
+                                            'Has d\'iniciar sessió per poder votar.',
                                           ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.of(ctx).pop(),
-                                              child: const Text('No'),
-                                            ),
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.of(ctx).pop();
+                                          action: SnackBarAction(
+                                            label: 'Iniciar sessió',
+                                            onPressed: () {
+                                              if (dialogContext.mounted) {
                                                 Navigator.of(
-                                                  context,
+                                                  dialogContext,
                                                 ).pushNamed('/login');
-                                              },
-                                              child: const Text('Sí'),
-                                            ),
-                                          ],
+                                              }
+                                            },
+                                          ),
                                         ),
                                       );
                                       return;
                                     }
+                                    // Confirm vote for this match (vote is for the match, not a team)
+                                    // userId is not required here because VoteService
+                                    // reads the current user internally. Keep the
+                                    // captured firebaseUserLocal for debug/consistency.
 
-                                    // Mock vote: mark index as voted
-                                    setState(() {
-                                      _votedIndexes.add(index);
-                                    });
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
+                                    if (!dialogContext.mounted) {
+                                      return;
+                                    }
+
+                                    final confirm = await showDialog<bool>(
+                                      context: dialogContext,
+                                      builder: (ctx) => AlertDialog(
+                                        title: const Text('Confirmar vot'),
                                         content: Text(
-                                          'Vot registrat (mock) per ${m.homeName}',
+                                          'Vols votar el partit ${m.homeName} vs ${m.awayName}?',
                                         ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.of(ctx).pop(false),
+                                            child: const Text('No'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.of(ctx).pop(true),
+                                            child: const Text('Sí'),
+                                          ),
+                                        ],
                                       ),
                                     );
+
+                                    if (confirm != true) {
+                                      return;
+                                    }
+
+                                    final success = await voteService
+                                        .voteForMatch(
+                                          matchId: matchId,
+                                          jornada: m.jornada,
+                                        );
+
+                                    if (!mounted) {
+                                      return;
+                                    }
+
+                                    if (success) {
+                                      // Refresh counts for the visible page matches and update voted index
+                                      for (
+                                        var i = 0;
+                                        i < pageMatches.length;
+                                        i++
+                                      ) {
+                                        final mid = _matchIdFor(pageMatches[i]);
+                                        voteService
+                                            .getVoteCount(matchId: mid)
+                                            .then((c) {
+                                              if (!mounted) {
+                                                return;
+                                              }
+                                              setState(() {
+                                                _voteCounts[i] = c;
+                                              });
+                                            })
+                                            .catchError((_) {});
+                                      }
+
+                                      // Re-fetch user's vote to find which match index is now selected
+                                      final updated = await voteService
+                                          .getUserVoteForJornada(
+                                            jornada: m.jornada,
+                                          );
+                                      if (!mounted) {
+                                        return;
+                                      }
+                                      if (updated != null) {
+                                        final existingMatchId =
+                                            updated['matchId'] as String?;
+                                        if (existingMatchId != null) {
+                                          final found = pageMatches.indexWhere(
+                                            (pm) =>
+                                                _matchIdFor(pm) ==
+                                                existingMatchId,
+                                          );
+                                          setState(() {
+                                            _votedIndexes.clear();
+                                            if (found != -1) {
+                                              _votedIndexes.add(found);
+                                            }
+                                          });
+                                        }
+                                      }
+
+                                      messenger.showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Vot registrat pel partit ${m.homeName} vs ${m.awayName}',
+                                          ),
+                                        ),
+                                      );
+                                    } else {
+                                      messenger.showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'No s\'ha pogut registrar el vot (ja existeix o error)',
+                                          ),
+                                        ),
+                                      );
+                                    }
                                   },
                                   icon: const Icon(
                                     Icons.how_to_vote,

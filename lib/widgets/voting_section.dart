@@ -8,6 +8,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:el_visionat/providers/backend_state.dart';
 import 'package:el_visionat/providers/auth_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:el_visionat/services/vote_service.dart';
 import 'package:el_visionat/widgets/team_card.dart';
 import 'package:el_visionat/screens/veure_tots.dart';
 
@@ -73,6 +75,19 @@ class _VotingSectionState extends State<VotingSection> {
   Future<List<MatchSeed>>? _matchesFuture;
   final List<MatchSeed> _selected = [];
   bool _didPrecache = false;
+  final Set<int> _votedSelected = {};
+
+  String _slug(String s) => s
+      .toLowerCase()
+      .replaceAll(RegExp(r"[^a-z0-9]+"), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .trim();
+
+  String _matchIdFor(MatchSeed m) {
+    final h = _slug(m.homeName);
+    final a = _slug(m.awayName);
+    return 'j${m.jornada}_${h}_$a';
+  }
 
   @override
   void initState() {
@@ -463,7 +478,144 @@ class _VotingSectionState extends State<VotingSection> {
                     );
                     return;
                   }
-                  debugPrint('Voted for ${m.homeName} vs ${m.awayName}');
+                  // Capture user and messenger before awaiting async work.
+                  // Use FirebaseAuth.instance.currentUser directly to avoid provider
+                  // timing issues where the StreamProvider may not be available
+                  // in this BuildContext during callbacks.
+                  // Capture the current user synchronously before any awaits.
+                  var firebaseUser = FirebaseAuth.instance.currentUser;
+                  // Debug log to help trace auth timing issues.
+                  // ignore: avoid_print
+                  print(
+                    'User before voting_section vote handler (initial): ${firebaseUser?.uid}',
+                  );
+                  final messenger = ScaffoldMessenger.of(context);
+
+                  // Defensive quick-check: if currentUser is null, wait a short
+                  // time and listen for an authStateChanges event (small timeout)
+                  // so we reduce false negatives when the auth stream hasn't
+                  // propagated yet.
+                  if (firebaseUser == null) {
+                    try {
+                      final ev = await FirebaseAuth.instance
+                          .authStateChanges()
+                          .first
+                          .timeout(const Duration(milliseconds: 250));
+                      // ignore: avoid_print
+                      print('Auth quick-check returned: ${ev?.uid}');
+                      firebaseUser = ev;
+                    } catch (_) {
+                      // Timeout/no event — treat as still null
+                    }
+                  }
+
+                  if (!mounted) {
+                    return; // ensure BuildContext is still valid after await
+                  }
+
+                  if (firebaseUser == null) {
+                    // Avoid showing a blocking dialog — use a SnackBar with
+                    // an action to navigate to login. Signed-in users will
+                    // not see this and can proceed to vote.
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: const Text(
+                          'Has d\'iniciar sessió per poder votar.',
+                        ),
+                        action: SnackBarAction(
+                          label: 'Iniciar sessió',
+                          onPressed: () {
+                            if (mounted) {
+                              Navigator.of(context).pushNamed('/login');
+                            }
+                          },
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+
+                  final service = VoteService();
+
+                  // Check existing vote for this jornada
+                  final existing = await service.getUserVoteForJornada(
+                    jornada: m.jornada,
+                  );
+
+                  if (!mounted) {
+                    return;
+                  }
+
+                  final currentMatchId = _matchIdFor(m);
+                  final prevMatchId = existing == null
+                      ? null
+                      : existing['matchId'] as String?;
+
+                  if (prevMatchId != null && prevMatchId == currentMatchId) {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Ja has votat per aquest enfrontament'),
+                      ),
+                    );
+                    return;
+                  }
+
+                  // If user voted for a different match, ask to confirm modification
+                  if (prevMatchId != null && prevMatchId != currentMatchId) {
+                    final prevLabel = prevMatchId
+                        .replaceFirst(RegExp(r'^j\d+_'), '')
+                        .replaceAll('_', ' – ');
+                    final change = await showDialog<bool?>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Modificar vot'),
+                        content: Text(
+                          'Has votat actualment per "$prevLabel". Vols canviar el teu vot per "${m.homeName} – ${m.awayName}"?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(false),
+                            child: const Text('Cancel·lar'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(true),
+                            child: const Text('Modificar vot'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (change != true) return;
+                  }
+
+                  // Proceed to vote/change
+                  final success = await service.voteForMatch(
+                    matchId: currentMatchId,
+                    jornada: m.jornada,
+                  );
+
+                  if (!mounted) {
+                    return;
+                  }
+
+                  if (success) {
+                    setState(() {
+                      final idx = _selected.indexOf(m);
+                      if (idx != -1) _votedSelected.add(idx);
+                    });
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Vot registrat per ${m.homeName} – ${m.awayName}',
+                        ),
+                      ),
+                    );
+                  } else {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('No s\'ha pogut registrar el vot'),
+                      ),
+                    );
+                  }
                 },
                 icon: const Icon(
                   Icons.how_to_vote,

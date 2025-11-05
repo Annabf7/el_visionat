@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:io' show Platform, Socket;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -7,6 +8,8 @@ class AuthService {
   final FirebaseAuth auth;
   final FirebaseFirestore firestore;
   final FirebaseFunctions functions;
+  // resolved emulator host used for emulator wiring (10.0.2.2 on Android, 127.0.0.1 otherwise)
+  String _emulatorHost = '127.0.0.1';
 
   AuthService({
     required this.auth,
@@ -16,10 +19,28 @@ class AuthService {
     // [Constitució] Apuntar als emuladors en mode debug
     if (kDebugMode) {
       try {
-        auth.useAuthEmulator('127.0.0.1', 9099);
-        firestore.useFirestoreEmulator('127.0.0.1', 8080);
-        functions.useFunctionsEmulator('127.0.0.1', 5001);
-        debugPrint('Firebase Emulators configured for debug mode.');
+        // When running on Android emulator, use 10.0.2.2 to reach host machine.
+        // On iOS simulator or desktop, localhost (127.0.0.1) works.
+        String host = '127.0.0.1';
+        if (!kIsWeb) {
+          try {
+            if (Platform.isAndroid) {
+              host = '10.0.2.2';
+            }
+          } catch (_) {
+            // If Platform check fails for any reason, fall back to localhost
+            host = '127.0.0.1';
+          }
+        }
+
+        // Ports are aligned with `firebase.json` (auth:9198, firestore:8088, functions:5001)
+        auth.useAuthEmulator(host, 9198);
+        firestore.useFirestoreEmulator(host, 8088);
+        functions.useFunctionsEmulator(host, 5001);
+        _emulatorHost = host;
+        debugPrint(
+          'Firebase Emulators configured for debug mode. (host=$host)',
+        );
       } catch (e) {
         debugPrint(
           'Warning: Could not configure Firebase Emulators. They might be already set. Error: $e',
@@ -36,6 +57,24 @@ class AuthService {
   Future<Map<String, dynamic>> lookupLicense(String licenseId) async {
     final callable = functions.httpsCallable('lookupLicense');
     try {
+      // In debug, do a quick TCP check to the Functions emulator to provide
+      // an earlier, clearer diagnostic if the emulator isn't reachable.
+      if (kDebugMode) {
+        try {
+          final reachable = await _isHostReachable(_emulatorHost, 5001);
+          debugPrint(
+            'Functions emulator reachable: $reachable ($_emulatorHost:5001)',
+          );
+          if (!reachable) {
+            throw Exception(
+              'Functions emulator not reachable at $_emulatorHost:5001',
+            );
+          }
+        } catch (e) {
+          debugPrint('Connectivity check to Functions emulator failed: $e');
+          // continue — callable.call will still attempt and surface the error
+        }
+      }
       final result = await callable.call<Map<String, dynamic>>({
         'llissenciaId': licenseId,
       });
@@ -165,4 +204,22 @@ class AuthService {
 
   /// Stream per escoltar els canvis d'estat d'autenticació (usuari connectat/desconnectat).
   Stream<User?> get authStateChanges => auth.authStateChanges();
+}
+
+// -----------------------------------------------------------------------------
+// Helpers (placed outside the class to keep AuthService focused)
+// -----------------------------------------------------------------------------
+/// Small helper to check TCP connectivity to host:port (used only for diagnostics)
+Future<bool> _isHostReachable(String host, int port) async {
+  try {
+    final socket = await Socket.connect(
+      host,
+      port,
+      timeout: const Duration(seconds: 2),
+    );
+    socket.destroy();
+    return true;
+  } catch (_) {
+    return false;
+  }
 }

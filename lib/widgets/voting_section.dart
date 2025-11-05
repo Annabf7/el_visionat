@@ -63,9 +63,13 @@ class MatchSeed {
 
 // Top-level helpers so multiple widgets can reuse them without duplicating
 Future<List<MatchSeed>> loadMatchesFromAssets() async {
-  final raw = await rootBundle.loadString('assets/data/jornada_14_matches.json');
+  final raw = await rootBundle.loadString(
+    'assets/data/jornada_14_matches.json',
+  );
   final decoded = jsonDecode(raw) as List<dynamic>;
-  return decoded.map((e) => MatchSeed.fromJson(e as Map<String, dynamic>)).toList();
+  return decoded
+      .map((e) => MatchSeed.fromJson(e as Map<String, dynamic>))
+      .toList();
 }
 
 String formatDate(String iso) {
@@ -95,8 +99,12 @@ class _VotingSectionState extends State<VotingSection> {
 
   String _initials(String name) {
     final parts = name.trim().split(RegExp(r'\s+'));
-    if (parts.isEmpty) return '';
-    if (parts.length == 1) return parts[0][0].toUpperCase();
+    if (parts.isEmpty) {
+      return '';
+    }
+    if (parts.length == 1) {
+      return parts[0][0].toUpperCase();
+    }
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
 
@@ -163,15 +171,7 @@ class _VotingSectionState extends State<VotingSection> {
 
               final all = snap.data ?? <MatchSeed>[];
               if (all.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Text(
-                    'No hi ha enfrontaments',
-                    style: GoogleFonts.montserrat(
-                      textStyle: const TextStyle(color: AppTheme.grisPistacho),
-                    ),
-                  ),
-                );
+                return Center(child: Text('No hi ha enfrontaments'));
               }
 
               if (_selected.isEmpty) {
@@ -181,18 +181,20 @@ class _VotingSectionState extends State<VotingSection> {
               }
 
               if (!_didPrecache) {
+                final ctx = context;
                 WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
                   for (final m in _selected) {
                     if (m.homeLogo.isNotEmpty) {
                       precacheImage(
                         AssetImage('assets/images/teams/${m.homeLogo}'),
-                        context,
+                        ctx,
                       ).catchError((_) {});
                     }
                     if (m.awayLogo.isNotEmpty) {
                       precacheImage(
                         AssetImage('assets/images/teams/${m.awayLogo}'),
-                        context,
+                        ctx,
                       ).catchError((_) {});
                     }
                   }
@@ -430,7 +432,7 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
   @override
   void initState() {
     super.initState();
-  _matchesFuture = loadMatchesFromAssets();
+    _matchesFuture = loadMatchesFromAssets();
   }
 
   @override
@@ -446,8 +448,16 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
           if (snap.hasError) {
             return Center(child: Text('Error carregant enfrontaments'));
           }
-          final all = (snap.data ?? <MatchSeed>()).where((m) => m.jornada == jornada).toList();
-          if (all.isEmpty) return Center(child: Text('No hi ha enfrontaments'));
+          final all = snap.data ?? <MatchSeed>[];
+          final jornadaMatches = all
+              .where((m) => m.jornada == jornada)
+              .toList();
+          final displayed = jornadaMatches;
+          final allMatches = displayed; // keep names friendly below
+          if (allMatches.isEmpty) {
+            return Center(child: Text('No hi ha enfrontaments'));
+          }
+          // (handled above)
 
           // Provide a VoteProvider scoped to this page.
           return ChangeNotifierProvider(
@@ -467,13 +477,21 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
                     final m = all[i];
                     // precache images for smoother UI
                     if (m.homeLogo.isNotEmpty) {
-                      precacheImage(AssetImage('assets/images/teams/${m.homeLogo}'), context).catchError((_) {});
+                      precacheImage(
+                        AssetImage('assets/images/teams/${m.homeLogo}'),
+                        context,
+                      ).catchError((_) {});
                     }
                     if (m.awayLogo.isNotEmpty) {
-                      precacheImage(AssetImage('assets/images/teams/${m.awayLogo}'), context).catchError((_) {});
+                      precacheImage(
+                        AssetImage('assets/images/teams/${m.awayLogo}'),
+                        context,
+                      ).catchError((_) {});
                     }
 
-                    final matchId = m.homeLogo.isNotEmpty ? m.homeLogo : '${m.homeName}_${m.awayName}';
+                    final matchId = m.homeLogo.isNotEmpty
+                        ? m.homeLogo
+                        : '${m.homeName}_${m.awayName}';
 
                     return StreamBuilder<int>(
                       stream: vp.getVoteCountStream(matchId, jornada),
@@ -495,13 +513,23 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
                             isDisabled: vp.isClosed(jornada),
                             isLoading: vp.isCasting(jornada),
                             onVote: () async {
+                              final messenger = ScaffoldMessenger.of(context);
                               try {
-                                await vp.castVote(jornada: jornada, matchId: matchId);
+                                await vp.castVote(
+                                  jornada: jornada,
+                                  matchId: matchId,
+                                );
                                 if (!mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vot registrat')));
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Vot registrat'),
+                                  ),
+                                );
                               } catch (e) {
                                 if (!mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error votant: $e')));
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text('Error votant: $e')),
+                                );
                               }
                             },
                           ),

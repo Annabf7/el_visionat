@@ -43,6 +43,17 @@ void main() async {
     functions: functionsInstance,
   );
 
+  // If running in debug mode on web, point Firestore/Functions/Auth to the local emulators.
+  // This is required for Flutter web where environment variables like FIRESTORE_EMULATOR_HOST
+  // are not available. Ports are aligned with `firebase.json` (auth:9198, firestore:8088, functions:5001).
+  if (kDebugMode && kIsWeb) {
+    const emulatorHost = '127.0.0.1';
+    FirebaseFirestore.instance.useFirestoreEmulator(emulatorHost, 8088);
+    FirebaseFunctions.instance.useFunctionsEmulator(emulatorHost, 5001);
+    FirebaseAuth.instance.useAuthEmulator(emulatorHost, 9198);
+    debugPrint('Web debug: connected to emulators at $emulatorHost');
+  }
+
   // --- Inicialització Isar i TeamDataService (persistència local) ---
   // If running on web, ensure the teams collection is seeded so the UI can
   // fetch the teams directly from Firestore (we bypass Isar on web).

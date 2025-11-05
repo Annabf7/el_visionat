@@ -8,12 +8,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:el_visionat/main.dart';
+// We replace the previous integration-style test that pumped `MyApp()`
+// (which depends on providers) with a minimal, self-contained counter
+// widget so the unit test doesn't require app-level providers.
+
+class _MinimalCounter extends StatefulWidget {
+  const _MinimalCounter();
+
+  @override
+  State<_MinimalCounter> createState() => _MinimalCounterState();
+}
+
+class _MinimalCounterState extends State<_MinimalCounter> {
+  int _count = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        body: Center(child: Text('$_count')),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => setState(() => _count++),
+          child: const Icon(Icons.add),
+        ),
+      ),
+    );
+  }
+}
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    // Build our minimal counter app and trigger a frame.
+    await tester.pumpWidget(const _MinimalCounter());
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

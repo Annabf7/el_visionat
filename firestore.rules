@@ -1,28 +1,76 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Regles per a la col·lecció de la Llista Mestra
+
+    // Votes: one document per (jornada, user) with id = "{jornada}_{userId}"
+    match /votes/{voteId} {
+      // Allow creating a vote only if:
+      // - the user is authenticated
+      // - the incoming document's userId equals the authenticated uid
+      // - the document id equals "{jornada}_{uid}"
+      // - there is no existing vote document with that id (prevents double-create)
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        // ensure jornada is present and matchId is a string
+        && request.resource.data.jornada is int
+        && request.resource.data.matchId is string
+        // enforce canonical doc id: string(jornada) + '_' + uid
+        && voteId == (string(request.resource.data.jornada) + '_' + request.auth.uid)
+        // disallow creating if a doc with the same id already exists
+        && !exists(/databases/$(database)/documents/votes/$(voteId));
+
+      // Allow reading a single vote only by its owner.
+      allow get: if request.auth != null && resource.data.userId == request.auth.uid;
+
+      // Allow listing votes only when the client queries for their own userId
+      // e.g. client should query where('userId', '==', request.auth.uid)
+      allow list: if request.auth != null
+        && request.query.where('userId', '==', request.auth.uid);
+
+      // Allow updates and deletes only if:
+      // - the user is authenticated and is the owner of the existing vote
+      // - the jornada is immutable (cannot be changed)
+      // - voting is currently open for that jornada (voting_meta/jornada_<n>.votingOpen == true)
+      allow update, delete: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && request.auth.uid == resource.data.userId
+        // jornada cannot be changed
+        && request.resource.data.jornada == resource.data.jornada
+        // userId cannot be changed
+        && request.resource.data.userId == resource.data.userId
+        // check voting meta document for this jornada (doc id: 'jornada_<n>')
+        && get(/databases/$(database)/documents/voting_meta/$("jornada_" + string(resource.data.jornada))).data.votingOpen == true;
+    }
+
+    // Vote counts: public read, no client writes. Only server/admin may modify (admin SDK bypasses rules).
+    match /vote_counts/{countId} {
+      allow read: if true;
+      allow write: if false; // immutable from client side; only Cloud Functions / Admin SDK should touch these
+    }
+
+    // Voting metadata: public read (UI needs to know if voting is open), writes only via backend
+    match /voting_meta/{metaId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Keep existing rules for other collections (restrict by default)
+    // Example: referees_registry should be readable by authenticated users only
     match /referees_registry/{licenseId} {
-      // Només el backend pot crear/actualitzar (seeding), i només es pot llegir si hi ha autenticació.
       allow read: if request.auth != null;
-      allow write: if false; // Totes les escriptures es fan via Cloud Functions
+      allow write: if false;
     }
 
-    // Regles per a les Sol·licituds de Registre
     match /registration_requests/{requestId} {
-      // La lectura i escriptura es fa a través de Cloud Functions o l'admin (Anna)
-      allow read, write: if request.auth != null; 
+      allow read, write: if request.auth != null;
     }
 
-    // Regles per a la col·lecció d'Equips [NOU]
     match /teams/{teamId} {
-      // Els usuaris logats (qualsevol rol) poden LLEGIR les dades dels equips
       allow read: if request.auth != null;
-      // Només els administradors/backend poden crear, actualitzar o eliminar equips
-      allow create, update, delete: if false; 
+      allow create, update, delete: if false;
     }
 
-    // Regla de seguretat per defecte (bloqueja tot el que no es troba a dalt)
+    // Default: deny everything else
     match /{document=**} {
       allow read, write: if false;
     }

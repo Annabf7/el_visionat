@@ -89,7 +89,14 @@ class AuthProvider with ChangeNotifier {
   Future<void> submitRegistrationRequest(String email) async {
     if (_currentStep != RegistrationStep.licenseVerified ||
         _pendingLicenseId == null) {
-      _setError("Estat invàlid per enviar la sol·licitud.", notify: true);
+      // User reached this action without a verified license. Provide a
+      // clearer UX: set the provider back to the license lookup step so the
+      // UI shows the verification form and an explanatory error message.
+      _setError(
+        'Has de verificar la llicència abans d\'enviar la sol·licitud. Torna al pas de verificació.',
+        notify: true,
+        errorStep: RegistrationStep.licenseLookup,
+      );
       return;
     }
     _setLoading(true);
@@ -201,7 +208,6 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
       notifyListeners();
       return _currentStep; // Retornem 'initial' o 'error'
-
     } on Exception catch (e) {
       // Captura genèrica per a altres errors
       _setError(

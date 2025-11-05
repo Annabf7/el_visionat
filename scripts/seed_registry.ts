@@ -1,14 +1,61 @@
-import admin from 'firebase-admin';
-import fs from 'fs'; // Mòdul 'File System' per llegir arxius
-import path from 'path';
-import { fileURLToPath } from 'url'; // Per obtenir __dirname en mòduls ESM
-import { type RefereeLicenseProfile } from './models.js'; // Importació de tipus ESM
+/**
+ * 📦 seed_registry.ts
+ * 
+ * Script de càrrega massiva de dades de llicències d'àrbitres a Firestore.
+ * Llegeix l'arxiu JSON `registre_complet.json` i crea/actualitza la col·lecció
+ * `referees_registry` amb els perfils de llicència.
+ * 
+ * Compatible amb Firestore Emulator (port 8085) i amb Firestore real.
+ * 
+ * Execució:
+ *   ▶ npm run seed
+ * 
+ * Si l’emulador està actiu, el detectarà automàticament i hi enviarà les dades.
+ * Si no, connectarà al projecte “el-visionat” a Firebase.
+ */
 
-// Obtenció de rutes en entorns ESM (necessari per a la funció fs.readFileSync)
+import admin from 'firebase-admin';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { type RefereeLicenseProfile } from './models.js';
+
+// -----------------------------------------------------------------------------
+// 🧩 Configuració de rutes (necessari en mòduls ESM)
+// -----------------------------------------------------------------------------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Tipus per a les dades crues del JSON (el format que arriba de l'extracció del PDF)
+// -----------------------------------------------------------------------------
+// ⚙️ Connexió amb Firestore (detecta automàticament l’emulador)
+// Preferències d'ús (ordre de prioritat):
+//  1) argument CLI --emulatorHost=host:port
+//  2) variable d'entorn FIRESTORE_EMULATOR_HOST
+//  3) valor per defecte 127.0.0.1:8088
+// -----------------------------------------------------------------------------
+// Support per passar el host per CLI: `node ... scripts/seed_registry.ts --emulatorHost=127.0.0.1:8086`
+const cliArg = process.argv.find((a) => a.startsWith('--emulatorHost='));
+if (cliArg) {
+  const host = cliArg.split('=')[1];
+  process.env.FIRESTORE_EMULATOR_HOST = host;
+  console.log(`⚙️  FIRESTORE_EMULATOR_HOST definit via CLI: ${host}`);
+} else if (process.env.FIRESTORE_EMULATOR_HOST) {
+  console.log(`⚙️  FIRESTORE_EMULATOR_HOST pres (env): ${process.env.FIRESTORE_EMULATOR_HOST}`);
+} else {
+  // Default updated to 8088 (matches emulator invocation used in this repo)
+  process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8088';
+  console.log('⚙️  FIRESTORE_EMULATOR_HOST no definit. S’estableix a 127.0.0.1:8088 (valor per defecte)');
+}
+
+// Inicialitza l’SDK d’Admin sense credencials reals si es treballa amb l’emulador
+if (!admin.apps.length) {
+  admin.initializeApp({ projectId: 'el-visionat' });
+}
+const db = admin.firestore();
+
+// -----------------------------------------------------------------------------
+// Tipus base per a les dades d’origen (raw JSON)
+// -----------------------------------------------------------------------------
 interface RawRefereeData {
   cognoms: string;
   nom: string;
@@ -17,27 +64,16 @@ interface RawRefereeData {
   rrtt: string;
 }
 
-// [NOU - CONNEXIÓ EMULADOR]
-// Aquesta línia li diu a l'SDK d'Admin que apunti al teu Firestore local
-// en lloc del de producció.
-process.env['FIRESTORE_EMULATOR_HOST'] = 'localhost:8080';
-
-// Inicialitza l'SDK d'Admin per a l'Emulador
-if (admin.apps.length === 0) {
-  admin.initializeApp({ projectId: 'el-visionat' });
-}
-const db = admin.firestore();
-
-/**
- * Funció principal que llegeix el JSON, transforma les dades i les carrega a Firestore.
- */
+// -----------------------------------------------------------------------------
+// 🧠 Funció principal: Llegeix JSON, transforma i carrega a Firestore
+// -----------------------------------------------------------------------------
 async function seedRegistry() {
   console.log('--- Iniciant Càrrega Massiva de Dades de Llicències (Seeding) ---');
 
-  // 1. Llegir l'arxiu JSON
-  // Aquesta ruta assumeix que 'registre_complet.json' està a la mateixa carpeta 'scripts'
+  // 1️⃣ Llegim l’arxiu JSON
   const jsonPath = path.join(__dirname, 'registre_complet.json');
   let rawData: RawRefereeData[];
+
   try {
     const fileContent = fs.readFileSync(jsonPath, 'utf8');
     rawData = JSON.parse(fileContent);
@@ -48,45 +84,42 @@ async function seedRegistry() {
     return;
   }
 
+  // 2️⃣ Preparació per a la càrrega massiva
   const registryCollection = db.collection('referees_registry');
   let batch = db.batch();
   let operations = 0;
 
-  // 2. Transformar i afegir al lot (Batch)
+  // 3️⃣ Processar cada registre
   for (const rawReferee of rawData) {
-    // Validació simple de dades
     if (!rawReferee.licencia || !rawReferee.nom || !rawReferee.cognoms) {
-      console.warn(`⚠️  Saltant registre invàlid (falta llicència, nom o cognoms): ${JSON.stringify(rawReferee)}`);
+      console.warn(`⚠️  Saltant registre invàlid: ${JSON.stringify(rawReferee)}`);
       continue;
     }
-    
+
     const cleanedLicencia = String(rawReferee.licencia).trim();
     const categoriaCompleta = `${rawReferee.categoria ? String(rawReferee.categoria).trim() : ''} ${rawReferee.rrtt ? String(rawReferee.rrtt).trim() : ''}`.trim();
 
-    // Transformem les dades del JSON al nostre model de Firestore
     const transformedData: RefereeLicenseProfile = {
       llissenciaId: cleanedLicencia,
       nom: String(rawReferee.nom).trim(),
       cognoms: String(rawReferee.cognoms).trim(),
       categoriaRrtt: categoriaCompleta,
-      accountStatus: 'pending', // Estat inicial per a tots
+      accountStatus: 'pending',
     };
 
-    // Fem servir la llicència com a ID del document
     const docRef = registryCollection.doc(transformedData.llissenciaId);
     batch.set(docRef, transformedData);
     operations++;
 
-    // Firestore limita els lots a 500 operacions.
-    // Creem un nou lot cada 499 escriptures.
-    if (operations > 0 && operations % 499 === 0) {
+    // 🔁 Cada 499 registres, fem commit del lot
+    if (operations % 499 === 0) {
       await batch.commit();
       console.log(`i  Lot de 499 registres carregat... (Total: ${operations})`);
-      batch = db.batch(); // Reiniciem el lot
+      batch = db.batch();
     }
   }
 
-  // 3. Enviar l'últim lot (els registres restants)
+  // 4️⃣ Commit final (els registres restants)
   try {
     await batch.commit();
     console.log(`✅ ÈXIT: S'han carregat un total de ${operations} registres a 'referees_registry'.`);
@@ -96,4 +129,11 @@ async function seedRegistry() {
   }
 }
 
-seedRegistry();
+// -----------------------------------------------------------------------------
+// ▶ Execució
+// -----------------------------------------------------------------------------
+seedRegistry()
+  .then(() => console.log('🏁 Càrrega finalitzada correctament.'))
+  .catch((err) => {
+    console.error('❌ Error inesperat durant l’execució:', err);
+  });

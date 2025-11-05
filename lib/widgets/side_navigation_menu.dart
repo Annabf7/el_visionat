@@ -13,16 +13,21 @@ class SideNavigationMenu extends StatelessWidget {
       'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/xiulet.svg?alt=media&token=bfac6951-619d-4c2d-962b-ea4a301843ed';
 
   void _handleProfileTap(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    // Fem servir el StreamProvider<User?> registrat a `main.dart` per obtenir
+    // l'estat d'usuari de forma consistent (evita condicions de carrera amb
+    // l'estat intern de FirebaseAuth que pot ser restaurat asíncronament).
+    final user = context.read<User?>();
+    final authProvider = context.read<AuthProvider>();
+
     if (user == null) {
-      // L'usuari no ha iniciat sessió, reseteja l'estat i navega a LoginPage
-      context.read<AuthProvider>().reset();
+      // L'usuari no ha iniciat sessió, reseteja l'estat del provider i navega a LoginPage
+      authProvider.reset();
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const LoginPage()),
       );
     } else {
-      // L'usuari ha iniciat sessió, navega a una pàgina de perfil
+      // L'usuari ha iniciat sessió, navega a la pàgina de perfil
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const ProfilePage()),
@@ -102,12 +107,11 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    // Agafem l'usuari mitjançant el StreamProvider global per consistència
+    final user = context.watch<User?>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('El Meu Perfil'),
-      ),
+      appBar: AppBar(title: const Text('El Meu Perfil')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -119,11 +123,13 @@ class ProfilePage extends StatelessWidget {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                await FirebaseAuth.instance.signOut();
-                // Tanquem la pàgina de perfil per tornar a la HomePage
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
+                // Fem servir el provider per tancar la sessió i netejar
+                // l'estat intern (inclou reset). Això evita que l'estat del
+                // provider quedi inconsistent respecte a l'stream de Firebase.
+                await context.read<AuthProvider>().signOut();
+                // Tancarem la pàgina de perfil; l'AuthWrapper redirigirà
+                // automàticament a la LoginPage en detectar l'usuari null.
+                if (context.mounted) Navigator.pop(context);
               },
               child: const Text('Tancar Sessió'),
             ),
@@ -152,8 +158,9 @@ class _NavigationItem extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final backgroundColor =
-        isSelected ? colorScheme.primary.withAlpha(51) : Colors.transparent;
+    final backgroundColor = isSelected
+        ? colorScheme.primary.withAlpha(51)
+        : Colors.transparent;
     final itemColor = isSelected ? colorScheme.primary : colorScheme.onSurface;
 
     return Material(

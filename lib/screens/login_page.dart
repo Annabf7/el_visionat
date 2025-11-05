@@ -105,9 +105,13 @@ class _LoginPageMobileState extends State<_LoginPageMobile>
       ),
       body: TabBarView(
         controller: _tabController, // Important assignar el controlador
+        // Avoid wrapping the step views in Center: those children already
+        // provide their own scrolling and sizing. Wrapping in Center can
+        // interfere with how they react to the keyboard and lead to
+        // "Bottom overflowed" errors on small devices.
         children: const [
-          Center(child: _LoginView()), // Aquesta vista mostrarà el formulari de login
-          Center(child: _RegisterView()), // Aquesta vista mostrarà el formulari de registre
+          _LoginView(), // Aquesta vista mostrarà el formulari de login
+          _RegisterView(), // Aquesta vista mostrarà el formulari de registre
         ],
       ),
     );
@@ -131,12 +135,13 @@ class _LoginPageDesktop extends StatelessWidget {
     }
 
     // Si l'usuari NO ha iniciat sessió, mostrem el disseny de dues columnes
-    // per permetre iniciar sessió o registrar-se.
+    // per permetre iniciar sessió o registrar-se. Avoid extra Center wrappers
+    // which can cause layout issues with scrolling/keyboard on narrow viewports.
     return const Row(
       children: [
-        Expanded(child: Center(child: _LoginView())),
+        Expanded(child: _LoginView()),
         VerticalDivider(width: 1, thickness: 1), // Fem el divisor visible
-        Expanded(child: Center(child: _RegisterView())),
+        Expanded(child: _RegisterView()),
       ],
     );
   }
@@ -267,7 +272,8 @@ class _LoginViewState extends State<_LoginView> {
     }
 
     // **VISTA ANTIGA: Si l'usuari NO està connectat, mostrem el formulari de login.**
-    final bool showError = authProvider.errorMessage != null &&
+    final bool showError =
+        authProvider.errorMessage != null &&
         authProvider.currentStep == RegistrationStep.initial;
 
     return SingleChildScrollView(

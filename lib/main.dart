@@ -15,6 +15,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:el_visionat/providers/backend_state.dart';
 import 'package:flutter/foundation.dart'; // Importat per kDebugMode
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
@@ -54,6 +55,26 @@ void main() async {
   // Assegurem que la BBDD està oberta abans d'arrencar l'app
   await isarService.openDB();
 
+  // --- Health check del backend (emulator / prod) ---
+  final backendOk = await authService.checkBackendAvailable();
+  debugPrint('Backend availability at startup: $backendOk');
+
+  // Create a BackendState instance up-front so we can start automatic
+  // retries if the backend is initially unavailable.
+  final backendState = BackendState(
+    authService: authService,
+    available: backendOk,
+  );
+  if (!backendOk) {
+    // Start auto retrying in the background to detect when the emulator comes online.
+    backendState.startAutoRetry();
+    // In debug mode, also start an automatic sign-out timer to avoid ghost
+    // sessions while developing with emulators.
+    if (kDebugMode) {
+      backendState.startAutoSignOut();
+    }
+  }
+
   // Instanciem el servei de dades d'equips passant Isar i Firestore
   final teamDataService = TeamDataService(
     isarService,
@@ -91,6 +112,10 @@ void main() async {
             authService: authService,
           ), // El nostre provider d'autenticació/registre
         ),
+        // Provider per a l'estat de disponibilitat del backend
+        // Creem la instància abans de passar-la al provider per poder iniciar
+        // l'auto-retry si cal (quando el backend està inicialment indisponible).
+        ChangeNotifierProvider.value(value: backendState),
       ],
       child: const MyApp(), // L'aplicació principal
     ),
@@ -117,6 +142,50 @@ class MyApp extends StatelessWidget {
         '/create-password': (context) =>
             const CreatePasswordPage(), // Ruta per crear contrasenya
         // Pots afegir més rutes aquí si calen
+      },
+      // Insertem un builder per mostrar un MaterialBanner quan el backend no està disponible
+      builder: (context, child) {
+        // Si BackendState no està registrat encara (races), mostrem directament el child
+        final backend = Provider.of<BackendState?>(context, listen: true);
+        if (backend == null) return child!;
+
+        if (!backend.available) {
+          // Mostrem banner persistent a sobre de la UI
+          return Column(
+            children: [
+              MaterialBanner(
+                content: const Text(
+                  'Back-end no disponible. Algunes funcionalitats (escriptura) estan desactivades.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: backend.isChecking
+                        ? null
+                        : () => backend.recheck(),
+                    child: backend.isChecking
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Reintentar'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      // Offrir la opció de tancar sessió manualment
+                      try {
+                        await context.read<AuthProvider>().signOut();
+                      } catch (_) {}
+                    },
+                    child: const Text('Desconnectar'),
+                  ),
+                ],
+              ),
+              Expanded(child: child ?? const SizedBox()),
+            ],
+          );
+        }
+        return child ?? const SizedBox();
       },
     );
   }

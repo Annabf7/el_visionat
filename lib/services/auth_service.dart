@@ -134,6 +134,46 @@ class AuthService {
     }
   }
 
+  /// Health check to determine if the backend (Functions or Firestore) is reachable.
+  ///
+  /// Tries a lightweight Cloud Function 'healthCheck' first (if available),
+  /// and falls back to a Firestore read of `__health__/ping` if the function
+  /// is not present or fails. Returns `true` if any check succeeds.
+  Future<bool> checkBackendAvailable({
+    Duration timeout = const Duration(seconds: 3),
+  }) async {
+    try {
+      // 1) Try Cloud Function healthCheck (preferred)
+      try {
+        final callable = functions.httpsCallable('healthCheck');
+        final result = await callable.call().timeout(timeout);
+        final data = result.data;
+        if (data == 'ok' || data == true) return true;
+        // If function returned something else, we'll still try Firestore fallback
+        debugPrint('healthCheck returned: $data');
+      } catch (e) {
+        debugPrint('healthCheck function unavailable or failed: $e');
+      }
+
+      // 2) Fallback: lightweight Firestore read.
+      // Some dev setups don't seed a specific __health__ doc, so as a more
+      // reliable fallback we attempt a very cheap read on a collection that
+      // is typically present in the project (e.g. 'teams'). We only read the
+      // first document (limit 1) to keep this operation cheap.
+      try {
+        await firestore.collection('teams').limit(1).get().timeout(timeout);
+        // If the call didn't throw, Firestore is reachable.
+        return true;
+      } catch (e) {
+        debugPrint('Firestore fallback health check failed: $e');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Unexpected error in checkBackendAvailable: $e');
+      return false;
+    }
+  }
+
   // -------------------------------------------------------------------------
   // Mètodes d'Autenticació Existents
   // -------------------------------------------------------------------------

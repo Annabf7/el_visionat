@@ -5,6 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+
+import '../providers/vote_provider.dart';
+import 'voting_card.dart';
 
 import '../theme/app_theme.dart';
 
@@ -57,6 +61,18 @@ class MatchSeed {
   }
 }
 
+// Top-level helpers so multiple widgets can reuse them without duplicating
+Future<List<MatchSeed>> loadMatchesFromAssets() async {
+  final raw = await rootBundle.loadString('assets/data/jornada_14_matches.json');
+  final decoded = jsonDecode(raw) as List<dynamic>;
+  return decoded.map((e) => MatchSeed.fromJson(e as Map<String, dynamic>)).toList();
+}
+
+String formatDate(String iso) {
+  final dt = DateTime.parse(iso).toLocal();
+  return DateFormat('dd/MM/yyyy • HH:mm', 'ca_ES').format(dt);
+}
+
 class VotingSection extends StatefulWidget {
   const VotingSection({super.key});
 
@@ -72,23 +88,10 @@ class _VotingSectionState extends State<VotingSection> {
   @override
   void initState() {
     super.initState();
-    _matchesFuture = _loadFromAssets();
+    _matchesFuture = loadMatchesFromAssets();
   }
 
-  Future<List<MatchSeed>> _loadFromAssets() async {
-    final raw = await rootBundle.loadString(
-      'assets/data/jornada_14_matches.json',
-    );
-    final decoded = jsonDecode(raw) as List<dynamic>;
-    return decoded
-        .map((e) => MatchSeed.fromJson(e as Map<String, dynamic>))
-        .toList();
-  }
-
-  String _format(String iso) {
-    final dt = DateTime.parse(iso).toLocal();
-    return DateFormat('dd/MM/yyyy • HH:mm', 'ca_ES').format(dt);
-  }
+  // Instance helpers removed; use top-level loadMatchesFromAssets and formatDate
 
   String _initials(String name) {
     final parts = name.trim().split(RegExp(r'\s+'));
@@ -138,7 +141,7 @@ class _VotingSectionState extends State<VotingSection> {
           const SizedBox(height: 12),
 
           FutureBuilder<List<MatchSeed>>(
-            future: _matchesFuture ??= _loadFromAssets(),
+            future: _matchesFuture ??= loadMatchesFromAssets(),
             builder: (context, snap) {
               if (snap.connectionState != ConnectionState.done) {
                 return const Padding(
@@ -340,7 +343,7 @@ class _VotingSectionState extends State<VotingSection> {
                       const SizedBox(height: 8),
                       Center(
                         child: Text(
-                          _format(m.dateTime),
+                          formatDate(m.dateTime),
                           style: TextStyle(
                             color: Colors.grey[400],
                             fontSize: 12,
@@ -380,7 +383,7 @@ class _VotingSectionState extends State<VotingSection> {
                     const SizedBox(height: 8),
                     Center(
                       child: Text(
-                        _format(m.dateTime),
+                        formatDate(m.dateTime),
                         style: TextStyle(color: Colors.grey[400], fontSize: 12),
                       ),
                     ),
@@ -413,14 +416,105 @@ class _VotingSectionState extends State<VotingSection> {
   }
 }
 
-class AllMatchesPage extends StatelessWidget {
+class AllMatchesPage extends StatefulWidget {
   const AllMatchesPage({super.key});
+
+  @override
+  State<AllMatchesPage> createState() => _AllMatchesPageState();
+}
+
+class _AllMatchesPageState extends State<AllMatchesPage> {
+  Future<List<MatchSeed>>? _matchesFuture;
+  final int jornada = 14;
+
+  @override
+  void initState() {
+    super.initState();
+  _matchesFuture = loadMatchesFromAssets();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Tots els enfrontaments')),
-      body: const Center(child: Text('AllMatchesPage - implementació pendent')),
+      body: FutureBuilder<List<MatchSeed>>(
+        future: _matchesFuture,
+        builder: (context, snap) {
+          if (snap.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snap.hasError) {
+            return Center(child: Text('Error carregant enfrontaments'));
+          }
+          final all = (snap.data ?? <MatchSeed>()).where((m) => m.jornada == jornada).toList();
+          if (all.isEmpty) return Center(child: Text('No hi ha enfrontaments'));
+
+          // Provide a VoteProvider scoped to this page.
+          return ChangeNotifierProvider(
+            create: (_) {
+              final vp = VoteProvider();
+              // start listeners
+              vp.loadVoteForJornada(jornada);
+              vp.listenVotingOpen(jornada);
+              return vp;
+            },
+            child: Consumer<VoteProvider>(
+              builder: (context, vp, _) {
+                return ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: all.length,
+                  itemBuilder: (context, i) {
+                    final m = all[i];
+                    // precache images for smoother UI
+                    if (m.homeLogo.isNotEmpty) {
+                      precacheImage(AssetImage('assets/images/teams/${m.homeLogo}'), context).catchError((_) {});
+                    }
+                    if (m.awayLogo.isNotEmpty) {
+                      precacheImage(AssetImage('assets/images/teams/${m.awayLogo}'), context).catchError((_) {});
+                    }
+
+                    final matchId = m.homeLogo.isNotEmpty ? m.homeLogo : '${m.homeName}_${m.awayName}';
+
+                    return StreamBuilder<int>(
+                      stream: vp.getVoteCountStream(matchId, jornada),
+                      builder: (context, countSnap) {
+                        final count = countSnap.data ?? 0;
+                        final isVoted = vp.votedMatchId(jornada) == matchId;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: VotingCard(
+                            homeName: m.homeName,
+                            homeLogo: m.homeLogo,
+                            awayName: m.awayName,
+                            awayLogo: m.awayLogo,
+                            dateTimeIso: formatDate(m.dateTime),
+                            matchId: matchId,
+                            jornada: jornada,
+                            voteCount: count,
+                            isVoted: isVoted,
+                            isDisabled: vp.isClosed(jornada),
+                            isLoading: vp.isCasting(jornada),
+                            onVote: () async {
+                              try {
+                                await vp.castVote(jornada: jornada, matchId: matchId);
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vot registrat')));
+                              } catch (e) {
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error votant: $e')));
+                              }
+                            },
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          );
+        },
+      ),
     );
   }
 }

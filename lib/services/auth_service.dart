@@ -49,6 +49,20 @@ class AuthService {
     }
   }
 
+  /// If running in a non-production VM (e.g. debug/emulator), clear any
+  /// existing FirebaseAuth session to ensure a clean state for local testing.
+  /// Uses a simple environment-based heuristic to detect non-production.
+  Future<void> clearAuthIfEmulator() async {
+    final isEmulator = bool.fromEnvironment('dart.vm.product') == false;
+    if (!isEmulator) return;
+    try {
+      await auth.signOut();
+      debugPrint('🔄 Sessió FirebaseAuth netejada (emulador)');
+    } catch (e) {
+      debugPrint('Error signing out during emulator init: $e');
+    }
+  }
+
   // -------------------------------------------------------------------------
   // Mètodes del Flux de Registre Manual (3 Passos + Comprovació)
   // -------------------------------------------------------------------------

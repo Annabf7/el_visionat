@@ -43,6 +43,10 @@ void main() async {
     functions: functionsInstance,
   );
 
+  // If running with emulators / in debug, clear any existing FirebaseAuth
+  // session so local testing always starts with a clean auth state.
+  await authService.clearAuthIfEmulator();
+
   // If running in debug mode on web, point Firestore/Functions/Auth to the local emulators.
   // This is required for Flutter web where environment variables like FIRESTORE_EMULATOR_HOST
   // are not available. Ports are aligned with `firebase.json` (auth:9198, firestore:8088, functions:5001).

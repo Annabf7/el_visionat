@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../providers/vote_provider.dart';
 import 'voting_card.dart';
@@ -202,30 +203,45 @@ class _VotingSectionState extends State<VotingSection> {
                 });
               }
 
-              return Column(
-                children: [
-                  for (final m in _selected) _cardFor(m),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const AllMatchesPage(),
-                        ),
-                      ),
-                      child: Text(
-                        'Veure tots',
-                        style: GoogleFonts.montserrat(
-                          textStyle: const TextStyle(
-                            color: Colors.orangeAccent,
+              // Provide a VoteProvider scoped to this little section so voting
+              // from Home behaves the same as from AllMatchesPage.
+              return ChangeNotifierProvider(
+                create: (_) {
+                  final vp = VoteProvider();
+                  vp.loadVoteForJornada(14);
+                  vp.listenVotingOpen(14);
+                  return vp;
+                },
+                child: Consumer<VoteProvider>(
+                  builder: (context, vp, _) {
+                    return Column(
+                      children: [
+                        for (final m in _selected)
+                          Builder(builder: (ctx) => _cardFor(ctx, m, vp)),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const AllMatchesPage(),
+                              ),
+                            ),
+                            child: Text(
+                              'Veure tots',
+                              style: GoogleFonts.montserrat(
+                                textStyle: const TextStyle(
+                                  color: Colors.orangeAccent,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                ],
+                      ],
+                    );
+                  },
+                ),
               );
             },
           ),
@@ -234,7 +250,7 @@ class _VotingSectionState extends State<VotingSection> {
     );
   }
 
-  Widget _cardFor(MatchSeed m) {
+  Widget _cardFor(BuildContext ctx, MatchSeed m, VoteProvider vp) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
       color: const Color(0xFF2C2C3A),
@@ -397,8 +413,50 @@ class _VotingSectionState extends State<VotingSection> {
             Align(
               alignment: Alignment.centerRight,
               child: ElevatedButton.icon(
-                onPressed: () =>
-                    debugPrint('Voted for ${m.homeName} vs ${m.awayName}'),
+                onPressed: () async {
+                  // Ensure user is authenticated before voting
+                  final current = FirebaseAuth.instance.currentUser;
+                  if (current == null) {
+                    if (!mounted) return;
+                    showDialog<void>(
+                      context: ctx,
+                      builder: (dctx) => AlertDialog(
+                        title: const Text('Cal iniciar sessió'),
+                        content: const Text(
+                          'Cal iniciar sessió per poder votar.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(dctx).pop(),
+                            child: const Text('D\'acord'),
+                          ),
+                        ],
+                      ),
+                    );
+                    return;
+                  }
+
+                  final messenger = ScaffoldMessenger.of(ctx);
+                  try {
+                    await vp.castVote(
+                      jornada: m.jornada,
+                      matchId: m.homeLogo.isNotEmpty
+                          ? m.homeLogo
+                          : '${m.homeName}_${m.awayName}',
+                    );
+                    if (!mounted) return;
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Vot registrat')),
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Error en registrar el vot'),
+                      ),
+                    );
+                  }
+                },
                 icon: const Icon(Icons.how_to_vote, size: 18),
                 label: Text(
                   'Votar',
@@ -513,6 +571,28 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
                             isDisabled: vp.isClosed(jornada),
                             isLoading: vp.isCasting(jornada),
                             onVote: () async {
+                              // Guard: ensure user is signed in before attempting vote.
+                              final current = FirebaseAuth.instance.currentUser;
+                              if (current == null) {
+                                if (!mounted) return;
+                                showDialog<void>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('Cal iniciar sessió'),
+                                    content: const Text(
+                                      'Has d\'iniciar sessió perquè el teu vot quedi registrat.',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(ctx).pop(),
+                                        child: const Text('D\'acord'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                return;
+                              }
                               final messenger = ScaffoldMessenger.of(context);
                               try {
                                 await vp.castVote(

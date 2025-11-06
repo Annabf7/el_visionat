@@ -144,8 +144,25 @@ class AuthProvider with ChangeNotifier {
         email: _pendingEmail!,
         password: password,
       );
-      _currentStep =
-          RegistrationStep.registrationComplete; // L'usuari ara està logat
+
+      // The backend creates the user (admin). Now sign the user in on the client
+      // so FirebaseAuth.currentUser becomes non-null and UI flows proceed.
+      try {
+        await authService.signInWithEmail(_pendingEmail!, password);
+      } on Exception catch (e) {
+        // Registration succeeded server-side but sign-in failed. Surface a
+        // clear error to the UI so the user can retry login.
+        _setError(
+          'Registre complet però no s\'ha pogut iniciar sessió automàticament: ${e.toString()}',
+          notify: true,
+          errorStep: RegistrationStep.error,
+        );
+        _setLoading(false);
+        notifyListeners();
+        return;
+      }
+
+      _currentStep = RegistrationStep.registrationComplete;
       _setLoading(false);
       // No fem reset aquí, deixem que authStateChanges gestioni la navegació
       notifyListeners();

@@ -10,6 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../providers/vote_provider.dart';
 import 'voting_card.dart';
+import 'jornada_header.dart';
 
 import '../theme/app_theme.dart';
 
@@ -120,33 +121,8 @@ class _VotingSectionState extends State<VotingSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Jornada 14',
-                style: GoogleFonts.montserrat(
-                  textStyle: const TextStyle(
-                    color: AppTheme.grisPistacho,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  const Icon(Icons.circle, size: 10, color: Colors.green),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Votació Oberta',
-                    style: GoogleFonts.montserrat(
-                      textStyle: const TextStyle(color: AppTheme.grisPistacho),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          // Reusable jornada header (shows jornada and voting status)
+          const JornadaHeader(jornada: 14),
           const SizedBox(height: 12),
 
           FutureBuilder<List<MatchSeed>>(
@@ -215,26 +191,38 @@ class _VotingSectionState extends State<VotingSection> {
                 child: Consumer<VoteProvider>(
                   builder: (context, vp, _) {
                     return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // Header row removed per UX decision — we keep only the compact match cards
+
+                        // Rows
                         for (final m in _selected)
                           Builder(builder: (ctx) => _cardFor(ctx, m, vp)),
-                        const SizedBox(height: 8),
+
+                        const SizedBox(height: 12),
                         Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
+                          alignment: Alignment.center,
+                          child: ElevatedButton(
                             onPressed: () => Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => const AllMatchesPage(),
                               ),
                             ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.grisPistacho,
+                              foregroundColor: AppTheme.porpraFosc,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 28,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                             child: Text(
                               'Veure tots',
-                              style: GoogleFonts.montserrat(
-                                textStyle: const TextStyle(
-                                  color: Colors.orangeAccent,
-                                ),
-                              ),
+                              style: GoogleFonts.montserrat(),
                             ),
                           ),
                         ),
@@ -251,227 +239,329 @@ class _VotingSectionState extends State<VotingSection> {
   }
 
   Widget _cardFor(BuildContext ctx, MatchSeed m, VoteProvider vp) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      color: const Color(0xFF2C2C3A),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final w = constraints.maxWidth;
-                double logoSize = 48;
-                if (w >= 800) {
-                  logoSize = 96;
-                } else if (w >= 400) {
-                  logoSize = 72;
-                }
-                final compact = w < 420;
+    final matchId = m.homeLogo.isNotEmpty
+        ? m.homeLogo
+        : '${m.homeName}_${m.awayName}';
 
-                Widget logoWidget(String name, String logo) {
-                  final asset = logo.isNotEmpty
-                      ? 'assets/images/teams/$logo'
-                      : '';
-                  if (asset.isNotEmpty) {
-                    return ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image(
-                        image: ResizeImage(
-                          AssetImage(asset),
-                          width: logoSize.round(),
-                        ),
-                        width: logoSize,
-                        height: logoSize,
-                        fit: BoxFit.contain,
-                        semanticLabel: name,
-                        errorBuilder: (c, e, s) => CircleAvatar(
-                          radius: logoSize / 2,
-                          backgroundColor: Colors.grey[700],
-                          child: Text(
-                            _initials(name),
-                            style: GoogleFonts.montserrat(
-                              textStyle: const TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                  return CircleAvatar(
-                    radius: logoSize / 2,
-                    backgroundColor: Colors.grey[700],
-                    child: Text(
-                      _initials(name),
-                      style: GoogleFonts.montserrat(
-                        textStyle: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  );
-                }
+    return StreamBuilder<int>(
+      stream: vp.getVoteCountStream(matchId, m.jornada),
+      builder: (context, countSnap) {
+        final count = countSnap.data ?? 0;
 
-                Widget teamBlock(
-                  String name,
-                  String logo, {
-                  bool right = false,
-                  bool showName = true,
-                }) {
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: right
-                        ? MainAxisAlignment.end
-                        : MainAxisAlignment.start,
-                    children: [
-                      logoWidget(name, logo),
-                      if (showName) ...[
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            name,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 2,
-                            style: GoogleFonts.montserrat(
-                              textStyle: const TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  );
-                }
-
-                if (compact) {
-                  return Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          logoWidget(m.homeName, m.homeLogo),
-                          Text(
-                            'vs',
-                            style: GoogleFonts.montserrat(
-                              textStyle: const TextStyle(color: Colors.white70),
-                            ),
-                          ),
-                          logoWidget(m.awayName, m.awayLogo),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Center(
-                        child: Text(
-                          formatDate(m.dateTime),
-                          style: TextStyle(
-                            color: Colors.grey[400],
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                }
-
-                return Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(child: teamBlock(m.homeName, m.homeLogo)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Text(
-                            'vs',
-                            style: GoogleFonts.montserrat(
-                              textStyle: const TextStyle(color: Colors.white70),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: teamBlock(
-                              m.awayName,
-                              m.awayLogo,
-                              right: true,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Center(
-                      child: Text(
-                        formatDate(m.dateTime),
-                        style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                      ),
-                    ),
-                  ],
-                );
-              },
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          clipBehavior: Clip.antiAlias,
+          elevation: 6,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppTheme.porpraFosc.withAlpha(250),
+                  AppTheme.lilaMitja.withAlpha(120),
+                  AppTheme.grisBody.withAlpha(220),
+                ],
+                stops: const [0.0, 0.55, 1.0],
+                tileMode: TileMode.clamp,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(89),
+                  offset: const Offset(0, 6),
+                  blurRadius: 14,
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  // Ensure user is authenticated before voting
-                  final current = FirebaseAuth.instance.currentUser;
-                  if (current == null) {
-                    if (!mounted) return;
-                    showDialog<void>(
-                      context: ctx,
-                      builder: (dctx) => AlertDialog(
-                        title: const Text('Cal iniciar sessió'),
-                        content: const Text(
-                          'Cal iniciar sessió per poder votar.',
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final w = constraints.maxWidth;
+                    // Make logos larger and responsive (better for small phones)
+                    double logoSize = 72; // base for small phones
+                    if (w >= 800) {
+                      logoSize = 120;
+                    } else if (w >= 420) {
+                      logoSize = 96;
+                    } else if (w >= 360) {
+                      logoSize = 80;
+                    }
+                    final compact = w < 420;
+
+                    Widget logoWidget(String name, String logo) {
+                      final asset = logo.isNotEmpty
+                          ? 'assets/images/teams/$logo'
+                          : '';
+                      if (asset.isNotEmpty) {
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image(
+                            image: ResizeImage(
+                              AssetImage(asset),
+                              width: logoSize.round(),
+                            ),
+                            width: logoSize,
+                            height: logoSize,
+                            fit: BoxFit.contain,
+                            semanticLabel: name,
+                            errorBuilder: (c, e, s) => CircleAvatar(
+                              radius: logoSize / 2,
+                              backgroundColor: Colors.grey[700],
+                              child: Text(
+                                _initials(name),
+                                style: GoogleFonts.montserrat(
+                                  textStyle: const TextStyle(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      return CircleAvatar(
+                        radius: logoSize / 2,
+                        backgroundColor: Colors.grey[700],
+                        child: Text(
+                          _initials(name),
+                          style: GoogleFonts.montserrat(
+                            textStyle: const TextStyle(color: Colors.white),
+                          ),
                         ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(dctx).pop(),
-                            child: const Text('D\'acord'),
+                      );
+                    }
+
+                    Widget teamBlock(
+                      String name,
+                      String logo, {
+                      bool right = false,
+                      bool showName = true,
+                    }) {
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: right
+                            ? MainAxisAlignment.end
+                            : MainAxisAlignment.start,
+                        children: [
+                          logoWidget(name, logo),
+                          if (showName) ...[
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                name,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 2,
+                                style: GoogleFonts.montserrat(
+                                  textStyle: const TextStyle(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    }
+
+                    // Prepare date/time parts for stacked display
+                    final parts = formatDate(m.dateTime).contains('•')
+                        ? formatDate(
+                            m.dateTime,
+                          ).split('•').map((s) => s.trim()).toList()
+                        : [formatDate(m.dateTime)];
+
+                    if (compact) {
+                      return Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              logoWidget(m.homeName, m.homeLogo),
+                              Text(
+                                'vs',
+                                style: GoogleFonts.montserrat(
+                                  textStyle: const TextStyle(
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ),
+                              logoWidget(m.awayName, m.awayLogo),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Center(
+                            child: Column(
+                              children: [
+                                Text(
+                                  parts[0],
+                                  style: TextStyle(
+                                    color: Colors.grey[300],
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if (parts.length > 1) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    parts[1],
+                                    style: TextStyle(
+                                      color: Colors.grey[400],
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
                         ],
-                      ),
-                    );
-                    return;
-                  }
+                      );
+                    }
 
-                  final messenger = ScaffoldMessenger.of(ctx);
-                  try {
-                    await vp.castVote(
-                      jornada: m.jornada,
-                      matchId: m.homeLogo.isNotEmpty
-                          ? m.homeLogo
-                          : '${m.homeName}_${m.awayName}',
+                    return Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: teamBlock(m.homeName, m.homeLogo)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0,
+                              ),
+                              child: Text(
+                                'vs',
+                                style: GoogleFonts.montserrat(
+                                  textStyle: const TextStyle(
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: teamBlock(
+                                  m.awayName,
+                                  m.awayLogo,
+                                  right: true,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Center(
+                          child: Column(
+                            children: [
+                              Text(
+                                parts[0],
+                                style: TextStyle(
+                                  color: Colors.grey[300],
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              if (parts.length > 1) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  parts[1],
+                                  style: TextStyle(
+                                    color: Colors.grey[400],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
                     );
-                    if (!mounted) return;
-                    messenger.showSnackBar(
-                      const SnackBar(content: Text('Vot registrat')),
-                    );
-                  } catch (e) {
-                    if (!mounted) return;
-                    messenger.showSnackBar(
-                      const SnackBar(
-                        content: Text('Error en registrar el vot'),
+                  },
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.center,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      // Ensure user is authenticated before voting
+                      final current = FirebaseAuth.instance.currentUser;
+                      if (current == null) {
+                        if (!mounted) return;
+                        showDialog<void>(
+                          context: ctx,
+                          builder: (dctx) => AlertDialog(
+                            title: const Text('Cal iniciar sessió'),
+                            content: const Text(
+                              'Cal iniciar sessió per poder votar.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(dctx).pop(),
+                                child: const Text('D\'acord'),
+                              ),
+                            ],
+                          ),
+                        );
+                        return;
+                      }
+
+                      final messenger = ScaffoldMessenger.of(ctx);
+                      try {
+                        await vp.castVote(
+                          jornada: m.jornada,
+                          matchId: m.homeLogo.isNotEmpty
+                              ? m.homeLogo
+                              : '${m.homeName}_${m.awayName}',
+                        );
+                        if (!mounted) return;
+                        messenger.showSnackBar(
+                          const SnackBar(content: Text('Vot registrat')),
+                        );
+                      } catch (e) {
+                        if (!mounted) return;
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            content: Text('Error en registrar el vot'),
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.how_to_vote, size: 18),
+                    label: Text(
+                      'Votar',
+                      style: GoogleFonts.montserrat(
+                        textStyle: const TextStyle(fontSize: 12),
                       ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.how_to_vote, size: 18),
-                label: Text(
-                  'Votar',
-                  style: GoogleFonts.montserrat(
-                    textStyle: const TextStyle(fontSize: 12),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: AppTheme.grisPistacho,
+                    ),
                   ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orangeAccent,
+                const SizedBox(height: 8),
+                // bottom-right vote count like in VotingCard
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: Text(
+                    count == 1 ? '1 vot' : '$count vots',
+                    style: GoogleFonts.montserrat(
+                      textStyle: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -528,95 +618,153 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
             },
             child: Consumer<VoteProvider>(
               builder: (context, vp, _) {
-                return ListView.builder(
+                // Header + list of jornada matches. The header shows jornada and
+                // voting status (open/closed) at the top of the page as requested.
+                return ListView(
                   padding: const EdgeInsets.all(12),
-                  itemCount: all.length,
-                  itemBuilder: (context, i) {
-                    final m = all[i];
-                    // precache images for smoother UI
-                    if (m.homeLogo.isNotEmpty) {
-                      precacheImage(
-                        AssetImage('assets/images/teams/${m.homeLogo}'),
-                        context,
-                      ).catchError((_) {});
-                    }
-                    if (m.awayLogo.isNotEmpty) {
-                      precacheImage(
-                        AssetImage('assets/images/teams/${m.awayLogo}'),
-                        context,
-                      ).catchError((_) {});
-                    }
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.porpraFosc,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Jornada $jornada',
+                            style: GoogleFonts.montserrat(
+                              textStyle: const TextStyle(
+                                color: AppTheme.grisPistacho,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.circle,
+                                size: 10,
+                                color: vp.isClosed(jornada)
+                                    ? Colors.red
+                                    : Colors.green,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                vp.isClosed(jornada)
+                                    ? 'Votació tancada'
+                                    : 'Votació oberta',
+                                style: GoogleFonts.montserrat(
+                                  textStyle: const TextStyle(
+                                    color: AppTheme.grisPistacho,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Matches for this jornada
+                    for (var i = 0; i < allMatches.length; i++)
+                      (() {
+                        final m = allMatches[i];
+                        // precache images for smoother UI
+                        if (m.homeLogo.isNotEmpty) {
+                          precacheImage(
+                            AssetImage('assets/images/teams/${m.homeLogo}'),
+                            context,
+                          ).catchError((_) {});
+                        }
+                        if (m.awayLogo.isNotEmpty) {
+                          precacheImage(
+                            AssetImage('assets/images/teams/${m.awayLogo}'),
+                            context,
+                          ).catchError((_) {});
+                        }
 
-                    final matchId = m.homeLogo.isNotEmpty
-                        ? m.homeLogo
-                        : '${m.homeName}_${m.awayName}';
+                        final matchId = m.homeLogo.isNotEmpty
+                            ? m.homeLogo
+                            : '${m.homeName}_${m.awayName}';
 
-                    return StreamBuilder<int>(
-                      stream: vp.getVoteCountStream(matchId, jornada),
-                      builder: (context, countSnap) {
-                        final count = countSnap.data ?? 0;
-                        final isVoted = vp.votedMatchId(jornada) == matchId;
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8.0),
-                          child: VotingCard(
-                            homeName: m.homeName,
-                            homeLogo: m.homeLogo,
-                            awayName: m.awayName,
-                            awayLogo: m.awayLogo,
-                            dateTimeIso: formatDate(m.dateTime),
-                            matchId: matchId,
-                            jornada: jornada,
-                            voteCount: count,
-                            isVoted: isVoted,
-                            isDisabled: vp.isClosed(jornada),
-                            isLoading: vp.isCasting(jornada),
-                            onVote: () async {
-                              // Guard: ensure user is signed in before attempting vote.
-                              final current = FirebaseAuth.instance.currentUser;
-                              if (current == null) {
-                                if (!mounted) return;
-                                showDialog<void>(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    title: const Text('Cal iniciar sessió'),
-                                    content: const Text(
-                                      'Has d\'iniciar sessió perquè el teu vot quedi registrat.',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.of(ctx).pop(),
-                                        child: const Text('D\'acord'),
+                          child: StreamBuilder<int>(
+                            stream: vp.getVoteCountStream(matchId, jornada),
+                            builder: (context, countSnap) {
+                              final count = countSnap.data ?? 0;
+                              final isVoted =
+                                  vp.votedMatchId(jornada) == matchId;
+                              return VotingCard(
+                                homeName: m.homeName,
+                                homeLogo: m.homeLogo,
+                                awayName: m.awayName,
+                                awayLogo: m.awayLogo,
+                                dateTimeIso: formatDate(m.dateTime),
+                                matchId: matchId,
+                                jornada: jornada,
+                                voteCount: count,
+                                isVoted: isVoted,
+                                isDisabled: vp.isClosed(jornada),
+                                isLoading: vp.isCasting(jornada),
+                                onVote: () async {
+                                  // Guard: ensure user is signed in before attempting vote.
+                                  final current =
+                                      FirebaseAuth.instance.currentUser;
+                                  if (current == null) {
+                                    if (!mounted) return;
+                                    showDialog<void>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        title: const Text('Cal iniciar sessió'),
+                                        content: const Text(
+                                          'Has d\'iniciar sessió perquè el teu vot quedi registrat.',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.of(ctx).pop(),
+                                            child: const Text('D\'acord'),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                );
-                                return;
-                              }
-                              final messenger = ScaffoldMessenger.of(context);
-                              try {
-                                await vp.castVote(
-                                  jornada: jornada,
-                                  matchId: matchId,
-                                );
-                                if (!mounted) return;
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Vot registrat'),
-                                  ),
-                                );
-                              } catch (e) {
-                                if (!mounted) return;
-                                messenger.showSnackBar(
-                                  SnackBar(content: Text('Error votant: $e')),
-                                );
-                              }
+                                    );
+                                    return;
+                                  }
+                                  final messenger = ScaffoldMessenger.of(
+                                    context,
+                                  );
+                                  try {
+                                    await vp.castVote(
+                                      jornada: jornada,
+                                      matchId: matchId,
+                                    );
+                                    if (!mounted) return;
+                                    messenger.showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Vot registrat'),
+                                      ),
+                                    );
+                                  } catch (e) {
+                                    if (!mounted) return;
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text('Error votant: $e'),
+                                      ),
+                                    );
+                                  }
+                                },
+                              );
                             },
                           ),
                         );
-                      },
-                    );
-                  },
+                      })(),
+                  ],
                 );
               },
             ),

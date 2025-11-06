@@ -3,7 +3,9 @@ import 'package:el_visionat/screens/login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'dart:math' as math;
 import 'package:provider/provider.dart';
+import '../theme/app_theme.dart';
 
 class SideNavigationMenu extends StatelessWidget {
   const SideNavigationMenu({super.key});
@@ -32,33 +34,53 @@ class SideNavigationMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    // use AppTheme for fixed sidebar colors
 
     return Container(
       width: 288,
-      color: colorScheme.surface,
+      color: AppTheme.mostassa,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(32, 48, 32, 0),
-            child: SvgPicture.network(
-              logoUrl,
-              height: 90,
-              placeholderBuilder: (BuildContext context) => const Center(
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
+            padding: const EdgeInsets.fromLTRB(24, 40, 16, 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Transform.rotate(
+                  angle: -2 * math.pi / 180.0,
+                  child: SvgPicture.network(
+                    logoUrl,
+                    height: 80,
+                    placeholderBuilder: (BuildContext context) => const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    'EL VISIONAT',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.grisBody,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
           Expanded(
             child: ListView(
-              children: const [
-                _NavigationItem(
+              children: [
+                const _NavigationItem(
                   icon: Icons.home,
                   text: 'Inici',
                   isSelected: true,
                 ),
-                _NavigationItem(
+                const _NavigationItem(
                   icon: Icons.videocam,
                   text: 'Visionats setmanals',
                 ),
@@ -105,9 +127,7 @@ class ProfilePage extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('El Meu Perfil'),
-      ),
+      appBar: AppBar(title: const Text('El Meu Perfil')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -139,7 +159,6 @@ class _NavigationItem extends StatelessWidget {
   final String text;
   final bool isSelected;
   final VoidCallback? onTap;
-
   const _NavigationItem({
     required this.icon,
     required this.text,
@@ -149,24 +168,40 @@ class _NavigationItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final backgroundColor =
-        isSelected ? colorScheme.primary.withAlpha(51) : Colors.transparent;
-    final itemColor = isSelected ? colorScheme.primary : colorScheme.onSurface;
+    final backgroundColor = isSelected
+        ? AppTheme.grisPistacho
+        : Colors.transparent;
+    final itemColor = isSelected ? AppTheme.porpraFosc : AppTheme.textBlackLow;
+
+    // icon
+    final Widget iconWidget = Icon(icon, color: itemColor);
 
     return Material(
-      color: backgroundColor,
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(31),
+                      offset: const Offset(0, 6),
+                      blurRadius: 12,
+                    ),
+                  ]
+                : null,
+          ),
           child: Row(
             children: [
-              Icon(icon, color: itemColor),
+              iconWidget,
               const SizedBox(width: 16),
               Expanded(
                 child: Text(

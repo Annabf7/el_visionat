@@ -17,8 +17,23 @@ class VoteProvider with ChangeNotifier {
   // closed jornadas set — can be updated from remote in the future
   final Set<int> _closed = {};
   final Map<int, StreamSubscription<bool>> _votingSubs = {};
+  // track jornadas we've loaded/listened for so we can refresh after auth changes
+  final Set<int> _observedJornadas = {};
+  StreamSubscription<User?>? _authSub;
 
   VoteProvider({VoteService? service}) : _service = service ?? VoteService();
+
+  // Subscribe to auth changes so that when the user signs in/out we reload
+  // any observed jornadas (calls to loadVoteForJornada will register jornadas).
+  void _ensureAuthListener() {
+    _authSub ??= FirebaseAuth.instance.authStateChanges().listen((user) {
+      // When auth state changes, reload votes for observed jornadas.
+      for (final j in _observedJornadas) {
+        // ignore: unawaited_futures
+        loadVoteForJornada(j);
+      }
+    });
+  }
 
   bool isClosed(int jornada) => _closed.contains(jornada);
 
@@ -28,6 +43,9 @@ class VoteProvider with ChangeNotifier {
 
   /// Load the current user's vote for a jornada (if logged in).
   Future<void> loadVoteForJornada(int jornada) async {
+    // register this jornada as observed so auth changes trigger reloads
+    _observedJornadas.add(jornada);
+    _ensureAuthListener();
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       _userVotes[jornada] = null;

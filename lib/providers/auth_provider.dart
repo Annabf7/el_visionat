@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Importem per als codis d'error
@@ -18,7 +20,26 @@ enum RegistrationStep {
 class AuthProvider with ChangeNotifier {
   final AuthService authService;
 
-  AuthProvider({required this.authService});
+  AuthProvider({required this.authService}) {
+    // Subscribe to auth state changes and mark the provider as initialized
+    // when we receive the first event. This avoids flashing unauthorized
+    // UI while the auth SDK warms up.
+    _authStateSub = authService.authStateChanges.listen(
+      (_) {
+        if (!_hasReceivedAuthState) {
+          _hasReceivedAuthState = true;
+          notifyListeners();
+        }
+      },
+      onError: (e) {
+        debugPrint('AuthProvider.authStateChanges error: $e');
+        if (!_hasReceivedAuthState) {
+          _hasReceivedAuthState = true;
+          notifyListeners();
+        }
+      },
+    );
+  }
 
   // --- Estats Generals ---
   bool _isLoading = false;
@@ -38,12 +59,29 @@ class AuthProvider with ChangeNotifier {
   String? get pendingLicenseId => _pendingLicenseId;
   String? get pendingEmail => _pendingEmail;
 
+  // --- Convenience accessors for UI (avoid screens reading Firebase directly)
+  bool get isAuthenticated => authService.auth.currentUser != null;
+  String? get currentUserEmail => authService.auth.currentUser?.email;
+  String? get currentUserDisplayName =>
+      authService.auth.currentUser?.displayName;
+  String? get currentUserPhotoUrl => authService.auth.currentUser?.photoURL;
+
+  /// User UID convenience getter
+  String? get currentUserUid => authService.auth.currentUser?.uid;
+
   // --- Mètodes Privats per Gestionar Estat ---
+  // Tracks whether we've observed the first authStateChanges event.
+  bool _hasReceivedAuthState = false;
+  StreamSubscription? _authStateSub;
+
   void _setLoading(bool loading) {
     if (_isLoading != loading) {
       _isLoading = loading;
     }
   }
+
+  /// Public accessor to know whether the provider has received initial auth state.
+  bool get isInitialized => _hasReceivedAuthState;
 
   void _setError(
     String? message, {
@@ -253,5 +291,15 @@ class AuthProvider with ChangeNotifier {
     _pendingLicenseId = null;
     _pendingEmail = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    try {
+      _authStateSub?.cancel();
+    } catch (e) {
+      debugPrint('Error cancelling authStateSub: $e');
+    }
+    super.dispose();
   }
 }

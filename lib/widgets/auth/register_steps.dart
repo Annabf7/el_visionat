@@ -207,7 +207,8 @@ class _RegisterStep2EmailState extends State<RegisterStep2Email> {
               const SizedBox(height: 8),
               ReadOnlyData(
                 label: 'Nom',
-                value: '${licenseData['nom'] ?? ''} ${licenseData['cognoms'] ?? ''}',
+                value:
+                    '${licenseData['nom'] ?? ''} ${licenseData['cognoms'] ?? ''}',
               ),
               ReadOnlyData(
                 label: 'Categoria',
@@ -276,9 +277,7 @@ class RegisterStep3RequestSent extends StatelessWidget {
     final authProvider = context.watch<AuthProvider>();
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
-    final email =
-        authProvider.pendingEmail ??
-        'el teu correu';
+    final email = authProvider.pendingEmail ?? 'el teu correu';
 
     return Padding(
       padding: const EdgeInsets.all(32.0),
@@ -313,10 +312,20 @@ class RegisterStep3RequestSent extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                // Keep the outline default but explicitly set the text color to
+                // the theme primary so it's visible on all backgrounds.
+                foregroundColor: colorScheme.primary,
+              ),
               onPressed: () {
-                context.read<AuthProvider>().reset();
+                // Capture navigator then navigate to /login clearing the stack.
+                final navigator = Navigator.of(context);
+                navigator.pushNamedAndRemoveUntil('/login', (route) => false);
               },
-              child: const Text('Tornar a l\'inici'),
+              child: Text(
+                'Iniciar sessió',
+                style: TextStyle(color: colorScheme.primary),
+              ),
             ),
           ],
         ),

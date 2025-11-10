@@ -6,9 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// Authentication is handled centrally by RequireAuth / AuthProvider.
 
 import '../providers/vote_provider.dart';
+import '../providers/auth_provider.dart';
 import 'voting_card.dart';
 import 'jornada_header.dart';
 
@@ -182,8 +183,9 @@ class _VotingSectionState extends State<VotingSection> {
               // Provide a VoteProvider scoped to this little section so voting
               // from Home behaves the same as from AllMatchesPage.
               return ChangeNotifierProvider(
-                create: (_) {
-                  final vp = VoteProvider();
+                create: (ctx) {
+                  final auth = ctx.read<AuthProvider>();
+                  final vp = VoteProvider(authProvider: auth);
                   vp.loadVoteForJornada(14);
                   vp.listenVotingOpen(14);
                   return vp;
@@ -203,12 +205,8 @@ class _VotingSectionState extends State<VotingSection> {
                         Align(
                           alignment: Alignment.center,
                           child: ElevatedButton(
-                            onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const AllMatchesPage(),
-                              ),
-                            ),
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/all-matches'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.grisPistacho,
                               foregroundColor: AppTheme.porpraFosc,
@@ -488,28 +486,6 @@ class _VotingSectionState extends State<VotingSection> {
                   alignment: Alignment.center,
                   child: ElevatedButton.icon(
                     onPressed: () async {
-                      // Ensure user is authenticated before voting
-                      final current = FirebaseAuth.instance.currentUser;
-                      if (current == null) {
-                        if (!mounted) return;
-                        showDialog<void>(
-                          context: ctx,
-                          builder: (dctx) => AlertDialog(
-                            title: const Text('Cal iniciar sessió'),
-                            content: const Text(
-                              'Cal iniciar sessió per poder votar.',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(dctx).pop(),
-                                child: const Text('D\'acord'),
-                              ),
-                            ],
-                          ),
-                        );
-                        return;
-                      }
-
                       final messenger = ScaffoldMessenger.of(ctx);
                       try {
                         await vp.castVote(
@@ -609,8 +585,9 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
 
           // Provide a VoteProvider scoped to this page.
           return ChangeNotifierProvider(
-            create: (_) {
-              final vp = VoteProvider();
+            create: (ctx) {
+              final auth = ctx.read<AuthProvider>();
+              final vp = VoteProvider(authProvider: auth);
               // start listeners
               vp.loadVoteForJornada(jornada);
               vp.listenVotingOpen(jornada);
@@ -713,29 +690,6 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
                                 isDisabled: vp.isClosed(jornada),
                                 isLoading: vp.isCasting(jornada),
                                 onVote: () async {
-                                  // Guard: ensure user is signed in before attempting vote.
-                                  final current =
-                                      FirebaseAuth.instance.currentUser;
-                                  if (current == null) {
-                                    if (!mounted) return;
-                                    showDialog<void>(
-                                      context: context,
-                                      builder: (ctx) => AlertDialog(
-                                        title: const Text('Cal iniciar sessió'),
-                                        content: const Text(
-                                          'Has d\'iniciar sessió perquè el teu vot quedi registrat.',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.of(ctx).pop(),
-                                            child: const Text('D\'acord'),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                    return;
-                                  }
                                   final messenger = ScaffoldMessenger.of(
                                     context,
                                   );

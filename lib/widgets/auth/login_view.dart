@@ -1,5 +1,4 @@
 import 'package:el_visionat/screens/create_password_page.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -47,72 +46,31 @@ class _LoginViewState extends State<LoginView> {
           }
         }
       }
+      // If login succeeded, navigate to Home and clear stack so we don't
+      // leave the user stuck on the login/profile view.
+      if (authProvider.isAuthenticated) {
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/home', (r) => false);
+        }
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final firebaseUser = context.watch<User?>();
     final authProvider = context.watch<AuthProvider>();
+    final firebaseUserPresent = authProvider.isAuthenticated;
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
-
-    if (firebaseUser != null) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.all(32.0),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'El meu Perfil',
-                style: textTheme.headlineMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              if (firebaseUser.photoURL != null &&
-                  firebaseUser.photoURL!.isNotEmpty) ...[
-                CircleAvatar(
-                  radius: 40,
-                  backgroundImage: NetworkImage(firebaseUser.photoURL!),
-                ),
-                const SizedBox(height: 16),
-              ] else ...[
-                const CircleAvatar(
-                  radius: 40,
-                  child: Icon(Icons.person, size: 40),
-                ),
-                const SizedBox(height: 16),
-              ],
-              Text(
-                firebaseUser.displayName ?? 'Usuari',
-                style: textTheme.headlineSmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                firebaseUser.email!,
-                style: textTheme.bodyLarge,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.logout),
-                label: const Text('Tancar Sessió'),
-                onPressed: () async {
-                  await authProvider.signOut();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme.errorContainer,
-                  foregroundColor: colorScheme.onErrorContainer,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+    // IMPORTANT: Do not render Profile UI inside the login view. If the user
+    // is already authenticated and somehow reached this widget, redirect to
+    // /home and show a small loading indicator while navigating.
+    if (firebaseUserPresent) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(context).pushNamedAndRemoveUntil('/home', (r) => false);
+      });
+      return const Center(child: CircularProgressIndicator());
     }
 
     final bool showError =
@@ -129,10 +87,7 @@ class _LoginViewState extends State<LoginView> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Ja tens compte?',
-                style: textTheme.headlineMedium,
-              ),
+              Text('Ja tens compte?', style: textTheme.headlineMedium),
               const SizedBox(height: 24),
               TextFormField(
                 controller: _emailController,

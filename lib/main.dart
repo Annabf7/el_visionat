@@ -3,6 +3,8 @@ import 'package:el_visionat/providers/auth_provider.dart';
 import 'package:el_visionat/screens/create_password_page.dart';
 import 'package:el_visionat/screens/home_page.dart';
 import 'package:el_visionat/screens/login_page.dart';
+import 'package:el_visionat/widgets/voting_section.dart';
+import 'package:el_visionat/widgets/side_navigation_menu.dart';
 import 'package:el_visionat/services/auth_service.dart';
 import 'package:el_visionat/services/isar_service.dart';
 import 'package:el_visionat/services/team_data_service.dart';
@@ -16,6 +18,8 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart'; // Importat per kDebugMode
+import 'package:el_visionat/providers/navigation_provider.dart';
+import 'package:el_visionat/widgets/require_auth.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
@@ -106,6 +110,8 @@ void main() async {
             authService: authService,
           ), // El nostre provider d'autenticació/registre
         ),
+        // Navigation provider to keep track of the current route name
+        ChangeNotifierProvider(create: (_) => NavigationProvider()),
       ],
       child: const MyApp(), // L'aplicació principal
     ),
@@ -118,16 +124,23 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Create a NavigationObserver that will update the NavigationProvider
+    final navProvider = Provider.of<NavigationProvider>(context, listen: false);
+    final navObserver = NavigationObserver(navProvider);
+
     return MaterialApp(
       title: 'El Visionat',
       debugShowCheckedModeBanner: false, // Traiem el banner de debug
       // Utilitzem el tema compartit AppTheme.theme (assumint que existeix)
       theme: AppTheme.theme,
+      navigatorObservers: [navObserver],
       // --- Configuració de Rutes ---
       initialRoute: '/', // La ruta inicial, gestionada per AuthWrapper
       routes: {
         '/': (context) => const AuthWrapper(), // El widget que decideix on anar
-        '/home': (context) => const HomePage(), // Ruta explícita per a Home
+        '/home': (context) => RequireAuth(child: const HomePage()),
+        '/all-matches': (context) => RequireAuth(child: const AllMatchesPage()),
+        '/profile': (context) => RequireAuth(child: const ProfilePage()),
         '/login': (context) => const LoginPage(), // Ruta explícita per a Login
         '/create-password': (context) =>
             const CreatePasswordPage(), // Ruta per crear contrasenya
@@ -143,10 +156,17 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final firebaseUser = context.watch<User?>();
-    // Si l'usuari està logat, mostrem la HomePage.
-    // Si no, mostrem la LoginPage. La LoginPage s'encarregarà de la navegació
-    // a la creació de contrasenya si és necessari.
-    return firebaseUser != null ? const HomePage() : const LoginPage();
+    final auth = context.watch<AuthProvider>();
+    // Show a short loading gate while the AuthProvider receives the initial
+    // auth state from Firebase. This prevents a flash of the profile/login
+    // UI while the SDK initializes.
+    if (!auth.isInitialized) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    // If auth is initialized, decide between Login and Home. RequireAuth will
+    // protect Home routes; AuthWrapper only chooses which initial page to show.
+    if (!auth.isAuthenticated) return const LoginPage();
+    return const HomePage();
   }
 }

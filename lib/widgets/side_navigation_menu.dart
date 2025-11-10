@@ -1,10 +1,9 @@
 import 'package:el_visionat/providers/auth_provider.dart';
-import 'package:el_visionat/screens/login_page.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:math' as math;
 import 'package:provider/provider.dart';
+import '../providers/navigation_provider.dart';
 import '../theme/app_theme.dart';
 
 class SideNavigationMenu extends StatelessWidget {
@@ -15,21 +14,8 @@ class SideNavigationMenu extends StatelessWidget {
       'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/xiulet.svg?alt=media&token=bfac6951-619d-4c2d-962b-ea4a301843ed';
 
   void _handleProfileTap(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      // L'usuari no ha iniciat sessió, reseteja l'estat i navega a LoginPage
-      context.read<AuthProvider>().reset();
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-      );
-    } else {
-      // L'usuari ha iniciat sessió, navega a una pàgina de perfil
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfilePage()),
-      );
-    }
+    // Navigate to profile; RequireAuth will redirect unauthenticated users.
+    Navigator.pushNamed(context, '/profile');
   }
 
   @override
@@ -62,7 +48,7 @@ class SideNavigationMenu extends StatelessWidget {
                   child: Text(
                     'EL VISIONAT',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontSize: 24,
+                      fontSize: 20,
                       fontWeight: FontWeight.w700,
                       color: AppTheme.grisBody,
                     ),
@@ -73,37 +59,56 @@ class SideNavigationMenu extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: ListView(
-              children: [
-                const _NavigationItem(
-                  icon: Icons.home,
-                  text: 'Inici',
-                  isSelected: true,
-                ),
-                const _NavigationItem(
-                  icon: Icons.videocam,
-                  text: 'Visionats setmanals',
-                ),
-                _NavigationItem(
-                  icon: Icons.science,
-                  text: 'El Laboratori Arbitral',
-                ),
-                _NavigationItem(
-                  icon: Icons.fitness_center,
-                  text: 'Condició Física',
-                ),
-                _NavigationItem(icon: Icons.people, text: 'Mentoria'),
-                _NavigationItem(
-                  icon: Icons.emoji_events,
-                  text: 'Supercopa Officiating Crew',
-                ),
-                _NavigationItem(icon: Icons.tv, text: 'ACB a Tv3'),
-                _NavigationItem(icon: Icons.group_work, text: 'Xarxa Arbitral'),
-                _NavigationItem(
-                  icon: Icons.shopping_bag,
-                  text: 'Merchandising',
-                ),
-              ],
+            child: Builder(
+              builder: (ctx) {
+                final current = ctx.watch<NavigationProvider>().currentRoute;
+
+                bool isActive(String route) =>
+                    current == route ||
+                    (route == '/home' &&
+                        (current == '/' || current == '/home'));
+
+                return ListView(
+                  children: [
+                    _NavigationItem(
+                      icon: Icons.home,
+                      text: 'Inici',
+                      isSelected: isActive('/home'),
+                      onTap: () => Navigator.pushNamed(ctx, '/home'),
+                    ),
+                    _NavigationItem(
+                      icon: Icons.videocam,
+                      text: 'Visionats setmanals',
+                      onTap: () {
+                        // No hi ha ruta dedicada; aquí pots implementar navegació
+                        // cap a la pantalla corresponent quan estigui disponible.
+                      },
+                    ),
+                    _NavigationItem(
+                      icon: Icons.science,
+                      text: 'El Laboratori Arbitral',
+                    ),
+                    _NavigationItem(
+                      icon: Icons.fitness_center,
+                      text: 'Condició Física',
+                    ),
+                    _NavigationItem(icon: Icons.people, text: 'Mentoria'),
+                    _NavigationItem(
+                      icon: Icons.emoji_events,
+                      text: 'Supercopa Officiating Crew',
+                    ),
+                    _NavigationItem(icon: Icons.tv, text: 'ACB a Tv3'),
+                    _NavigationItem(
+                      icon: Icons.group_work,
+                      text: 'Xarxa Arbitral',
+                    ),
+                    _NavigationItem(
+                      icon: Icons.shopping_bag,
+                      text: 'Merchandising',
+                    ),
+                  ],
+                );
+              },
             ),
           ),
           _NavigationItem(
@@ -124,7 +129,14 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final authProvider = context.watch<AuthProvider>();
+    debugPrint(
+      'ProfilePage.build — currentRoute=/profile, isAuthenticated=${authProvider.isAuthenticated}',
+    );
+    assert(
+      authProvider.isAuthenticated,
+      'ProfilePage built without authenticated user',
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('El Meu Perfil')),
@@ -133,17 +145,20 @@ class ProfilePage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'Has iniciat sessió com: \n${user?.email ?? 'Usuari desconegut'}',
+              'Has iniciat sessió com: \n${authProvider.currentUserEmail ?? 'Usuari desconegut'}',
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                await FirebaseAuth.instance.signOut();
-                // Tanquem la pàgina de perfil per tornar a la HomePage
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
+                if (!context.mounted) return;
+                final auth = context.read<AuthProvider>();
+                final navigator = Navigator.of(context);
+                await auth.signOut();
+                if (!context.mounted) return;
+                // Ensure explicit navigation to login to clear any existing
+                // navigation stack and avoid landing on a stale protected page.
+                navigator.pushNamedAndRemoveUntil('/login', (r) => false);
               },
               child: const Text('Tancar Sessió'),
             ),

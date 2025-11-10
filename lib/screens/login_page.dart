@@ -1,5 +1,4 @@
 import 'package:el_visionat/screens/create_password_page.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart'; // Importem el provider actualitzat
@@ -71,24 +70,22 @@ class _LoginPageMobileState extends State<_LoginPageMobile>
 
   @override
   Widget build(BuildContext context) {
-    // Obtenim l'usuari de Firebase des del provider.
-    // La directiva `watch` fa que el widget es reconstrueixi si l'estat de l'usuari canvia.
-    final firebaseUser = context.watch<User?>();
-
-    // Si l'usuari ha iniciat sessió (no és null), mostrem una vista simple de perfil sense pestanyes.
-    // La vista _LoginView ara gestiona internament si mostrar el perfil o el formulari de login.
-    if (firebaseUser != null) {
-      return Scaffold(
-        appBar: AppBar(
-          // Canviem el títol per reflectir que és la pàgina de perfil.
-          title: const Text("El meu Perfil / Configuració"),
-        ),
-        body: const Center(child: _LoginView()),
-      );
+    // Use AuthProvider to determine authentication state (centralized logic).
+    // NOTE: We must NOT render a profile UI inline here. Profile must only be
+    // shown via the dedicated `/profile` route. If a user is authenticated and
+    // lands on this page, redirect them to /home instead of rendering Profile.
+    final authProvider = context.watch<AuthProvider>();
+    if (authProvider.isAuthenticated) {
+      // If somehow we are on the login page while authenticated, navigate to home
+      // and avoid rendering any profile widget here (prevents flash).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // Si l'usuari NO ha iniciat sessió, mantenim el disseny de pestanyes
-    // per permetre iniciar sessió o registrar-se.
+    // If the user is not authenticated, show the tabbed login/register UI.
     return Scaffold(
       appBar: AppBar(
         title: const Text("Accés / Registre"), // Títol més descriptiu
@@ -106,8 +103,12 @@ class _LoginPageMobileState extends State<_LoginPageMobile>
       body: TabBarView(
         controller: _tabController, // Important assignar el controlador
         children: const [
-          Center(child: _LoginView()), // Aquesta vista mostrarà el formulari de login
-          Center(child: _RegisterView()), // Aquesta vista mostrarà el formulari de registre
+          Center(
+            child: _LoginView(),
+          ), // Aquesta vista mostrarà el formulari de login
+          Center(
+            child: _RegisterView(),
+          ), // Aquesta vista mostrarà el formulari de registre
         ],
       ),
     );
@@ -120,13 +121,12 @@ class _LoginPageDesktop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Obtenim l'usuari de Firebase des del provider.
-    // La directiva `watch` fa que el widget es reconstrueixi si l'estat de l'usuari canvia.
-    final firebaseUser = context.watch<User?>();
-
+    // Use AuthProvider to determine authentication state (centralized logic).
+    final authProvider = context.watch<AuthProvider>();
+    final firebaseUser = authProvider.isAuthenticated;
     // Si l'usuari ha iniciat sessió (no és null), només mostrem la vista de perfil.
     // La vista _LoginView ara gestiona internament si mostrar el perfil o el formulari de login.
-    if (firebaseUser != null) {
+    if (firebaseUser) {
       return const Center(child: _LoginView());
     }
 
@@ -191,6 +191,12 @@ class _LoginViewState extends State<_LoginView> {
           }
         }
       }
+      // If login succeeded (user is authenticated), ensure we land on Home.
+      if (authProvider.isAuthenticated) {
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+        }
+      }
       // En altres casos (login exitós o error), no fem res.
       // El login exitós serà gestionat per l'AuthWrapper (que veurà el canvi a User)
       // i l'error es mostrarà a la UI gràcies al `watch` al mètode build.
@@ -199,14 +205,14 @@ class _LoginViewState extends State<_LoginView> {
 
   @override
   Widget build(BuildContext context) {
-    // Mirem l'usuari de Firebase per decidir què mostrar.
-    final firebaseUser = context.watch<User?>();
+    // Use AuthProvider to determine authentication state and user info.
     final authProvider = context.watch<AuthProvider>();
+    final bool isAuthenticated = authProvider.isAuthenticated;
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
     // **NOU: Si l'usuari està connectat, mostrem la vista de perfil/logout.**
-    if (firebaseUser != null) {
+    if (isAuthenticated) {
       return SingleChildScrollView(
         padding: const EdgeInsets.all(32.0),
         child: ConstrainedBox(
@@ -221,11 +227,13 @@ class _LoginViewState extends State<_LoginView> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
-              if (firebaseUser.photoURL != null &&
-                  firebaseUser.photoURL!.isNotEmpty) ...[
+              if (authProvider.currentUserPhotoUrl != null &&
+                  authProvider.currentUserPhotoUrl!.isNotEmpty) ...[
                 CircleAvatar(
                   radius: 40,
-                  backgroundImage: NetworkImage(firebaseUser.photoURL!),
+                  backgroundImage: NetworkImage(
+                    authProvider.currentUserPhotoUrl!,
+                  ),
                 ),
                 const SizedBox(height: 16),
               ] else ...[
@@ -236,13 +244,13 @@ class _LoginViewState extends State<_LoginView> {
                 const SizedBox(height: 16),
               ],
               Text(
-                firebaseUser.displayName ?? 'Usuari',
+                authProvider.currentUserDisplayName ?? 'Usuari',
                 style: textTheme.headlineSmall,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                firebaseUser.email!,
+                authProvider.currentUserEmail ?? '',
                 style: textTheme.bodyLarge,
                 textAlign: TextAlign.center,
               ),
@@ -251,9 +259,12 @@ class _LoginViewState extends State<_LoginView> {
                 icon: const Icon(Icons.logout),
                 label: const Text('Tancar Sessió'),
                 onPressed: () async {
-                  // Cridem al mètode signOut del provider.
+                  final navigator = Navigator.of(context);
+                  // Cridem al mètode signOut del provider i naveguem explícitament
+                  // a la pàgina de login per assegurar un comportament consistent.
                   await authProvider.signOut();
-                  // No cal navegar, el wrapper s'encarregarà de redirigir.
+                  if (!context.mounted) return;
+                  navigator.pushNamedAndRemoveUntil('/login', (route) => false);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colorScheme.errorContainer,
@@ -267,7 +278,8 @@ class _LoginViewState extends State<_LoginView> {
     }
 
     // **VISTA ANTIGA: Si l'usuari NO està connectat, mostrem el formulari de login.**
-    final bool showError = authProvider.errorMessage != null &&
+    final bool showError =
+        authProvider.errorMessage != null &&
         authProvider.currentStep == RegistrationStep.initial;
 
     return SingleChildScrollView(
@@ -724,18 +736,20 @@ class _RegisterStep3RequestSent extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-            // Botó per "tancar" o tornar a l'inici del login
+            // Botó per anar a la pantalla d'inici de sessió
             OutlinedButton(
               onPressed: () {
-                // Reseteja l'estat i torna al pas 1 (o a la vista de login)
-                // Ja no cal 'if (mounted)' aquí perquè estem en un StatelessWidget
+                // Reseteja l'estat i navega explícitament a /login
+                final navigator = Navigator.of(context);
                 context.read<AuthProvider>().reset();
-                // Opcional: Podríem forçar el canvi de Tab si som a mòbil
-                // (Això requeriria passar el TabController o buscar-lo d'una altra manera)
-                // final tabController = DefaultTabController.of(context);
-                // tabController?.animateTo(0);
+                navigator.pushNamedAndRemoveUntil('/login', (route) => false);
               },
-              child: const Text('Tornar a l\'inici'),
+              child: Text(
+                'Iniciar sessió',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
+              ),
             ),
           ],
         ),

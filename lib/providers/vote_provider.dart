@@ -1,12 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../models/vote_model.dart';
 import '../services/vote_service.dart';
+import 'auth_provider.dart';
 
 class VoteProvider with ChangeNotifier {
   final VoteService _service;
+
+  // Simple instance counter to help detect leaked providers during runtime.
+  static int _liveInstances = 0;
 
   // map jornada -> matchId
   final Map<int, String?> _userVotes = {};
@@ -19,21 +22,34 @@ class VoteProvider with ChangeNotifier {
   final Map<int, StreamSubscription<bool>> _votingSubs = {};
   // track jornadas we've loaded/listened for so we can refresh after auth changes
   final Set<int> _observedJornadas = {};
-  StreamSubscription<User?>? _authSub;
 
-  VoteProvider({VoteService? service}) : _service = service ?? VoteService();
+  // Optional injected AuthProvider (presentation-level auth access)
+  final AuthProvider? _authProvider;
+  VoidCallback? _authListener;
 
-  // Subscribe to auth changes so that when the user signs in/out we reload
-  // any observed jornadas (calls to loadVoteForJornada will register jornadas).
-  void _ensureAuthListener() {
-    _authSub ??= FirebaseAuth.instance.authStateChanges().listen((user) {
-      // When auth state changes, reload votes for observed jornadas.
-      for (final j in _observedJornadas) {
-        // ignore: unawaited_futures
-        loadVoteForJornada(j);
-      }
-    });
+  VoteProvider({VoteService? service, AuthProvider? authProvider})
+    : _service = service ?? VoteService(),
+      _authProvider = authProvider {
+    _liveInstances += 1;
+    debugPrint('VoteProvider.created (hash=$hashCode) — live=$_liveInstances');
+    // If an AuthProvider is supplied, listen to its changes so we can refresh
+    // observed jornadas when the auth state changes.
+    if (_authProvider != null) {
+      _authListener = () {
+        debugPrint(
+          'VoteProvider(AuthProvider listener) triggered for provider hash=$hashCode',
+        );
+        for (final j in _observedJornadas) {
+          // ignore: unawaited_futures
+          loadVoteForJornada(j);
+        }
+      };
+      _authProvider.addListener(_authListener!);
+      debugPrint('VoteProvider._authListener registered (hash=$hashCode)');
+    }
   }
+
+  // Auth listening is handled via an injected AuthProvider listener (if supplied).
 
   bool isClosed(int jornada) => _closed.contains(jornada);
 
@@ -45,15 +61,17 @@ class VoteProvider with ChangeNotifier {
   Future<void> loadVoteForJornada(int jornada) async {
     // register this jornada as observed so auth changes trigger reloads
     _observedJornadas.add(jornada);
-    _ensureAuthListener();
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    debugPrint(
+      'VoteProvider.loadVoteForJornada: provider=$hashCode jornada=$jornada observed=${_observedJornadas.length}',
+    );
+    final userId = _authProvider?.currentUserUid;
+    if (userId == null) {
       _userVotes[jornada] = null;
       notifyListeners();
       return;
     }
     try {
-      final v = await _service.getUserVote(jornada, user.uid);
+      final v = await _service.getUserVote(jornada, userId);
       _userVotes[jornada] = v?.matchId;
       notifyListeners();
     } catch (e) {
@@ -75,6 +93,9 @@ class VoteProvider with ChangeNotifier {
             debugPrint('Error listening votingOpen for $jornada: $e');
           },
         );
+    debugPrint(
+      'VoteProvider.listenVotingOpen: provider=$hashCode jornada=$jornada — subscribed',
+    );
   }
 
   /// Expose a stream of vote counts for UI wiring
@@ -84,8 +105,8 @@ class VoteProvider with ChangeNotifier {
   /// Cast a vote (replaces previous vote for the jornada). If the jornada
   /// is closed, this will throw a StateError.
   Future<void> castVote({required int jornada, required String matchId}) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final userId = _authProvider?.currentUserUid;
+    if (userId == null) {
       throw StateError('Not authenticated');
     }
     if (isClosed(jornada)) {
@@ -95,7 +116,7 @@ class VoteProvider with ChangeNotifier {
     notifyListeners();
     try {
       final vote = Vote(
-        userId: user.uid,
+        userId: userId,
         jornada: jornada,
         matchId: matchId,
         timestamp: DateTime.now().toUtc(),
@@ -110,12 +131,12 @@ class VoteProvider with ChangeNotifier {
 
   /// Revoke user's vote for jornada (optional)
   Future<void> revokeVote(int jornada) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) throw StateError('Not authenticated');
+    final userId = _authProvider?.currentUserUid;
+    if (userId == null) throw StateError('Not authenticated');
     _inFlight[jornada] = true;
     notifyListeners();
     try {
-      await _service.revokeVote(jornada, user.uid);
+      await _service.revokeVote(jornada, userId);
       _userVotes[jornada] = null;
     } finally {
       _inFlight.remove(jornada);
@@ -135,10 +156,28 @@ class VoteProvider with ChangeNotifier {
 
   @override
   void dispose() {
+    debugPrint(
+      'VoteProvider.dispose called (hash=$hashCode) — cancelling ${_votingSubs.length} voting subs',
+    );
     for (final s in _votingSubs.values) {
-      s.cancel();
+      try {
+        s.cancel();
+      } catch (e) {
+        debugPrint('Error cancelling voting sub: $e');
+      }
     }
     _votingSubs.clear();
+    if (_authListener != null && _authProvider != null) {
+      try {
+        _authProvider.removeListener(_authListener!);
+        debugPrint('VoteProvider._authListener removed (hash=$hashCode)');
+      } catch (e) {
+        debugPrint('Error removing auth listener: $e');
+      }
+      _authListener = null;
+    }
+    _liveInstances -= 1;
+    debugPrint('VoteProvider.disposed (hash=$hashCode) — live=$_liveInstances');
     super.dispose();
   }
 }

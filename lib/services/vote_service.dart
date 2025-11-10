@@ -43,7 +43,29 @@ class VoteService {
   }
 
   /// Helper: returns current user id or null.
-  String? currentUserId() => FirebaseAuth.instance.currentUser?.uid;
+  String? currentUserId() {
+    // Capture the uid in a local variable to make null-checking explicit and
+    // to avoid repeated lookups. Services intentionally use FirebaseAuth
+    // directly (presentation layers should use AuthProvider).
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      debugPrint(
+        'VoteService.currentUserId: no authenticated user (uid is null)',
+      );
+    }
+    return uid;
+  }
+
+  /// Helper that returns the current user id or throws a clear StateError if
+  /// there is no authenticated user. Useful for callers that require an uid.
+  String requireCurrentUserId() {
+    final uid = currentUserId();
+    if (uid == null) {
+      debugPrint('VoteService.requireCurrentUserId: user is not authenticated');
+      throw StateError('Not authenticated');
+    }
+    return uid;
+  }
 
   /// Returns true if voting is open for the given jornada.
   /// Reads document `voting_meta/jornada_<num>` and returns `votingOpen` bool.

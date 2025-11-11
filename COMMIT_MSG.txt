@@ -1,4 +1,4 @@
-feat(auth,backend): estabilització final del flux de registre i login + protecció demail + neteja de functions
+feat(auth,backend): estabilització final del flux de registre i login + protecció d’email + neteja de functions
 
 **Autenticació / UI**
 - Eliminat el flash de Perfil després del login i centralitzada la protecció amb RequireAuth.

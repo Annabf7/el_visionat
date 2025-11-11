@@ -5,12 +5,18 @@ export interface WelcomeEmailArgs {
   nom: string;
   cognoms: string;
   llissenciaId: string;
+  activationToken?: string;
 }
 
 export async function sendWelcomeEmail(args: WelcomeEmailArgs): Promise<void> {
-  const { email, nom, cognoms, llissenciaId } = args;
+  const { email, nom, cognoms, llissenciaId, activationToken } = args;
 
   const fullName = `${nom || ''} ${cognoms || ''}`.trim();
+
+  const tokenSection = activationToken
+    ? `<p style="font-size:16px; font-weight:600;">Codi d'activació: <span style="background:#f3f4f6;padding:6px 10px;border-radius:6px;letter-spacing:2px;">${activationToken}</span></p>
+       <p>Introdueix aquest codi d'activació a l'aplicació El Visionat per completar el teu registre. El codi caduca en 48 hores.</p>`
+    : '';
 
   const html = `
   <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color: #111; line-height:1.5;">
@@ -26,6 +32,8 @@ export async function sendWelcomeEmail(args: WelcomeEmailArgs): Promise<void> {
           <p>Gràcies per registrar-te a <strong>El Visionat</strong>. La teva sol·licitud ha estat <strong>aprovada</strong> i el teu compte ja és actiu.</p>
           <p style="margin-top:16px;">Ara ja pots iniciar sessió a l'aplicació i començar a fer servir les funcionalitats disponibles per a àrbitres i usuaris.</p>
           <p style="font-style:italic; color:#555;">Et recomanem que ingressis a l'app i revisis el teu perfil per completar qualsevol dada que en faltés.</p>
+
+          ${tokenSection}
 
           <div style="margin-top:20px; text-align:center;">
             <a href="#" style="display:inline-block; padding:12px 20px; background:#2b6cb0; color:#fff; text-decoration:none; border-radius:6px;">Ja pots iniciar sessió a l'aplicació El Visionat</a>

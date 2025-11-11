@@ -19,7 +19,7 @@ if (admin.apps.length === 0) {
 import { lookupLicense } from './auth/lookup_license';
 
 // 2. Funció 'requestRegistration': Desa la sol·licitud pendent amb l'email.
-import { submitRegistrationRequest } from './submitRegistrationRequest';
+import { requestRegistration } from './auth/request_registration';
 
 // 3. Funció 'completeRegistration': Finalitza el registre creant l'usuari (després de l'aprovació manual).
 import { completeRegistration } from './auth/complete_registration';
@@ -34,7 +34,7 @@ import { onVoteWrite } from './votes/on_vote_write';
 // Exportem les funcions perquè Firebase les reconegui
 // ============================================================================
 exports.lookupLicense = lookupLicense;
-exports.submitRegistrationRequest = submitRegistrationRequest;
+exports.requestRegistration = requestRegistration;
 exports.completeRegistration = completeRegistration;
 exports.checkRegistrationStatus = checkRegistrationStatus;
 

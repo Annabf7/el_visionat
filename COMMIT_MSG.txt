@@ -1,0 +1,27 @@
+feat(auth,backend): estabilització final del flux de registre i login + protecció demail + neteja de functions
+
+**Autenticació / UI**
+- Eliminat el flash de Perfil després del login i centralitzada la protecció amb RequireAuth.
+- Neteja completa de dependències directes de FirebaseAuth a la UI.
+- Flux de login/logout estabilitzat amb pushNamedAndRemoveUntil.
+- Botó de final de registre actualitzat a Iniciar sessió.
+- Correcció de comportament del LoginPage en estat autenticat.
+
+**Registre / Backend**
+- Implementada validació dunicitat demail a nivell de Cloud Function.
+- Lògica de reserva demail + creació de request dins duna transacció Firestore O(1).
+- Actualitzat auth_service i Provider per mapejar errors ('emailAlreadyInUse').
+- Mantingut el flux original request_registration.ts després de valorar refactorització massiva.
+
+**Cloud Functions / Refactor**
+- Restaurat index.ts amb imports correctes i només les funcions actives.
+- Eliminats arxius antics i intermedis (submitRegistrationRequest, reserve_email...).
+- Neteja de la carpeta lib/ i recompilació neta (npm run build).
+- Afegit moduleResolution=node per evitar errors TS.
+
+**Validació**
+- Tests UI bàsics aprovats.
+- Validació manual del flux en emulador: OK.
+- Confirmat funcionament complet de registre, login i bloqueig de correus duplicats.
+
+Aquest commit deixa tant el frontend com les Functions en estat estable i coherent.

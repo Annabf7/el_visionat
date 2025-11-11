@@ -152,10 +152,20 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
       notifyListeners();
     } on Exception catch (e) {
-      if (!e.toString().contains('already-exists')) {
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      // Detect our reservation error and provide a friendly message to the UI
+      if (msg.contains('emailAlreadyInUse')) {
+        _setError(
+          'Aquest correu ja està registrat',
+          notify: true,
+          errorStep: RegistrationStep.error,
+        );
+        return;
+      }
+      if (!msg.contains('already-exists')) {
         _currentStep = RegistrationStep.licenseVerified;
       }
-      _setError(e.toString().replaceFirst('Exception: ', ''), notify: true);
+      _setError(msg, notify: true);
     }
   }
 

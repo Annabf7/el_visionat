@@ -1,8 +1,19 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Protect the emails collection from client-side writes. Cloud Functions
+    // using the Admin SDK bypass security rules, so functions can still
+    // create these documents while clients are prevented from doing so.
+    match /emails/{email} {
+      // Allow reads if your app needs to read the reserved emails list.
+      allow read: if true;
+      // Disallow all client-side writes to emails/*. Only server-side
+      // operations (Admin SDK used by Cloud Functions) should create these.
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
-      // ⚠️ Només per desenvolupament local
+      // ⚠️ Només per desenvolupament local (altres col·leccions continuen obertes)
       allow read, write: if true;
     }
   }

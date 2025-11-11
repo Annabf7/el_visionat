@@ -109,22 +109,62 @@ class AuthService {
     required String llissenciaId,
     required String email,
   }) async {
+    // Ensure email uniqueness by reserving a document in `emails/<email_lowercase>`.
+    // This is an O(1) document access and performed in a transaction to avoid
+    // race conditions. If the doc already exists, we throw a standard
+    // Exception('emailAlreadyInUse') which the caller (AuthProvider) will
+    // surface to the UI as a readable message.
     final callable = functions.httpsCallable('requestRegistration');
+    final emailLower = email.trim().toLowerCase();
+    final emailDoc = firestore.collection('emails').doc(emailLower);
+
     try {
+      // Transaction: fail if doc exists, otherwise create it as a reservation.
+      await firestore.runTransaction((tx) async {
+        final snap = await tx.get(emailDoc);
+        if (snap.exists) {
+          throw Exception('emailAlreadyInUse');
+        }
+        tx.set(emailDoc, {
+          'licenseId': llissenciaId,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      });
+
+      // After reserving the email, call the backend function to submit the
+      // registration request. If that fails we attempt to rollback the
+      // reservation to avoid leaving stale reservations.
       final result = await callable.call<Map<String, dynamic>>({
         'llissenciaId': llissenciaId,
-        'email': email,
+        'email': emailLower,
       });
       return result.data;
     } on FirebaseFunctionsException catch (e) {
       debugPrint(
         'Functions Exception on requestRegistration: ${e.code} - ${e.message}',
       );
+      // rollback reservation
+      try {
+        await emailDoc.delete();
+      } catch (delErr) {
+        debugPrint('Failed to rollback email reservation: $delErr');
+      }
       throw Exception(
         e.message ?? "Error en enviar la sol·licitud de registre.",
       );
-    } catch (e) {
+    } on Exception catch (e) {
+      // If our transaction threw 'emailAlreadyInUse', propagate it directly.
+      if (e.toString().contains('emailAlreadyInUse')) {
+        throw Exception('emailAlreadyInUse');
+      }
       debugPrint('Generic Exception in requestRegistration: $e');
+      // Attempt rollback if reservation may have been created
+      try {
+        final existed = (await emailDoc.get()).exists;
+        if (existed) await emailDoc.delete();
+      } catch (_) {
+        // ignore rollback failures
+      }
       throw Exception("Error inesperat en enviar la sol·licitud de registre.");
     }
   }

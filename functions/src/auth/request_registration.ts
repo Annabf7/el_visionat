@@ -15,7 +15,8 @@ interface RequestRegistrationData {
 }
 
 // Assegurem la regió aquí
-export const requestRegistration = onCall(async (request) => {
+// Declare the secret used by this function so Secret Manager and emulators can provide it
+export const requestRegistration = onCall({ secrets: ['RESEND_API_KEY'] }, async (request) => {
   // Log inicial
   console.log('[requestRegistration onCall] Received request with data:', JSON.stringify(request.data));
 

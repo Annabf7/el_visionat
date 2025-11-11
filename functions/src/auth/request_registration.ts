@@ -5,6 +5,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { RegistrationRequest } from "../models/registration_request";
 import { LicenseProfile } from "../models/license_profile"; // Importem LicenseProfile
+import { sendRegistrationNotification } from '../email/send_registration_notification';
 
 const db = getFirestore();
 
@@ -34,12 +35,14 @@ export const requestRegistration = onCall(async (request) => {
   console.log(`[requestRegistration onCall] Processing request for license ${llissenciaId} and email ${normalizedEmail}`);
 
 
+  let createdRequestId: string | null = null;
+  let capturedRegistryData: LicenseProfile | undefined;
   try {
     const registryDocRef = db.collection('referees_registry').doc(llissenciaId);
     const requestCollectionRef = db.collection('registration_requests');
 
-    // 2. Transacció per garantir consistència
-    await db.runTransaction(async (transaction) => {
+  // 2. Transacció per garantir consistència
+  await db.runTransaction(async (transaction) => {
       console.log('[requestRegistration onCall] Starting transaction...'); // Log transacció
 
       // 2a. Llegir el document del registre dins la transacció
@@ -57,6 +60,9 @@ export const requestRegistration = onCall(async (request) => {
 
       // [CORRECCIÓ] Assegurem el tipus correcte aquí
       const registryData = registryDoc.data() as LicenseProfile | undefined;
+      if (registryData) {
+        capturedRegistryData = registryData;
+      }
       if (!registryData) { // Comprovació més segura
          console.error(`[requestRegistration onCall] Transaction: Failed to read registry data for ${llissenciaId}.`);
         throw new HttpsError('internal', 'Error llegint les dades del registre.');
@@ -116,13 +122,34 @@ export const requestRegistration = onCall(async (request) => {
       };
 
       transaction.set(newRequestRef, newRequestData);
-      console.log('[requestRegistration onCall] Transaction: New request document set.');
+      // Guardem l'ID perquè després, després del commit, puguem enviar la notificació
+      createdRequestId = newRequestRef.id;
+      console.log('[requestRegistration onCall] Transaction: New request document set with id', createdRequestId);
 
     }); // Fi de la transacció
      console.log('[requestRegistration onCall] Transaction committed successfully.');
 
+    // 4. Després del commit: enviem la notificació per correu (si s'ha creat l'ID)
+    if (createdRequestId) {
+      try {
+        // Llegim el document creat per obtenir el timestamp de creació real
+        const createdDoc = await db.collection('registration_requests').doc(createdRequestId).get();
+        const createdAt = createdDoc.exists ? createdDoc.data()?.createdAt : undefined;
+        await sendRegistrationNotification({
+          llissenciaId,
+          email: normalizedEmail,
+          nom: capturedRegistryData?.nom || '',
+          cognoms: capturedRegistryData?.cognoms || '',
+          requestId: createdRequestId,
+          createdAt,
+        });
+      } catch (notifyErr) {
+        // No volem fallar la funció principal si l'enviament d'email falla; es registra l'error
+        console.error('[requestRegistration onCall] Failed to send registration notification:', notifyErr);
+      }
+    }
 
-    // 4. Èxit
+    // 4. Èxit (es retorna al client)
      console.log('[requestRegistration onCall] Request processed successfully.');
     return {
       success: true,

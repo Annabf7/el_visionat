@@ -495,8 +495,11 @@ class _RegisterStep1LicenseState extends State<_RegisterStep1License> {
               const SizedBox(height: 24),
               TextFormField(
                 controller: _licenseController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Número de Llicència',
+                  labelStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 validator: (value) => (value == null || value.trim().isEmpty)
                     ? 'Introdueix el número de llicència'

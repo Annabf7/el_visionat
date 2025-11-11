@@ -18,6 +18,7 @@ import { requestRegistration } from './auth/request_registration';
 import { completeRegistration } from './auth/complete_registration';
 import { checkRegistrationStatus } from './auth/check_registration_status';
 import { onVoteWrite } from './votes/on_vote_write';
+import { sendRegistrationNotificationHttp } from './email/send_registration_notification_http';
 
 // Export functions with the exact names expected by the client
 exports.lookupLicense = lookupLicense;
@@ -25,6 +26,7 @@ exports.requestRegistration = requestRegistration;
 exports.completeRegistration = completeRegistration;
 exports.checkRegistrationStatus = checkRegistrationStatus;
 exports.onVoteWrite = onVoteWrite;
+exports.sendRegistrationNotificationHttp = sendRegistrationNotificationHttp;
 
 // --- ALTRES FUNCIONS (si n'hi ha en el futur) ---
 // Aquí podríem afegir altres tipus de funcions (ex: triggers de Firestore, etc.)

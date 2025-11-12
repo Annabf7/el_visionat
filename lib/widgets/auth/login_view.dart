@@ -1,6 +1,7 @@
 import 'package:el_visionat/screens/create_password_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../../providers/auth_provider.dart';
 
 class LoginView extends StatefulWidget {
@@ -36,13 +37,10 @@ class _LoginViewState extends State<LoginView> {
           final licenseId = authProvider.pendingLicenseId;
           final email = authProvider.pendingEmail;
           if (licenseId != null && email != null) {
-            Navigator.of(context).pushReplacementNamed(
-              '/create-password',
-              arguments: CreatePasswordPageArguments(
-                licenseId: licenseId,
-                email: email,
-              ),
-            );
+            // Before navigating, require the user to provide the activation
+            // token and validate it with the backend. This prevents client-
+            // side bypass by ensuring the server accepts the token+email pair.
+            await _showTokenValidationDialog(licenseId, email);
           }
         }
       }
@@ -54,6 +52,132 @@ class _LoginViewState extends State<LoginView> {
         }
       }
     }
+  }
+
+  // Shows a modal dialog to ask the user for the activation token, calls
+  // the `validateActivationToken` Cloud Function and navigates only on
+  // successful validation.
+  Future<void> _showTokenValidationDialog(
+    String licenseId,
+    String email,
+  ) async {
+    String token = '';
+    bool isLoading = false;
+    String? errorText;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Introdueix el codi d\'activació'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Revisa el teu correu i introdueix el codi rebut.',
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Codi',
+                      errorText: errorText,
+                    ),
+                    onChanged: (v) => setState(() => token = v.trim()),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isLoading
+                      ? null
+                      : () {
+                          Navigator.of(context).pop();
+                        },
+                  child: const Text('Cancel·lar'),
+                ),
+                ElevatedButton(
+                  onPressed: (isLoading || token.isEmpty)
+                      ? null
+                      : () async {
+                          setState(() {
+                            isLoading = true;
+                            errorText = null;
+                          });
+
+                          // Capture navigator instances before the async gap so we
+                          // don't use BuildContext after await (avoids analyzer
+                          // warning about using context across async gaps).
+                          final dialogNavigator = Navigator.of(context);
+                          final rootNavigator = Navigator.of(
+                            context,
+                            rootNavigator: true,
+                          );
+
+                          try {
+                            final functions = FirebaseFunctions.instance;
+                            final callable = functions.httpsCallable(
+                              'validateActivationToken',
+                            );
+                            final res = await callable.call(<String, dynamic>{
+                              'email': email,
+                              'token': token,
+                            });
+
+                            final data = res.data as Map<dynamic, dynamic>?;
+                            final success =
+                                data != null &&
+                                (data['success'] == true || data['ok'] == true);
+                            if (success) {
+                              // Close dialog and navigate to create-password
+                              dialogNavigator.pop();
+                              if (!mounted) return;
+                              rootNavigator.pushReplacementNamed(
+                                '/create-password',
+                                arguments: CreatePasswordPageArguments(
+                                  licenseId: licenseId,
+                                  email: email,
+                                ),
+                              );
+                            } else {
+                              setState(() {
+                                errorText =
+                                    (data != null && data['message'] != null)
+                                    ? data['message'].toString()
+                                    : 'Codi invàlid';
+                                isLoading = false;
+                              });
+                            }
+                          } on FirebaseFunctionsException catch (e) {
+                            setState(() {
+                              errorText = e.message ?? 'Error del servidor';
+                              isLoading = false;
+                            });
+                          } catch (e) {
+                            setState(() {
+                              errorText =
+                                  'Error de xarxa. Torna-ho a intentar.';
+                              isLoading = false;
+                            });
+                          }
+                        },
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Validar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -87,7 +211,10 @@ class _LoginViewState extends State<LoginView> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Ja tens compte?', style: textTheme.headlineMedium),
+              Text(
+                'Finalitza l\'enregistrament',
+                style: textTheme.headlineMedium,
+              ),
               const SizedBox(height: 24),
               TextFormField(
                 controller: _emailController,

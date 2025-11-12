@@ -1,6 +1,11 @@
-import { onRequest } from 'firebase-functions/v2/https';
+import { onRequest, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+// For callable compatibility with the client SDK (httpsCallable), export a
+// small wrapper using the v1 `onCall` API. Importing v1 here is safe and
+// keeps the existing onRequest implementation for direct HTTP use.
+import * as functionsV1 from 'firebase-functions';
+import { inspect } from 'util';
 
 const db = getFirestore();
 
@@ -25,59 +30,55 @@ export const validateActivationToken = onRequest(async (req, res) => {
       return;
     }
 
-    console.log('[validateActivationToken] Received validation request for token');
+    console.log(`[validateActivationToken] Received token validation request for email: ${email}`);
 
-    // Find the registration request that contains this token
-    const q = await db.collection('registration_requests').where('activationToken', '==', token).limit(1).get();
+    // Query for a registration request that matches email, token and unused
+    const q = await db
+      .collection('registration_requests')
+      .where('email', '==', email)
+      .where('activationToken', '==', token)
+      .where('activationTokenUsed', '==', false)
+      .limit(1)
+      .get();
+
     if (q.empty) {
-      console.warn('[validateActivationToken] Token not found');
-      res.status(404).json({ success: false, message: 'Invalid token or email' });
-      return;
+      console.warn('[validateActivationToken] Token match not found for provided email');
+      throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
     }
 
     const doc = q.docs[0];
     const docRef = doc.ref;
     const data = doc.data() as any;
 
-    // Basic checks
-    if ((data.activationTokenUsed ?? false) === true) {
-      console.warn('[validateActivationToken] Token already used');
-      res.status(409).json({ success: false, message: 'Token already used' });
-      return;
-    }
-
-    if ((data.email || '').toLowerCase() !== email) {
-      console.warn('[validateActivationToken] Email mismatch');
-      res.status(400).json({ success: false, message: 'Invalid token or email' });
-      return;
-    }
-
     const createdAt = data.activationTokenCreatedAt;
     if (!createdAt) {
       console.warn('[validateActivationToken] No token timestamp');
-      res.status(400).json({ success: false, message: 'Invalid token' });
-      return;
+      throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
     }
 
     const createdMs = (createdAt.toDate ? createdAt.toDate().getTime() : new Date(createdAt).getTime());
     const now = Date.now();
-    const ageMs = now - createdMs;
     const ttlMs = 48 * 60 * 60 * 1000; // 48 hours
-    if (ageMs > ttlMs) {
+    if (now - createdMs > ttlMs) {
       console.warn('[validateActivationToken] Token expired');
-      res.status(410).json({ success: false, message: 'Token expired' });
-      return;
+      throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
     }
 
-    // Atomically mark token used in a transaction
+    // Atomically mark token used in a transaction (double-check fields to avoid race)
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(docRef);
-      const cur = snap.data() as any;
       if (!snap.exists) {
-        throw new Error('NotFound');
+        console.warn('[validateActivationToken] Document disappeared in transaction');
+        throw new HttpsError('not-found', 'Token not found');
       }
+      const cur = snap.data() as any;
       if ((cur.activationTokenUsed ?? false) === true) {
-        throw new Error('AlreadyUsed');
+        console.warn('[validateActivationToken] Token already marked used');
+        throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
+      }
+      if ((cur.activationToken || '') !== token || (cur.email || '').toLowerCase() !== email) {
+        console.warn('[validateActivationToken] Token/email mismatch in transaction');
+        throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
       }
       tx.update(docRef, {
         activationTokenUsed: true,
@@ -85,39 +86,139 @@ export const validateActivationToken = onRequest(async (req, res) => {
       });
     });
 
-    // Create Firebase Auth user (idempotent)
-    let userRecord;
-    try {
-      userRecord = await admin.auth().createUser({ email, emailVerified: false });
-      console.log('[validateActivationToken] Created new user', userRecord.uid);
-    } catch (err: any) {
-      if (err.code === 'auth/email-already-exists' || err.code === 'auth/email-already-in-use') {
-        console.log('[validateActivationToken] User already exists, continuing');
-      } else {
-        console.error('[validateActivationToken] Failed to create user', err);
-        // We will not revert the token used flag; return generic error
-        res.status(500).json({ success: false, message: 'Server error' });
-        return;
-      }
-    }
+    console.log('[validateActivationToken] Token match found and marked used');
 
-    // Generate password reset / set password link
-    let link: string;
-    try {
-      link = await admin.auth().generatePasswordResetLink(email);
-    } catch (err) {
-      console.error('[validateActivationToken] Failed to generate password link', err);
-      res.status(500).json({ success: false, message: 'Server error' });
+    // Success: return a clear message
+    res.status(200).json({ success: true, message: 'Token valid. User may proceed.' });
+    return;
+  } catch (err) {
+    console.error('[validateActivationToken] Error', err);
+    // Handle errors that follow the HttpsError shape (some runtimes don't
+    // expose the same HttpsError constructor for instanceof checks). Fall
+    // back to checking for a string `code` property so we don't trigger a
+    // TypeError when the constructor is missing in the emulator/runtime.
+    // Map some common HttpsError codes to HTTP statuses.
+    if (err && (err as any).code && typeof (err as any).code === 'string') {
+      const code = (err as any).code || 'internal';
+      let status = 500;
+      if (code === 'permission-denied') status = 403;
+      else if (code === 'invalid-argument') status = 400;
+      else if (code === 'not-found') status = 404;
+      else if (code === 'already-exists') status = 409;
+
+      try {
+        res.status(status).json({ success: false, message: (err as any).message });
+      } catch (_) {}
       return;
     }
 
-    res.status(200).json({ success: true, setPasswordLink: link });
-    return;
-  } catch (err) {
-    console.error('[validateActivationToken] Unexpected error', err);
     try {
       res.status(500).json({ success: false, message: 'Server error' });
     } catch (_) {}
     return;
+  }
+});
+
+// --- Callable wrapper (for firebase client httpsCallable) ---
+// This wrapper reuses the same logic as the HTTP handler but exposes a
+// callable function which the Flutter `httpsCallable('validateActivationToken')`
+// call can successfully reach. The callable expects an object { email, token }.
+export const validateActivationTokenCallable = functionsV1.https.onCall(async (data, context) => {
+  try {
+    const body = data as ValidateBody | any;
+
+    // Log the incoming payload for debugging (helps diagnose emulator vs client shapes).
+    // Use JSON.stringify when possible, but fall back to util.inspect to avoid
+    // "Converting circular structure to JSON" errors when the payload contains
+    // circular references (seen in emulator environments).
+    try {
+      console.log('[validateActivationTokenCallable] incoming payload:', JSON.stringify(body));
+    } catch (logErr) {
+      console.log('[validateActivationTokenCallable] incoming payload (inspect):', inspect(body, { depth: null }));
+    }
+
+    // Some clients (notably the callable emulator and some SDK versions)
+    // wrap the payload under a `data` property (or rarely `payload`). Normalize
+    // to a single `payload` object so we can accept both shapes.
+    const normalized = (body && typeof body === 'object' && (body.data || body.payload))
+      ? (body.data ?? body.payload)
+      : body;
+
+    // Accept either { token } or { activationToken } from clients
+    const tokenRaw = (normalized?.token ?? normalized?.activationToken ?? '');
+    const token = (typeof tokenRaw === 'string' ? tokenRaw : String(tokenRaw)).trim();
+    const emailRaw = (normalized?.email ?? '');
+    const email = (typeof emailRaw === 'string' ? emailRaw : String(emailRaw)).trim().toLowerCase();
+
+    if (!token || !email) {
+      console.warn('[validateActivationTokenCallable] Invalid request, missing token or email');
+      throw new functionsV1.https.HttpsError('invalid-argument', 'Invalid request');
+    }
+
+    console.log(`[validateActivationTokenCallable] Received token validation request for email: ${email}`);
+
+    // Query for a registration request that matches email, token and unused
+    const q = await db
+      .collection('registration_requests')
+      .where('email', '==', email)
+      .where('activationToken', '==', token)
+      .where('activationTokenUsed', '==', false)
+      .limit(1)
+      .get();
+
+    if (q.empty) {
+      console.warn('[validateActivationTokenCallable] Token match not found for provided email');
+      throw new functionsV1.https.HttpsError('permission-denied', 'Token invàlid o caducat.');
+    }
+
+    const doc = q.docs[0];
+    const docRef = doc.ref;
+    const dataDoc = doc.data() as any;
+
+    const createdAt = dataDoc.activationTokenCreatedAt;
+    if (!createdAt) {
+      console.warn('[validateActivationTokenCallable] No token timestamp');
+      throw new functionsV1.https.HttpsError('permission-denied', 'Token invàlid o caducat.');
+    }
+
+    const createdMs = (createdAt.toDate ? createdAt.toDate().getTime() : new Date(createdAt).getTime());
+    const now = Date.now();
+    const ttlMs = 48 * 60 * 60 * 1000; // 48 hours
+    if (now - createdMs > ttlMs) {
+      console.warn('[validateActivationTokenCallable] Token expired');
+      throw new functionsV1.https.HttpsError('permission-denied', 'Token invàlid o caducat.');
+    }
+
+    // Atomically mark token used in a transaction (double-check fields to avoid race)
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(docRef);
+      if (!snap.exists) {
+        console.warn('[validateActivationTokenCallable] Document disappeared in transaction');
+        throw new functionsV1.https.HttpsError('not-found', 'Token not found');
+      }
+      const cur = snap.data() as any;
+      if ((cur.activationTokenUsed ?? false) === true) {
+        console.warn('[validateActivationTokenCallable] Token already marked used');
+        throw new functionsV1.https.HttpsError('permission-denied', 'Token invàlid o caducat.');
+      }
+      if ((cur.activationToken || '') !== token || (cur.email || '').toLowerCase() !== email) {
+        console.warn('[validateActivationTokenCallable] Token/email mismatch in transaction');
+        throw new functionsV1.https.HttpsError('permission-denied', 'Token invàlid o caducat.');
+      }
+      tx.update(docRef, {
+        activationTokenUsed: true,
+        activationTokenUsedAt: FieldValue.serverTimestamp(),
+      });
+    });
+
+    console.log('[validateActivationTokenCallable] Token match found and marked used');
+
+    return { success: true, message: 'Token valid. User may proceed.' };
+  } catch (err) {
+    console.error('[validateActivationTokenCallable] Error', err);
+    if (err instanceof functionsV1.https.HttpsError) {
+      throw err; // client receives proper callable error
+    }
+    throw new functionsV1.https.HttpsError('internal', 'Server error');
   }
 });

@@ -261,6 +261,29 @@ class _LoginViewState extends State<_LoginView> {
     }
   }
 
+  // Resend activation token for a pending email. Shows a SnackBar with the result.
+  Future<void> _resendActivationTokenFor(String email) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    try {
+      final functions = FirebaseFunctions.instance;
+      final callable = functions.httpsCallable('resendActivationToken');
+      final res = await callable.call(<String, dynamic>{'email': email});
+      final data = res.data as Map<dynamic, dynamic>?;
+      final msg = data != null && data['message'] != null
+          ? data['message'].toString()
+          : 'Nou codi enviat.';
+      scaffoldMessenger.showSnackBar(SnackBar(content: Text(msg)));
+    } on FirebaseFunctionsException catch (e) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Error del servidor')),
+      );
+    } catch (e) {
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(content: Text('Error de xarxa. Torna-ho a intentar.')),
+      );
+    }
+  }
+
   // Shows a modal dialog to request the activation token and validate it
   // with the backend. Navigates to create-password only on success.
   Future<void> _showTokenValidationDialog(
@@ -304,6 +327,15 @@ class _LoginViewState extends State<_LoginView> {
                           Navigator.of(context).pop();
                         },
                   child: const Text('Cancel·lar'),
+                ),
+                TextButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          // Resend token for this email
+                          await _resendActivationTokenFor(email);
+                        },
+                  child: const Text('Torna a enviar codi'),
                 ),
                 ElevatedButton(
                   onPressed: (isLoading || token.isEmpty)
@@ -510,6 +542,18 @@ class _LoginViewState extends State<_LoginView> {
                 },
                 onFieldSubmitted: (_) => _submit(), // Permet enviar amb Enter
               ),
+              const SizedBox(height: 8),
+              if (showTokenField && authProvider.pendingEmail != null)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      // Call resend and show SnackBar
+                      _resendActivationTokenFor(authProvider.pendingEmail!);
+                    },
+                    child: const Text('Torna a enviar codi'),
+                  ),
+                ),
               const SizedBox(height: 8),
               if (!showTokenField)
                 Align(

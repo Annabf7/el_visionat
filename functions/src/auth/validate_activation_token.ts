@@ -9,6 +9,70 @@ import { inspect } from 'util';
 
 const db = getFirestore();
 
+// Control verbose logging via env var. In production this should be false.
+const VERBOSE_LOG = (process.env.FUNCTIONS_VERBOSE || 'false').toLowerCase() === 'true';
+
+// Shared core logic: validate email+token, enforce TTL and mark token used
+// transactionally. Throws HttpsError (v2) or functionsV1.https.HttpsError on
+// failure so callers can map to their protocol.
+async function validateActivationTokenCore(email: string, token: string) {
+  // Query for a registration request that matches email, token and unused
+  const q = await db
+    .collection('registration_requests')
+    .where('email', '==', email)
+    .where('activationToken', '==', token)
+    .where('activationTokenUsed', '==', false)
+    .limit(1)
+    .get();
+
+  if (q.empty) {
+    if (VERBOSE_LOG) console.warn('[validateActivationTokenCore] Token match not found for provided email');
+    throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
+  }
+
+  const doc = q.docs[0];
+  const docRef = doc.ref;
+  const data = doc.data() as any;
+
+  const createdAt = data.activationTokenCreatedAt;
+  if (!createdAt) {
+    if (VERBOSE_LOG) console.warn('[validateActivationTokenCore] No token timestamp');
+    throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
+  }
+
+  const createdMs = (createdAt.toDate ? createdAt.toDate().getTime() : new Date(createdAt).getTime());
+  const now = Date.now();
+  const ttlMs = 48 * 60 * 60 * 1000; // 48 hours
+  if (now - createdMs > ttlMs) {
+    if (VERBOSE_LOG) console.warn('[validateActivationTokenCore] Token expired');
+    throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
+  }
+
+  // Atomically mark token used in a transaction (double-check fields to avoid race)
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(docRef);
+    if (!snap.exists) {
+      if (VERBOSE_LOG) console.warn('[validateActivationTokenCore] Document disappeared in transaction');
+      throw new HttpsError('not-found', 'Token not found');
+    }
+    const cur = snap.data() as any;
+    if ((cur.activationTokenUsed ?? false) === true) {
+      if (VERBOSE_LOG) console.warn('[validateActivationTokenCore] Token already marked used');
+      throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
+    }
+    if ((cur.activationToken || '') !== token || (cur.email || '').toLowerCase() !== email) {
+      if (VERBOSE_LOG) console.warn('[validateActivationTokenCore] Token/email mismatch in transaction');
+      throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
+    }
+    tx.update(docRef, {
+      activationTokenUsed: true,
+      activationTokenUsedAt: FieldValue.serverTimestamp(),
+    });
+  });
+
+  if (VERBOSE_LOG) console.log('[validateActivationTokenCore] Token match found and marked used');
+}
+
 interface ValidateBody {
   token?: string;
   email?: string;
@@ -30,63 +94,9 @@ export const validateActivationToken = onRequest(async (req, res) => {
       return;
     }
 
-    console.log(`[validateActivationToken] Received token validation request for email: ${email}`);
+    if (VERBOSE_LOG) console.log(`[validateActivationToken] Received token validation request for email: ${email}`);
 
-    // Query for a registration request that matches email, token and unused
-    const q = await db
-      .collection('registration_requests')
-      .where('email', '==', email)
-      .where('activationToken', '==', token)
-      .where('activationTokenUsed', '==', false)
-      .limit(1)
-      .get();
-
-    if (q.empty) {
-      console.warn('[validateActivationToken] Token match not found for provided email');
-      throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
-    }
-
-    const doc = q.docs[0];
-    const docRef = doc.ref;
-    const data = doc.data() as any;
-
-    const createdAt = data.activationTokenCreatedAt;
-    if (!createdAt) {
-      console.warn('[validateActivationToken] No token timestamp');
-      throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
-    }
-
-    const createdMs = (createdAt.toDate ? createdAt.toDate().getTime() : new Date(createdAt).getTime());
-    const now = Date.now();
-    const ttlMs = 48 * 60 * 60 * 1000; // 48 hours
-    if (now - createdMs > ttlMs) {
-      console.warn('[validateActivationToken] Token expired');
-      throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
-    }
-
-    // Atomically mark token used in a transaction (double-check fields to avoid race)
-    await db.runTransaction(async (tx) => {
-      const snap = await tx.get(docRef);
-      if (!snap.exists) {
-        console.warn('[validateActivationToken] Document disappeared in transaction');
-        throw new HttpsError('not-found', 'Token not found');
-      }
-      const cur = snap.data() as any;
-      if ((cur.activationTokenUsed ?? false) === true) {
-        console.warn('[validateActivationToken] Token already marked used');
-        throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
-      }
-      if ((cur.activationToken || '') !== token || (cur.email || '').toLowerCase() !== email) {
-        console.warn('[validateActivationToken] Token/email mismatch in transaction');
-        throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
-      }
-      tx.update(docRef, {
-        activationTokenUsed: true,
-        activationTokenUsedAt: FieldValue.serverTimestamp(),
-      });
-    });
-
-    console.log('[validateActivationToken] Token match found and marked used');
+    await validateActivationTokenCore(email, token);
 
     // Success: return a clear message
     res.status(200).json({ success: true, message: 'Token valid. User may proceed.' });
@@ -155,63 +165,10 @@ export const validateActivationTokenCallable = functionsV1.https.onCall(async (d
       throw new functionsV1.https.HttpsError('invalid-argument', 'Invalid request');
     }
 
-    console.log(`[validateActivationTokenCallable] Received token validation request for email: ${email}`);
+    if (VERBOSE_LOG) console.log(`[validateActivationTokenCallable] Received token validation request for email: ${email}`);
 
-    // Query for a registration request that matches email, token and unused
-    const q = await db
-      .collection('registration_requests')
-      .where('email', '==', email)
-      .where('activationToken', '==', token)
-      .where('activationTokenUsed', '==', false)
-      .limit(1)
-      .get();
-
-    if (q.empty) {
-      console.warn('[validateActivationTokenCallable] Token match not found for provided email');
-      throw new functionsV1.https.HttpsError('permission-denied', 'Token invàlid o caducat.');
-    }
-
-    const doc = q.docs[0];
-    const docRef = doc.ref;
-    const dataDoc = doc.data() as any;
-
-    const createdAt = dataDoc.activationTokenCreatedAt;
-    if (!createdAt) {
-      console.warn('[validateActivationTokenCallable] No token timestamp');
-      throw new functionsV1.https.HttpsError('permission-denied', 'Token invàlid o caducat.');
-    }
-
-    const createdMs = (createdAt.toDate ? createdAt.toDate().getTime() : new Date(createdAt).getTime());
-    const now = Date.now();
-    const ttlMs = 48 * 60 * 60 * 1000; // 48 hours
-    if (now - createdMs > ttlMs) {
-      console.warn('[validateActivationTokenCallable] Token expired');
-      throw new functionsV1.https.HttpsError('permission-denied', 'Token invàlid o caducat.');
-    }
-
-    // Atomically mark token used in a transaction (double-check fields to avoid race)
-    await db.runTransaction(async (tx) => {
-      const snap = await tx.get(docRef);
-      if (!snap.exists) {
-        console.warn('[validateActivationTokenCallable] Document disappeared in transaction');
-        throw new functionsV1.https.HttpsError('not-found', 'Token not found');
-      }
-      const cur = snap.data() as any;
-      if ((cur.activationTokenUsed ?? false) === true) {
-        console.warn('[validateActivationTokenCallable] Token already marked used');
-        throw new functionsV1.https.HttpsError('permission-denied', 'Token invàlid o caducat.');
-      }
-      if ((cur.activationToken || '') !== token || (cur.email || '').toLowerCase() !== email) {
-        console.warn('[validateActivationTokenCallable] Token/email mismatch in transaction');
-        throw new functionsV1.https.HttpsError('permission-denied', 'Token invàlid o caducat.');
-      }
-      tx.update(docRef, {
-        activationTokenUsed: true,
-        activationTokenUsedAt: FieldValue.serverTimestamp(),
-      });
-    });
-
-    console.log('[validateActivationTokenCallable] Token match found and marked used');
+    // Reuse the same core validation logic; map errors to the callable
+    await validateActivationTokenCore(email, token);
 
     return { success: true, message: 'Token valid. User may proceed.' };
   } catch (err) {

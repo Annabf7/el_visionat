@@ -53,7 +53,10 @@ class AuthService {
   /// existing FirebaseAuth session to ensure a clean state for local testing.
   /// Uses a simple environment-based heuristic to detect non-production.
   Future<void> clearAuthIfEmulator() async {
-    final isEmulator = bool.fromEnvironment('dart.vm.product') == false;
+    // Avoid using bool.fromEnvironment at runtime (not supported on web/DDC).
+    // Use Flutter compile-time constants instead: consider non-release builds
+    // (debug/profile) as emulator/test environments.
+    final isEmulator = !kReleaseMode;
     if (!isEmulator) return;
     try {
       await auth.signOut();

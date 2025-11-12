@@ -23,6 +23,7 @@ import { onRegistrationStatusUpdate } from './auth/on_registration_status_update
 // Prefer the callable wrapper so client httpsCallable('validateActivationToken')
 // works correctly. Import callable and export it under the expected name.
 import { validateActivationTokenCallable } from './auth/validate_activation_token';
+import { resendActivationToken } from './auth/resend_activation_token';
 
 // Export functions with the exact names expected by the client
 exports.lookupLicense = lookupLicense;
@@ -33,6 +34,7 @@ exports.onVoteWrite = onVoteWrite;
 exports.sendRegistrationNotificationHttp = sendRegistrationNotificationHttp;
 exports.onRegistrationStatusUpdate = onRegistrationStatusUpdate;
 exports.validateActivationToken = validateActivationTokenCallable;
+exports.resendActivationToken = resendActivationToken;
 
 // --- ALTRES FUNCIONS (si n'hi ha en el futur) ---
 // Aquí podríem afegir altres tipus de funcions (ex: triggers de Firestore, etc.)

@@ -43,3 +43,17 @@ cd functions/
 npm install
 cd ..
 ```
+
+## 📚 Documentació detallada
+
+Hem mogut les seccions detallades sobre plataformes, emuladors i arquitectura a la carpeta `docs/` per mantenir el `README` concís. Consulta aquests fitxers per a informació completa:
+
+- `docs/PLATFORMS.md` — Platforms, serveis externs i notes d'emulador.
+- `docs/ARCHITECTURE.md` — Diagrama i descripció arquitectural.
+
+## 🔧 Notes de desenvolupament i variables d'entorn locals
+
+- `FUNCTIONS_VERBOSE=true` — habilita logs informatius a les Cloud Functions per depuració local (per defecte estàn desactivats per evitar soroll a producció).
+- Quan desenvolupis, comprova les rutes i ports: si l'app Android no troba els emuladors, utilitza `10.0.2.2` en lloc de `127.0.0.1`.
+
+---

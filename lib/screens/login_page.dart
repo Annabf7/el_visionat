@@ -1,6 +1,7 @@
 import 'package:el_visionat/screens/create_password_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../providers/auth_provider.dart'; // Importem el provider actualitzat
 
 class LoginPage extends StatelessWidget {
@@ -168,39 +169,218 @@ class _LoginViewState extends State<_LoginView> {
     FocusScope.of(context).unfocus();
     if (_formKey.currentState?.validate() ?? false) {
       final authProvider = context.read<AuthProvider>();
-      final result = await authProvider.signIn(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-      );
 
-      // Si el login detecta que l'usuari està aprovat i necessita crear
-      // una contrasenya, naveguem des d'aquí.
-      if (result == RegistrationStep.approvedNeedPassword) {
-        // Assegurem que el widget encara està muntat abans de navegar
-        if (mounted) {
-          final licenseId = authProvider.pendingLicenseId;
-          final email = authProvider.pendingEmail;
-          if (licenseId != null && email != null) {
-            Navigator.of(context).pushReplacementNamed(
+      // If the provider has a pending email from the registration flow,
+      // treat the second field as the activation token rather than a
+      // password. This allows users coming from "Sol·licitud Enviada" to
+      // paste the token directly on the login screen.
+      final bool isPendingRegistration =
+          authProvider.pendingEmail != null &&
+          authProvider.currentStep == RegistrationStep.requestSent;
+
+      if (isPendingRegistration) {
+        // Validate token via callable function.
+        final email = authProvider.pendingEmail!;
+        final token = _passwordController.text.trim();
+
+        // Capture navigator before awaiting
+        final rootNavigator = Navigator.of(context, rootNavigator: true);
+
+        // Capture ScaffoldMessenger before the async gap so we don't use
+        // BuildContext after awaiting (avoids analyzer warnings).
+        final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+        try {
+          final functions = FirebaseFunctions.instance;
+          final callable = functions.httpsCallable('validateActivationToken');
+          final res = await callable.call(<String, dynamic>{
+            'email': email,
+            'token': token,
+          });
+          final data = res.data as Map<dynamic, dynamic>?;
+          final success =
+              data != null && (data['success'] == true || data['ok'] == true);
+          if (success) {
+            if (!mounted) return;
+            rootNavigator.pushReplacementNamed(
               '/create-password',
               arguments: CreatePasswordPageArguments(
-                licenseId: licenseId,
+                licenseId: authProvider.pendingLicenseId!,
                 email: email,
               ),
             );
+          } else {
+            final msg = data != null && data['message'] != null
+                ? data['message'].toString()
+                : 'Codi invàlid';
+            scaffoldMessenger.showSnackBar(SnackBar(content: Text(msg)));
+          }
+        } on FirebaseFunctionsException catch (e) {
+          scaffoldMessenger.showSnackBar(
+            SnackBar(content: Text(e.message ?? 'Error del servidor')),
+          );
+        } catch (e) {
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(
+              content: Text('Error de xarxa. Torna-ho a intentar.'),
+            ),
+          );
+        }
+      } else {
+        final result = await authProvider.signIn(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
+
+        // Si el login detecta que l'usuari està aprovat i necessita crear
+        // una contrasenya, naveguem des d'aquí mitjançant el diàleg de token
+        // (cas on l'usuari no venia del flux de registre recent).
+        if (result == RegistrationStep.approvedNeedPassword) {
+          if (mounted) {
+            final licenseId = authProvider.pendingLicenseId;
+            final email = authProvider.pendingEmail;
+            if (licenseId != null && email != null) {
+              await _showTokenValidationDialog(licenseId, email);
+            }
           }
         }
-      }
-      // If login succeeded (user is authenticated), ensure we land on Home.
-      if (authProvider.isAuthenticated) {
-        if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+
+        if (authProvider.isAuthenticated) {
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/home',
+              (route) => false,
+            );
+          }
         }
       }
       // En altres casos (login exitós o error), no fem res.
       // El login exitós serà gestionat per l'AuthWrapper (que veurà el canvi a User)
       // i l'error es mostrarà a la UI gràcies al `watch` al mètode build.
     }
+  }
+
+  // Shows a modal dialog to request the activation token and validate it
+  // with the backend. Navigates to create-password only on success.
+  Future<void> _showTokenValidationDialog(
+    String licenseId,
+    String email,
+  ) async {
+    String token = '';
+    bool isLoading = false;
+    String? errorText;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Introdueix el codi d\'activació'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Revisa el teu correu i introdueix el codi rebut.',
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    keyboardType: TextInputType.text,
+                    decoration: InputDecoration(
+                      labelText: 'Codi',
+                      errorText: errorText,
+                    ),
+                    onChanged: (v) => setState(() => token = v.trim()),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isLoading
+                      ? null
+                      : () {
+                          Navigator.of(context).pop();
+                        },
+                  child: const Text('Cancel·lar'),
+                ),
+                ElevatedButton(
+                  onPressed: (isLoading || token.isEmpty)
+                      ? null
+                      : () async {
+                          setState(() {
+                            isLoading = true;
+                            errorText = null;
+                          });
+
+                          // Capture navigator instances before awaiting
+                          final dialogNavigator = Navigator.of(context);
+                          final rootNavigator = Navigator.of(
+                            context,
+                            rootNavigator: true,
+                          );
+
+                          try {
+                            final functions = FirebaseFunctions.instance;
+                            final callable = functions.httpsCallable(
+                              'validateActivationToken',
+                            );
+                            final res = await callable.call(<String, dynamic>{
+                              'email': email,
+                              'token': token,
+                            });
+
+                            final data = res.data as Map<dynamic, dynamic>?;
+                            final success =
+                                data != null &&
+                                (data['success'] == true || data['ok'] == true);
+                            if (success) {
+                              dialogNavigator.pop();
+                              if (!mounted) return;
+                              rootNavigator.pushReplacementNamed(
+                                '/create-password',
+                                arguments: CreatePasswordPageArguments(
+                                  licenseId: licenseId,
+                                  email: email,
+                                ),
+                              );
+                            } else {
+                              setState(() {
+                                errorText =
+                                    (data != null && data['message'] != null)
+                                    ? data['message'].toString()
+                                    : 'Codi invàlid';
+                                isLoading = false;
+                              });
+                            }
+                          } on FirebaseFunctionsException catch (e) {
+                            setState(() {
+                              errorText = e.message ?? 'Error del servidor';
+                              isLoading = false;
+                            });
+                          } catch (e) {
+                            setState(() {
+                              errorText =
+                                  'Error de xarxa. Torna-ho a intentar.';
+                              isLoading = false;
+                            });
+                          }
+                        },
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Validar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -282,6 +462,10 @@ class _LoginViewState extends State<_LoginView> {
         authProvider.errorMessage != null &&
         authProvider.currentStep == RegistrationStep.initial;
 
+    final bool showTokenField =
+        authProvider.pendingEmail != null &&
+        authProvider.currentStep == RegistrationStep.requestSent;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32.0),
       child: ConstrainedBox(
@@ -293,7 +477,7 @@ class _LoginViewState extends State<_LoginView> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Ja tens compte?',
+                'Finalitza l\'enregistrament',
                 style: textTheme.headlineMedium,
               ), // Ajustem estil
               const SizedBox(height: 24),
@@ -308,24 +492,36 @@ class _LoginViewState extends State<_LoginView> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Contrasenya'),
-                obscureText: true,
-                validator: (value) => (value == null || value.length < 6)
-                    ? 'Mínim 6 caràcters'
-                    : null,
+                decoration: InputDecoration(
+                  labelText: showTokenField
+                      ? 'Codi d\'activació'
+                      : 'Contrasenya',
+                ),
+                keyboardType: showTokenField
+                    ? TextInputType.text
+                    : TextInputType.text,
+                obscureText: !showTokenField,
+                validator: (value) {
+                  final v = value ?? '';
+                  if (showTokenField) {
+                    return v.isEmpty ? 'Introdueix el codi d\'activació' : null;
+                  }
+                  return (v.length < 6) ? 'Mínim 6 caràcters' : null;
+                },
                 onFieldSubmitted: (_) => _submit(), // Permet enviar amb Enter
               ),
               const SizedBox(height: 8),
-              Align(
-                // Alineem el botó de "oblidar contrasenya"
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    /* TODO: Implementar recuperació contrasenya */
-                  },
-                  child: const Text('He oblidat la meva contrasenya'),
+              if (!showTokenField)
+                Align(
+                  // Alineem el botó de "oblidar contrasenya"
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      /* TODO: Implementar recuperació contrasenya */
+                    },
+                    child: const Text('He oblidat la meva contrasenya'),
+                  ),
                 ),
-              ),
               const SizedBox(height: 16),
               // Mostrem l'indicador només si estem carregant AQUEST formulari
               if (authProvider.isLoading &&
@@ -742,9 +938,9 @@ class _RegisterStep3RequestSent extends StatelessWidget {
             // Botó per anar a la pantalla d'inici de sessió
             OutlinedButton(
               onPressed: () {
-                // Reseteja l'estat i navega explícitament a /login
+                // Navega a /login sense esborrar l'estat, així l'email pendet
+                // es manté i el formulari pot mostrar el camp Token.
                 final navigator = Navigator.of(context);
-                context.read<AuthProvider>().reset();
                 navigator.pushNamedAndRemoveUntil('/login', (route) => false);
               },
               child: Text(

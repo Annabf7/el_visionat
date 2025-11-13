@@ -25,29 +25,12 @@ class RefereeCommentCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.mostassa,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Icon(
-                  Icons.sports_soccer,
-                  color: AppTheme.porpraFosc,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Valoració final del partit',
-                style: textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.white,
-                ),
-              ),
-            ],
+          Text(
+            'Valoració final del partit',
+            style: textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppTheme.white,
+            ),
           ),
           const SizedBox(height: 16),
           Row(
@@ -86,21 +69,24 @@ class RefereeCommentCard extends StatelessWidget {
                         color: AppTheme.white,
                       ),
                     ),
+                    const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 1,
+                        horizontal: 8,
+                        vertical: 3,
                       ),
                       decoration: BoxDecoration(
                         color: AppTheme.white,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         'Àrbitre principal',
-                        style: textTheme.bodySmall?.copyWith(
+                        style: textTheme.labelSmall?.copyWith(
                           color: AppTheme.porpraFosc,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 10,
+                          fontFamily: 'Inter',
+                          letterSpacing: 0.2,
                         ),
                       ),
                     ),

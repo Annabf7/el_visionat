@@ -8,7 +8,7 @@ import 'widgets/highlights_timeline.dart';
 import 'widgets/match_details_card.dart';
 import 'widgets/user_analysis_card.dart';
 import 'widgets/referee_comment_card.dart';
-import 'widgets/final_rating_form.dart';
+import 'widgets/add_highlight_card.dart';
 
 class VisionatMatchPage extends StatefulWidget {
   const VisionatMatchPage({super.key});
@@ -20,8 +20,6 @@ class VisionatMatchPage extends StatefulWidget {
 class _VisionatMatchPageState extends State<VisionatMatchPage> {
   HighlightTagType? selectedTag;
   String userAnalysisText = '';
-  OverallMatchRating? selectedRating;
-  Set<String> selectedImprovementAreaIds = {};
 
   // Mock data per a highlights
   final List<HighlightEntry> mockHighlights = [
@@ -93,37 +91,6 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
     });
   }
 
-  void _onRatingChanged(OverallMatchRating? rating) {
-    setState(() {
-      selectedRating = rating;
-    });
-  }
-
-  void _onImprovementAreasChanged(Set<String> areas) {
-    setState(() {
-      selectedImprovementAreaIds = areas;
-    });
-  }
-
-  void _onSubmitAnalysis() {
-    // Debug print dels valors seleccionats
-    debugPrint('=== ANÀLISI ENVIAT ===');
-    debugPrint(
-      'Puntuació general: ${selectedRating?.displayName ?? 'No seleccionada'}',
-    );
-    debugPrint('Àrees de millora: $selectedImprovementAreaIds');
-    debugPrint('Text anàlisi: $userAnalysisText');
-    debugPrint('=====================');
-
-    // Mostrar SnackBar
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Funcionalitat en desenvolupament'),
-        duration: Duration(seconds: 3),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -189,13 +156,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
                   const SizedBox(height: 16),
                   const RefereeCommentCard(),
                   const SizedBox(height: 16),
-                  FinalRatingForm(
-                    selectedRating: selectedRating,
-                    selectedImprovementAreaIds: selectedImprovementAreaIds,
-                    onRatingChanged: _onRatingChanged,
-                    onImprovementAreasChanged: _onImprovementAreasChanged,
-                    onSubmit: _onSubmitAnalysis,
-                  ),
+                  const AddHighlightCard(),
                 ],
               ),
             ),
@@ -234,13 +195,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
           const SizedBox(height: 16),
           const RefereeCommentCard(),
           const SizedBox(height: 16),
-          FinalRatingForm(
-            selectedRating: selectedRating,
-            selectedImprovementAreaIds: selectedImprovementAreaIds,
-            onRatingChanged: _onRatingChanged,
-            onImprovementAreasChanged: _onImprovementAreasChanged,
-            onSubmit: _onSubmitAnalysis,
-          ),
+          const AddHighlightCard(),
         ],
       ),
     );

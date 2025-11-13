@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../theme/app_theme.dart';
+import 'tag_selector/index.dart';
 
 class AddHighlightCard extends StatefulWidget {
-  const AddHighlightCard({super.key});
+  final Function(String minutage, String tag, String title, String comment)?
+  onHighlightAdded;
+
+  const AddHighlightCard({super.key, this.onHighlightAdded});
 
   @override
   State<AddHighlightCard> createState() => _AddHighlightCardState();
@@ -14,25 +18,6 @@ class _AddHighlightCardState extends State<AddHighlightCard> {
   final _titleController = TextEditingController();
   final _commentController = TextEditingController();
   String? _selectedTag;
-
-  final List<String> _tags = [
-    'Falta tècnica',
-    'Falta antiesportiva',
-    'Falta personal',
-    'Infracció',
-    'Violació 24s',
-    'Violació 8s',
-    'Violació 3s',
-    'Peu',
-    'Dobles',
-    'Passos',
-    'Fora de banda',
-    'Canasta vàlida',
-    'Canasta no vàlida',
-    'Interferència',
-    'Temps mort',
-    'Revisió vídeo',
-  ];
 
   @override
   void dispose() {
@@ -46,12 +31,13 @@ class _AddHighlightCardState extends State<AddHighlightCard> {
     if (_minutageController.text.isNotEmpty &&
         _selectedTag != null &&
         _titleController.text.isNotEmpty) {
-      debugPrint('=== NOVA JUGADA DESTACADA ===');
-      debugPrint('Minutatge: ${_minutageController.text}');
-      debugPrint('Tag: $_selectedTag');
-      debugPrint('Títol: ${_titleController.text}');
-      debugPrint('Comentari: ${_commentController.text}');
-      debugPrint('============================');
+      // Cridar el callback per enviar la informació cap amunt
+      widget.onHighlightAdded?.call(
+        _minutageController.text,
+        _selectedTag!,
+        _titleController.text,
+        _commentController.text,
+      );
 
       // Neteja els camps
       _minutageController.clear();
@@ -68,6 +54,19 @@ class _AddHighlightCardState extends State<AddHighlightCard> {
           duration: const Duration(seconds: 2),
         ),
       );
+    }
+  }
+
+  Future<void> _openTagSelector() async {
+    final selectedTag = await showTagSelector(
+      context,
+      initialTag: _selectedTag,
+    );
+
+    if (selectedTag != null) {
+      setState(() {
+        _selectedTag = selectedTag;
+      });
     }
   }
 
@@ -186,40 +185,43 @@ class _AddHighlightCardState extends State<AddHighlightCard> {
             ],
           ),
           const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppTheme.lilaMitja),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _openTagSelector,
               borderRadius: BorderRadius.circular(6),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedTag,
-                hint: Text(
-                  'Selecciona una categoria...',
-                  style: TextStyle(
-                    color: AppTheme.grisBody.withValues(alpha: 0.7),
-                    fontSize: 13,
-                  ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
                 ),
-                isExpanded: true,
-                items: _tags
-                    .map(
-                      (tag) => DropdownMenuItem(
-                        value: tag,
-                        child: Text(
-                          tag,
-                          style: TextStyle(color: AppTheme.porpraFosc),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppTheme.lilaMitja),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _selectedTag ?? 'Selecciona una categoria...',
+                        style: TextStyle(
+                          color: _selectedTag != null
+                              ? AppTheme.porpraFosc
+                              : AppTheme.grisBody.withValues(alpha: 0.7),
+                          fontSize: 13,
+                          fontWeight: _selectedTag != null
+                              ? FontWeight.w500
+                              : FontWeight.normal,
                         ),
                       ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedTag = value;
-                  });
-                },
-                dropdownColor: AppTheme.white,
+                    ),
+                    Icon(
+                      Icons.keyboard_arrow_down,
+                      color: AppTheme.porpraFosc,
+                      size: 20,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

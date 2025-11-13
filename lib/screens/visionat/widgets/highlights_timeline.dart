@@ -4,13 +4,13 @@ import '../../../theme/app_theme.dart';
 
 class HighlightsTimeline extends StatelessWidget {
   final List<HighlightEntry> entries;
-  final HighlightTagType? selectedTag;
+  final String? selectedCategory;
   final VoidCallback? onHighlightTap;
 
   const HighlightsTimeline({
     super.key,
     required this.entries,
-    this.selectedTag,
+    this.selectedCategory,
     this.onHighlightTap,
   });
 

@@ -45,11 +45,30 @@ class HighlightEntry {
   final Duration timestamp;
   final String title;
   final HighlightTagType tag;
+  final String category; // Nova categoria basada en text FIBA
 
   const HighlightEntry({
     required this.id,
     required this.timestamp,
     required this.title,
     required this.tag,
+    required this.category,
   });
+
+  // Mètode per crear una còpia amb canvis
+  HighlightEntry copyWith({
+    String? id,
+    Duration? timestamp,
+    String? title,
+    HighlightTagType? tag,
+    String? category,
+  }) {
+    return HighlightEntry(
+      id: id ?? this.id,
+      timestamp: timestamp ?? this.timestamp,
+      title: title ?? this.title,
+      tag: tag ?? this.tag,
+      category: category ?? this.category,
+    );
+  }
 }

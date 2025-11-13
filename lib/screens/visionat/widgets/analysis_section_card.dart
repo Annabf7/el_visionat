@@ -1,0 +1,340 @@
+import 'package:flutter/material.dart';
+import '../../../models/collective_comment.dart';
+import '../../../theme/app_theme.dart';
+
+class AnalysisSectionCard extends StatefulWidget {
+  final String personalAnalysisText;
+  final ValueChanged<String> onPersonalAnalysisChanged;
+  final VoidCallback onPersonalAnalysisSave;
+  final List<CollectiveComment> collectiveComments;
+  final VoidCallback onViewAllComments;
+
+  const AnalysisSectionCard({
+    super.key,
+    required this.personalAnalysisText,
+    required this.onPersonalAnalysisChanged,
+    required this.onPersonalAnalysisSave,
+    required this.collectiveComments,
+    required this.onViewAllComments,
+  });
+
+  @override
+  State<AnalysisSectionCard> createState() => _AnalysisSectionCardState();
+}
+
+class _AnalysisSectionCardState extends State<AnalysisSectionCard> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.personalAnalysisText);
+  }
+
+  @override
+  void didUpdateWidget(AnalysisSectionCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.personalAnalysisText != widget.personalAnalysisText) {
+      _controller.text = widget.personalAnalysisText;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleSave() {
+    widget.onPersonalAnalysisSave();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Anàlisi personal guardada'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  String _formatTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 60) {
+      return 'fa ${difference.inMinutes} min';
+    } else if (difference.inHours < 24) {
+      return 'fa ${difference.inHours}h';
+    } else {
+      return 'fa ${difference.inDays} dies';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 2,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // SECCIÓ A: Anàlisi personal
+            Text(
+              'Anàlisi personal',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Les teves notes quedaran guardades al teu perfil i només tu les podràs veure.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Text Field per anàlisi personal
+            TextField(
+              controller: _controller,
+              onChanged: widget.onPersonalAnalysisChanged,
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText: 'Escriu les teves notes sobre el partit...',
+                hintStyle: TextStyle(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.3),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppTheme.porpraFosc, width: 2),
+                ),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Botó guardar
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton.icon(
+                onPressed: _handleSave,
+                icon: const Icon(Icons.save, size: 16),
+                label: const Text('Guardar'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.porpraFosc,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Divider suau
+            Divider(
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.2),
+              thickness: 1,
+            ),
+
+            const SizedBox(height: 24),
+
+            // SECCIÓ B: Anàlisi col·lectiva
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Anàlisi col·lectiva',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Aportacions del grup',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+                // Comptador de comentaris
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.lilaMitja.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppTheme.lilaMitja.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Text(
+                    '${widget.collectiveComments.length}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.lilaMitja,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Comentaris recents (màxim 3)
+            if (widget.collectiveComments.isNotEmpty) ...[
+              ...widget.collectiveComments
+                  .take(3)
+                  .map(
+                    (comment) => Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 12,
+                                backgroundColor: comment.anonymous
+                                    ? AppTheme.textBlackLow.withValues(
+                                        alpha: 0.3,
+                                      )
+                                    : AppTheme.porpraFosc.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                child: Icon(
+                                  comment.anonymous
+                                      ? Icons.person_outline
+                                      : Icons.person,
+                                  size: 14,
+                                  color: comment.anonymous
+                                      ? AppTheme.textBlackLow
+                                      : AppTheme.porpraFosc,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  comment.displayName,
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w500,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurface,
+                                      ),
+                                ),
+                              ),
+                              Text(
+                                _formatTimeAgo(comment.createdAt),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.5),
+                                    ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            comment.text,
+                            style: Theme.of(context).textTheme.bodySmall,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+            ] else ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    'Encara no hi ha comentaris col·lectius',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 16),
+
+            // Botó "Veure comentaris"
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: widget.onViewAllComments,
+                icon: const Icon(Icons.arrow_forward, size: 16),
+                label: const Text('Veure comentaris'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.lilaMitja,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

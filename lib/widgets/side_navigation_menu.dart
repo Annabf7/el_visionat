@@ -79,10 +79,8 @@ class SideNavigationMenu extends StatelessWidget {
                     _NavigationItem(
                       icon: Icons.videocam,
                       text: 'Visionats setmanals',
-                      onTap: () {
-                        // No hi ha ruta dedicada; aquí pots implementar navegació
-                        // cap a la pantalla corresponent quan estigui disponible.
-                      },
+                      isSelected: isActive('/visionat'),
+                      onTap: () => Navigator.pushNamed(ctx, '/visionat'),
                     ),
                     _NavigationItem(
                       icon: Icons.science,

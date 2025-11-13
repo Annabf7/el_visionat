@@ -3,6 +3,7 @@ import 'package:el_visionat/providers/auth_provider.dart';
 import 'package:el_visionat/screens/create_password_page.dart';
 import 'package:el_visionat/screens/home_page.dart';
 import 'package:el_visionat/screens/login_page.dart';
+import 'package:el_visionat/screens/visionat/visionat_match_page.dart';
 import 'package:el_visionat/widgets/voting_section.dart';
 import 'package:el_visionat/widgets/side_navigation_menu.dart';
 import 'package:el_visionat/services/auth_service.dart';
@@ -141,6 +142,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => RequireAuth(child: const HomePage()),
         '/all-matches': (context) => RequireAuth(child: const AllMatchesPage()),
         '/profile': (context) => RequireAuth(child: const ProfilePage()),
+        '/visionat': (context) => RequireAuth(child: const VisionatMatchPage()),
         '/login': (context) => const LoginPage(), // Ruta explícita per a Login
         '/create-password': (context) =>
             const CreatePasswordPage(), // Ruta per crear contrasenya

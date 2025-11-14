@@ -1,5 +1,5 @@
-import 'package:el_visionat/models/team_platform.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:el_visionat/features/teams/models/team_platform.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -31,22 +31,29 @@ class IsarService {
 
   Future<void> saveAll(List<Team> teams) async {
     final isar = await db;
-    try {
-      debugPrint('IsarService: saving ${teams.length} teams to Isar');
-      await isar.writeTxn(() async {
-        await isar.teams.putAll(teams);
-      });
-      debugPrint('IsarService: saved ${teams.length} teams to Isar');
-    } catch (e, st) {
-      debugPrint('IsarService: error saving teams to Isar: $e\n$st');
-      rethrow;
-    }
+    await isar.writeTxn(() async {
+      for (final team in teams) {
+        await isar.teams.put(team);
+      }
+    });
   }
 
   Future<List<Team>> getAllTeams() async {
     final isar = await db;
-    final list = await isar.teams.where().findAll();
-    debugPrint('IsarService: getAllTeams returned ${list.length} records');
-    return list;
+    return await isar.teams.where().findAll();
+  }
+
+  Future<void> clearAllTeams() async {
+    final isar = await db;
+    await isar.writeTxn(() async {
+      await isar.teams.clear();
+    });
+  }
+
+  Future<void> deleteTeam(Team team) async {
+    final isar = await db;
+    await isar.writeTxn(() async {
+      await isar.teams.delete(team.id);
+    });
   }
 }

@@ -13,7 +13,7 @@ import '../../auth/index.dart';
 import 'voting_card.dart';
 import 'jornada_header.dart';
 
-import '../../../theme/app_theme.dart';
+import 'package:el_visionat/core/theme/app_theme.dart';
 
 /// Minimal match model for the seed JSON.
 class MatchSeed {

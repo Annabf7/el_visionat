@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../theme/app_theme.dart';
+import 'package:el_visionat/core/theme/app_theme.dart';
 import '../models/collective_comment.dart';
 
 class CollectiveAnalysisModal extends StatefulWidget {

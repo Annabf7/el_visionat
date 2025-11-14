@@ -40,7 +40,7 @@ class RefereeCommentCard extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppTheme.lilaMitja, AppTheme.mostassa],
+                    colors: [AppTheme.porpraFosc, AppTheme.mostassa],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -113,14 +113,14 @@ class RefereeCommentCard extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.format_quote,
-                      color: AppTheme.lilaMitja,
+                      color: AppTheme.mostassa,
                       size: 16,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Comentaris tècnics',
                       style: textTheme.bodySmall?.copyWith(
-                        color: AppTheme.lilaMitja,
+                        color: AppTheme.mostassa,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                       ),
@@ -149,7 +149,7 @@ class RefereeCommentCard extends StatelessWidget {
                 child: Text(
                   'Comentaris verificats per l\'equip tècnic arbitral oficial.',
                   style: textTheme.bodySmall?.copyWith(
-                    color: AppTheme.white.withValues(alpha: 0.8),
+                    color: AppTheme.mostassa,
                     fontSize: 12,
                     height: 1.4,
                   ),

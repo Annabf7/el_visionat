@@ -11,7 +11,7 @@ class MatchVideoSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildVideoThumbnail(context),
-          const SizedBox(height: 12),
+          const SizedBox(height: 4),
           _buildActaButton(context),
         ],
       ),
@@ -104,33 +104,31 @@ class MatchVideoSection extends StatelessWidget {
   }
 
   Widget _buildActaButton(BuildContext context) {
-    final isWideScreen = MediaQuery.of(context).size.width >= 600;
-
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(right: 4, bottom: 12, top: 8),
       child: Align(
-        alignment: isWideScreen ? Alignment.centerRight : Alignment.center,
+        alignment: Alignment.centerRight,
         child: Container(
           decoration: BoxDecoration(
             color: AppTheme.mostassa, // Yellow background
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(6),
             boxShadow: [
               BoxShadow(
                 color: AppTheme.porpraFosc.withValues(alpha: 0.1),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
               ),
             ],
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
               onTap: _onActaButtonPressed,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+                  horizontal: 12,
+                  vertical: 8,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -138,14 +136,14 @@ class MatchVideoSection extends StatelessWidget {
                     Icon(
                       Icons.description_outlined,
                       color: AppTheme.porpraFosc,
-                      size: 20,
+                      size: 16,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Text(
-                      'Acta del partit',
+                      'Acta',
                       style: TextStyle(
                         color: AppTheme.porpraFosc,
-                        fontSize: 14,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

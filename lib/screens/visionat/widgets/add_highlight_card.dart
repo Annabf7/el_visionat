@@ -314,22 +314,25 @@ class _AddHighlightCardState extends State<AddHighlightCard> {
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 2),
 
           // Botó d'afegir
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _addHighlight,
-              icon: const Icon(Icons.add_circle),
+              icon: const Icon(Icons.add_circle, size: 16),
               label: const Text(
                 'Afegir a minutatge',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.lilaMitja,
+                backgroundColor: AppTheme.porpraFosc,
                 foregroundColor: AppTheme.grisPistacho,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),

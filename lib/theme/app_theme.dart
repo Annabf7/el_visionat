@@ -5,6 +5,7 @@ class AppTheme {
   static const Color porpraFosc = Color(0xFF2F313C);
   static const Color grisBody = Color(0xFF4D5061);
   static const Color lilaMitja = Color(0xFF8B7F9B);
+  static const Color lilaClar = Color(0xFFDABEEA);
   static const Color white = Color(0xFFD9D9D9);
   static const Color mostassa = Color(0xFFE8C547);
   static const Color textBlackLow = Color(0xFF5D5F71);

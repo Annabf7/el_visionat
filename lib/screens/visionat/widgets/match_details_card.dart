@@ -78,7 +78,7 @@ class MatchDetailsCard extends StatelessWidget {
               ), // Fons més subtil
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, size: 16, color: AppTheme.lilaMitja),
+            child: Icon(icon, size: 16, color: AppTheme.mostassa),
           ),
           const SizedBox(width: 16),
           // Label and Value

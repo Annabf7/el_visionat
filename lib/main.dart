@@ -112,6 +112,13 @@ void main() async {
         ),
         // Navigation provider to keep track of the current route name
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
+        // Visionat feature providers
+        ChangeNotifierProvider(
+          create: (_) => VisionatHighlightProvider(HighlightService()),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => VisionatCollectiveCommentProvider(CollectiveCommentService()),
+        ),
       ],
       child: const MyApp(), // L'aplicació principal
     ),

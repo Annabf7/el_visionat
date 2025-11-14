@@ -23,6 +23,8 @@ export 'widgets/tag_selector/index.dart';
 
 // Services
 export 'services/highlight_service.dart';
+export 'services/collective_comment_service.dart';
 
 // Providers
 export 'providers/highlight_provider.dart';
+export 'providers/collective_comment_provider.dart';

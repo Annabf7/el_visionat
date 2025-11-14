@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 import '../models/collective_comment.dart';
+import '../providers/collective_comment_provider.dart';
 
 class CollectiveAnalysisModal extends StatefulWidget {
-  final List<CollectiveComment> comments;
   final Function(String text, bool isAnonymous) onCommentAdded;
 
-  const CollectiveAnalysisModal({
-    super.key,
-    required this.comments,
-    required this.onCommentAdded,
-  });
+  const CollectiveAnalysisModal({super.key, required this.onCommentAdded});
 
   @override
   State<CollectiveAnalysisModal> createState() =>
@@ -101,16 +99,56 @@ class _CollectiveAnalysisModalState extends State<CollectiveAnalysisModal> {
 
           // Llista de comentaris
           Expanded(
-            child: widget.comments.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: widget.comments.length,
-                    itemBuilder: (context, index) {
-                      final comment = widget.comments[index];
-                      return _buildCommentItem(comment);
-                    },
-                  ),
+            child: Consumer<VisionatCollectiveCommentProvider>(
+              builder: (context, provider, child) {
+                if (provider.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (provider.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 48,
+                          color: AppTheme.grisBody.withValues(alpha: 0.5),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Error carregant comentaris',
+                          style: TextStyle(
+                            color: AppTheme.grisBody,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          provider.errorMessage ?? 'Error desconegut',
+                          style: TextStyle(
+                            color: AppTheme.grisBody.withValues(alpha: 0.7),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return provider.comments.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: provider.comments.length,
+                        itemBuilder: (context, index) {
+                          final comment = provider.comments[index];
+                          return _buildCommentItem(comment);
+                        },
+                      );
+              },
+            ),
           ),
 
           // Formulari per afegir comentari
@@ -351,6 +389,69 @@ class _CollectiveAnalysisModalState extends State<CollectiveAnalysisModal> {
               height: 1.4,
             ),
           ),
+          const SizedBox(height: 12),
+
+          // Accions del comentari (like)
+          Row(
+            children: [
+              const Spacer(),
+              Consumer<VisionatCollectiveCommentProvider>(
+                builder: (context, provider, child) {
+                  final user = FirebaseAuth.instance.currentUser;
+                  final isLiked = user != null && comment.isLikedBy(user.uid);
+
+                  return GestureDetector(
+                    onTap: user != null
+                        ? () => provider.toggleLike(comment.id, user.uid)
+                        : null,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isLiked
+                            ? AppTheme.lilaMitja.withValues(alpha: 0.1)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isLiked
+                              ? AppTheme.lilaMitja
+                              : AppTheme.grisBody.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isLiked ? Icons.favorite : Icons.favorite_border,
+                            size: 16,
+                            color: isLiked
+                                ? AppTheme.lilaMitja
+                                : AppTheme.grisBody.withValues(alpha: 0.7),
+                          ),
+                          if (comment.likes > 0) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              '${comment.likes}',
+                              style: TextStyle(
+                                color: isLiked
+                                    ? AppTheme.lilaMitja
+                                    : AppTheme.grisBody.withValues(alpha: 0.7),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -360,7 +461,6 @@ class _CollectiveAnalysisModalState extends State<CollectiveAnalysisModal> {
 /// Funció helper per mostrar el modal
 Future<void> showCollectiveAnalysisModal(
   BuildContext context, {
-  required List<CollectiveComment> comments,
   required Function(String text, bool isAnonymous) onCommentAdded,
 }) async {
   final isWideScreen = MediaQuery.of(context).size.width >= 900;
@@ -371,10 +471,7 @@ Future<void> showCollectiveAnalysisModal(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
-        child: CollectiveAnalysisModal(
-          comments: comments,
-          onCommentAdded: onCommentAdded,
-        ),
+        child: CollectiveAnalysisModal(onCommentAdded: onCommentAdded),
       ),
     );
   } else {
@@ -383,10 +480,8 @@ Future<void> showCollectiveAnalysisModal(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => CollectiveAnalysisModal(
-        comments: comments,
-        onCommentAdded: onCommentAdded,
-      ),
+      builder: (context) =>
+          CollectiveAnalysisModal(onCommentAdded: onCommentAdded),
     );
   }
 }

@@ -5,7 +5,8 @@ import '../models/highlight_entry.dart';
 import '../models/match_models.dart';
 import '../models/collective_comment.dart';
 import '../providers/highlight_provider.dart';
-import '../services/highlight_service.dart';
+import '../providers/collective_comment_provider.dart';
+
 import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
 import '../widgets/match_header.dart';
 import '../widgets/match_video_section.dart';
@@ -28,51 +29,25 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
   String userAnalysisText = '';
   final String _mockMatchId =
       'match_123'; // TODO: Obtenir de paràmetres de ruta
-  late final VisionatHighlightProvider _highlightProvider =
-      VisionatHighlightProvider(HighlightService());
 
   @override
-  /// Inicialitza l'estat dels highlights quan s'inicia el widget
-  /// Configura el partit i carrega els highlights
-  ///
-  /// Aquesta funció s'executa quan s'inicia el widget i no es pot
-  /// cancel·lar una vegada que s'ha inicialitzat el provider amb
-  /// la funció setMatch. Això que no es cancel·li, s'assegura
-  /// que es carreguin el partit i els seus highlights quan s'inicia
-  /// el widget.
+  /// Inicialitza l'estat amb lazy loading per evitar ANR
+  /// Utilitza Future.microtask per evitar crides dins de build()
   void initState() {
     super.initState();
-    // Configurar partit i carregar highlights
-    _highlightProvider.setMatch(_mockMatchId);
+    
+    // Lazy initialization per evitar rebuild loops
+    Future.microtask(() {
+      if (!mounted) return;
+      
+      // Accedir als providers globals i inicialitzar només una vegada
+      final highlightProvider = context.read<VisionatHighlightProvider>();
+      final commentProvider = context.read<VisionatCollectiveCommentProvider>();
+      
+      highlightProvider.setMatch(_mockMatchId);
+      commentProvider.setMatch(_mockMatchId);
+    });
   }
-
-  // Comentaris col·lectius (mock data - es mantenen per ara)
-  final List<CollectiveComment> _collectiveComments = [
-    CollectiveComment(
-      id: '1',
-      username: 'Joan Martí',
-      text:
-          'Crec que l\'àrbitre ha estat bastant consistent durant tot el partit. Les decisions clau han estat correctes.',
-      anonymous: false,
-      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-    ),
-    CollectiveComment(
-      id: '2',
-      username: 'Usuari anònim',
-      text:
-          'Hi ha hagut algunes situacions dubtoses al tercer quart que haurien pogut ser xiulades de manera diferent.',
-      anonymous: true,
-      createdAt: DateTime.now().subtract(const Duration(minutes: 45)),
-    ),
-    CollectiveComment(
-      id: '3',
-      username: 'Maria Sánchez',
-      text:
-          'Molt bon control del partit en general. El posicionament ha estat excel·lent.',
-      anonymous: false,
-      createdAt: DateTime.now().subtract(const Duration(minutes: 20)),
-    ),
-  ];
 
   // Mock data per a detalls del partit
   final MatchDetails mockMatchDetails = const MatchDetails(
@@ -83,7 +58,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
 
   @override
   void dispose() {
-    _highlightProvider.dispose();
+    // No need to dispose global providers
     super.dispose();
   }
 
@@ -124,7 +99,8 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
           createdAt: DateTime.now(),
         );
 
-        await _highlightProvider.addHighlight(newHighlight);
+        final highlightProvider = context.read<VisionatHighlightProvider>();
+        await highlightProvider.addHighlight(newHighlight);
       }
     } catch (e) {
       _showError('Error afegint highlight: ${e.toString()}');
@@ -250,7 +226,8 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
   }
 
   void _onCategoryChanged(String? category) {
-    _highlightProvider.setCategory(category);
+    final highlightProvider = context.read<VisionatHighlightProvider>();
+    highlightProvider.setCategory(category);
   }
 
   void _onAnalysisTextChanged(String text) {
@@ -264,55 +241,65 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
     debugPrint('Guardant anàlisi personal: $userAnalysisText');
   }
 
-  void _addCollectiveComment(String text, bool isAnonymous) {
-    final newComment = CollectiveComment(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      username: isAnonymous
-          ? 'Usuari anònim'
-          : 'Tu', // En el futur vindria del perfil
-      text: text,
-      anonymous: isAnonymous,
-      createdAt: DateTime.now(),
-    );
+  void _addCollectiveComment(String text, bool isAnonymous) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-    setState(() {
-      _collectiveComments.insert(0, newComment); // Afegir al principi
-    });
+    try {
+      final comment = CollectiveComment(
+        id: '', // S'assignarà automàticament a Firestore
+        matchId: _mockMatchId,
+        content: text,
+        tagId: 'general', // Tag general per defecte
+        tagLabel: 'General',
+        createdBy: user.uid,
+        createdByName: isAnonymous ? 'Anònim' : (user.displayName ?? 'Usuari'),
+        createdAt: DateTime.now(),
+        likes: 0,
+        likedBy: [],
+        isEdited: false,
+      );
+
+      final commentProvider = context.read<VisionatCollectiveCommentProvider>();
+      await commentProvider.addComment(comment);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error afegint comentari: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _openCollectiveAnalysisModal() {
-    showCollectiveAnalysisModal(
-      context,
-      comments: _collectiveComments,
-      onCommentAdded: _addCollectiveComment,
-    );
+    showCollectiveAnalysisModal(context, onCommentAdded: _addCollectiveComment);
   }
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<VisionatHighlightProvider>.value(
-      value: _highlightProvider,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWideScreen = constraints.maxWidth >= 900;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWideScreen = constraints.maxWidth >= 900;
 
-          return Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            // AppBar només en mòbil per accés al drawer
-            appBar: isWideScreen
-                ? null
-                : AppBar(
-                    title: const Text('El Visionat'),
-                    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                    elevation: 0,
-                  ),
-            // Drawer en mòbil per navegació
-            drawer: isWideScreen ? null : const SideNavigationMenu(),
+        return Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          // AppBar només en mòbil per accés al drawer
+          appBar: isWideScreen
+              ? null
+              : AppBar(
+                  title: const Text('El Visionat'),
+                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                  elevation: 0,
+                ),
+          // Drawer en mòbil per navegació
+          drawer: isWideScreen ? null : const SideNavigationMenu(),
 
-            body: isWideScreen ? _buildWebLayout() : _buildMobileLayout(),
-          );
-        },
-      ),
+          body: isWideScreen ? _buildWebLayout() : _buildMobileLayout(),
+        );
+      },
     );
   }
 
@@ -394,12 +381,16 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
                         const SizedBox(height: 16),
                         const RefereeCommentCard(),
                         const SizedBox(height: 16),
-                        AnalysisSectionCard(
-                          personalAnalysisText: userAnalysisText,
-                          onPersonalAnalysisChanged: _onAnalysisTextChanged,
-                          onPersonalAnalysisSave: _savePersonalAnalysis,
-                          collectiveComments: _collectiveComments,
-                          onViewAllComments: _openCollectiveAnalysisModal,
+                        Consumer<VisionatCollectiveCommentProvider>(
+                          builder: (context, provider, child) {
+                            return AnalysisSectionCard(
+                              personalAnalysisText: userAnalysisText,
+                              onPersonalAnalysisChanged: _onAnalysisTextChanged,
+                              onPersonalAnalysisSave: _savePersonalAnalysis,
+                              collectiveComments: provider.comments,
+                              onViewAllComments: _openCollectiveAnalysisModal,
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -463,12 +454,16 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
           const SizedBox(height: 16),
           const RefereeCommentCard(),
           const SizedBox(height: 16),
-          AnalysisSectionCard(
-            personalAnalysisText: userAnalysisText,
-            onPersonalAnalysisChanged: _onAnalysisTextChanged,
-            onPersonalAnalysisSave: _savePersonalAnalysis,
-            collectiveComments: _collectiveComments,
-            onViewAllComments: _openCollectiveAnalysisModal,
+          Consumer<VisionatCollectiveCommentProvider>(
+            builder: (context, provider, child) {
+              return AnalysisSectionCard(
+                personalAnalysisText: userAnalysisText,
+                onPersonalAnalysisChanged: _onAnalysisTextChanged,
+                onPersonalAnalysisSave: _savePersonalAnalysis,
+                collectiveComments: provider.comments,
+                onViewAllComments: _openCollectiveAnalysisModal,
+              );
+            },
           ),
         ],
       ),

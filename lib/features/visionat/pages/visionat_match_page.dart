@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/highlight_entry.dart';
 import '../models/match_models.dart';
 import '../models/collective_comment.dart';
+import '../providers/highlight_provider.dart';
+import '../services/highlight_service.dart';
 import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
 import '../widgets/match_header.dart';
 import '../widgets/match_video_section.dart';
@@ -21,10 +25,28 @@ class VisionatMatchPage extends StatefulWidget {
 }
 
 class _VisionatMatchPageState extends State<VisionatMatchPage> {
-  String? selectedCategory;
   String userAnalysisText = '';
+  final String _mockMatchId =
+      'match_123'; // TODO: Obtenir de paràmetres de ruta
+  late final VisionatHighlightProvider _highlightProvider =
+      VisionatHighlightProvider(HighlightService());
 
-  // Comentaris col·lectius (mock data)
+  @override
+  /// Inicialitza l'estat dels highlights quan s'inicia el widget
+  /// Configura el partit i carrega els highlights
+  ///
+  /// Aquesta funció s'executa quan s'inicia el widget i no es pot
+  /// cancel·lar una vegada que s'ha inicialitzat el provider amb
+  /// la funció setMatch. Això que no es cancel·li, s'assegura
+  /// que es carreguin el partit i els seus highlights quan s'inicia
+  /// el widget.
+  void initState() {
+    super.initState();
+    // Configurar partit i carregar highlights
+    _highlightProvider.setMatch(_mockMatchId);
+  }
+
+  // Comentaris col·lectius (mock data - es mantenen per ara)
   final List<CollectiveComment> _collectiveComments = [
     CollectiveComment(
       id: '1',
@@ -52,59 +74,6 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
     ),
   ];
 
-  // Llista mutable d'highlights (inicialment amb mock data)
-  final List<HighlightEntry> _highlights = [
-    HighlightEntry(
-      id: '1',
-      timestamp: const Duration(minutes: 23, seconds: 45),
-      title: 'Possible interferència no xiulada – Pista ofensiva Salt',
-      tag: HighlightTagType.decisioClau,
-      category: 'Situacions especials',
-    ),
-    HighlightEntry(
-      id: '2',
-      timestamp: const Duration(minutes: 45, seconds: 12),
-      title: 'Manca control banquetes',
-      tag: HighlightTagType.gestio,
-      category: 'Gestió i posicionament',
-    ),
-    HighlightEntry(
-      id: '3',
-      timestamp: const Duration(minutes: 67, seconds: 32),
-      title: 'Error R.LL',
-      tag: HighlightTagType.faltaTecnica,
-      category: 'Faltes tècniques',
-    ),
-    HighlightEntry(
-      id: '4',
-      timestamp: const Duration(minutes: 67, seconds: 32),
-      title: 'Violació camp enrere',
-      tag: HighlightTagType.faltaTecnica,
-      category: 'Violacions',
-    ),
-    HighlightEntry(
-      id: '5',
-      timestamp: const Duration(minutes: 67, seconds: 32),
-      title: 'Bloqueig Il·legal',
-      tag: HighlightTagType.posicio,
-      category: 'Faltes personals',
-    ),
-    HighlightEntry(
-      id: '6',
-      timestamp: const Duration(minutes: 67, seconds: 32),
-      title: 'Tècnica per Flopping',
-      tag: HighlightTagType.comunicacio,
-      category: 'Faltes tècniques',
-    ),
-    HighlightEntry(
-      id: '7',
-      timestamp: const Duration(minutes: 67, seconds: 32),
-      title: 'Servei ràpid',
-      tag: HighlightTagType.gestio,
-      category: 'Gestió i posicionament',
-    ),
-  ];
-
   // Mock data per a detalls del partit
   final MatchDetails mockMatchDetails = const MatchDetails(
     refereeName: 'Marc Ribas',
@@ -112,9 +81,10 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
     matchday: 10,
   );
 
-  List<HighlightEntry> get filteredHighlights {
-    if (selectedCategory == null) return _highlights;
-    return _highlights.where((h) => h.category == selectedCategory).toList();
+  @override
+  void dispose() {
+    _highlightProvider.dispose();
+    super.dispose();
   }
 
   void _addNewHighlight(
@@ -122,7 +92,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
     String tagText,
     String title,
     String comment,
-  ) {
+  ) async {
     try {
       // Convertir minutatge de text a Duration
       Duration timestamp = _parseMinutage(minutage);
@@ -131,34 +101,40 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
       HighlightTagType? highlightTag = _mapTextToTagType(tagText);
       String category = _mapTextToCategory(tagText);
 
+      // Obtenir usuari actual
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        _showError('Cal estar autenticat per afegir highlights');
+        return;
+      }
+
       // Validació de dades
       if (highlightTag != null && title.isNotEmpty && category.isNotEmpty) {
         final newHighlight = HighlightEntry(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: '', // Es generarà automàticament
+          matchId: _mockMatchId,
           timestamp: timestamp,
           title: title,
           tag: highlightTag,
           category: category,
+          tagId: highlightTag.value,
+          tagLabel: highlightTag.displayName,
+          description: comment.isNotEmpty ? comment : title,
+          createdBy: user.uid,
+          createdAt: DateTime.now(),
         );
 
-        setState(() {
-          _highlights.add(newHighlight);
-          // Ordenar per timestamp
-          _highlights.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-        });
+        await _highlightProvider.addHighlight(newHighlight);
       }
     } catch (e) {
-      debugPrint('Error afegint highlight: $e');
-      // Mostrar error a l'usuari
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error afegint la jugada: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _showError('Error afegint highlight: ${e.toString()}');
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 
   Duration _parseMinutage(String minutage) {
@@ -274,9 +250,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
   }
 
   void _onCategoryChanged(String? category) {
-    setState(() {
-      selectedCategory = category;
-    });
+    _highlightProvider.setCategory(category);
   }
 
   void _onAnalysisTextChanged(String text) {
@@ -316,26 +290,29 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWideScreen = constraints.maxWidth >= 900;
+    return ChangeNotifierProvider<VisionatHighlightProvider>.value(
+      value: _highlightProvider,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWideScreen = constraints.maxWidth >= 900;
 
-        return Scaffold(
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          // AppBar només en mòbil per accés al drawer
-          appBar: isWideScreen
-              ? null
-              : AppBar(
-                  title: const Text('El Visionat'),
-                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                  elevation: 0,
-                ),
-          // Drawer en mòbil per navegació
-          drawer: isWideScreen ? null : const SideNavigationMenu(),
+          return Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            // AppBar només en mòbil per accés al drawer
+            appBar: isWideScreen
+                ? null
+                : AppBar(
+                    title: const Text('El Visionat'),
+                    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                    elevation: 0,
+                  ),
+            // Drawer en mòbil per navegació
+            drawer: isWideScreen ? null : const SideNavigationMenu(),
 
-          body: isWideScreen ? _buildWebLayout() : _buildMobileLayout(),
-        );
-      },
+            body: isWideScreen ? _buildWebLayout() : _buildMobileLayout(),
+          );
+        },
+      ),
     );
   }
 
@@ -362,14 +339,41 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
                       const SizedBox(height: 24),
                       const MatchVideoSection(),
                       const SizedBox(height: 24),
-                      TagFilterBar(
-                        selectedCategory: selectedCategory,
-                        onCategoryChanged: _onCategoryChanged,
+                      Consumer<VisionatHighlightProvider>(
+                        builder: (context, provider, child) => TagFilterBar(
+                          selectedCategory: provider.selectedCategory,
+                          onCategoryChanged: _onCategoryChanged,
+                        ),
                       ),
                       const SizedBox(height: 24),
-                      HighlightsTimeline(
-                        entries: filteredHighlights,
-                        selectedCategory: selectedCategory,
+                      Consumer<VisionatHighlightProvider>(
+                        builder: (context, provider, child) {
+                          if (provider.isLoading) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          if (provider.hasError) {
+                            return Center(
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'Error: ${provider.errorMessage}',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () => provider.refresh(),
+                                    child: Text('Tornar a carregar'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          return HighlightsTimeline(
+                            entries: provider.filteredHighlights,
+                            selectedCategory: provider.selectedCategory,
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -418,14 +422,39 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
           const SizedBox(height: 16),
           const MatchVideoSection(),
           const SizedBox(height: 16),
-          TagFilterBar(
-            selectedCategory: selectedCategory,
-            onCategoryChanged: _onCategoryChanged,
+          Consumer<VisionatHighlightProvider>(
+            builder: (context, provider, child) => TagFilterBar(
+              selectedCategory: provider.selectedCategory,
+              onCategoryChanged: _onCategoryChanged,
+            ),
           ),
-          const SizedBox(height: 16),
-          HighlightsTimeline(
-            entries: filteredHighlights,
-            selectedCategory: selectedCategory,
+          const SizedBox(height: 24),
+          Consumer<VisionatHighlightProvider>(
+            builder: (context, provider, child) {
+              if (provider.isLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (provider.hasError) {
+                return Center(
+                  child: Column(
+                    children: [
+                      Text(
+                        'Error: ${provider.errorMessage}',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => provider.refresh(),
+                        child: Text('Tornar a carregar'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              return HighlightsTimeline(
+                entries: provider.filteredHighlights,
+                selectedCategory: provider.selectedCategory,
+              );
+            },
           ),
           const SizedBox(height: 16),
           MatchDetailsCard(details: mockMatchDetails),

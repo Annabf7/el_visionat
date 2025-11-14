@@ -21,8 +21,8 @@ export 'widgets/referee_comment_card.dart';
 export 'widgets/tag_filter_bar.dart';
 export 'widgets/tag_selector/index.dart';
 
-// Services (currently empty - ready for future backend integration)
-// export 'services/visionat_service.dart';
+// Services
+export 'services/highlight_service.dart';
 
-// Providers (currently empty - ready for future state management)
-// export 'providers/visionat_provider.dart';
+// Providers
+export 'providers/highlight_provider.dart';

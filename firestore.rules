@@ -103,6 +103,146 @@ service cloud.firestore {
         && newData.id == oldData.id;
     }
 
+    // 🗨️ Regles per Comentaris Col·lectius de la feature Visionat
+    // Col·lecció: collective_comments/{matchId}/comments/{commentId}
+    match /collective_comments/{matchId}/comments/{commentId} {
+      
+      // 🔐 1. Requisit general: Totes les operacions requereixen autenticació
+      // 🟩 2. Permisos de lectura: Qualsevol usuari autenticat pot llegir comentaris
+      allow read: if request.auth != null;
+
+      // 🟧 3. Permisos de creació: Només el creador pot afegir comentaris
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.createdBy
+        && request.time == request.resource.data.createdAt
+        && isValidCommentCreate(request.resource.data, matchId);
+
+      // 🟥 4. Permisos d'actualització: El creador pot modificar el contingut, qualsevol pot fer like
+      allow update: if request.auth != null
+        && (
+          // El creador pot modificar el contingut del comentari
+          (request.auth.uid == resource.data.createdBy 
+           && isValidCommentUpdate(request.resource.data, resource.data))
+          ||
+          // Qualsevol usuari pot fer/desfer like (només canvien likes i likedBy)
+          isValidLikeToggle(request.resource.data, resource.data, request.auth.uid)
+        );
+
+      // ❌ 5. Permisos d'eliminació: Només el creador pot eliminar els seus comentaris
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.createdBy;
+    }
+
+    // 📦 Funcions auxiliars per validació de comentaris col·lectius
+    function isValidCommentCreate(data, matchId) {
+      return hasRequiredFieldsCommentCreate(data)
+        && hasCorrectTypesCommentCreate(data)
+        && data.matchId == matchId
+        && data.likes == 0
+        && data.likedBy.size() == 0
+        && data.isEdited == false;
+    }
+
+    function isValidCommentUpdate(newData, oldData) {
+      return hasRequiredFieldsCommentUpdate(newData)
+        && hasCorrectTypesCommentUpdate(newData)
+        && isImmutableCommentFieldsPreserved(newData, oldData)
+        // Si s'edita el contingut, marcar com editat
+        && (newData.content == oldData.content || newData.isEdited == true);
+    }
+
+    function isValidLikeToggle(newData, oldData, userId) {
+      return onlyLikeFieldsChanged(newData, oldData)
+        && isValidLikeOperation(newData, oldData, userId);
+    }
+
+    // Validació que només canviïn els camps de like
+    function onlyLikeFieldsChanged(newData, oldData) {
+      let unchangedFields = newData.diff(oldData).unchangedKeys();
+      let requiredUnchanged = [
+        'id', 'matchId', 'content', 'tagId', 'tagLabel', 
+        'createdBy', 'createdByName', 'createdAt', 'isEdited'
+      ];
+      return unchangedFields.hasAll(requiredUnchanged);
+    }
+
+    // Validació de l'operació de like (afegir o treure like)
+    function isValidLikeOperation(newData, oldData, userId) {
+      let oldLikedBy = oldData.likedBy;
+      let newLikedBy = newData.likedBy;
+      let wasLiked = oldLikedBy.hasAny([userId]);
+      let isNowLiked = newLikedBy.hasAny([userId]);
+      
+      // Afegir like: l'usuari no tenia like i ara sí
+      let addingLike = !wasLiked && isNowLiked 
+        && newData.likes == oldData.likes + 1
+        && newLikedBy.toSet().difference(oldLikedBy.toSet()) == [userId].toSet();
+      
+      // Treure like: l'usuari tenia like i ara no
+      let removingLike = wasLiked && !isNowLiked 
+        && newData.likes == oldData.likes - 1
+        && oldLikedBy.toSet().difference(newLikedBy.toSet()) == [userId].toSet();
+      
+      return addingLike || removingLike;
+    }
+
+    // Validació de camps obligatoris per creació de comentaris
+    function hasRequiredFieldsCommentCreate(data) {
+      return data.keys().hasAll([
+        'id', 'matchId', 'content', 'tagId', 'tagLabel',
+        'createdBy', 'createdByName', 'createdAt', 'likes', 'likedBy', 'isEdited'
+      ]);
+    }
+
+    // Validació de camps obligatoris per actualització de comentaris
+    function hasRequiredFieldsCommentUpdate(data) {
+      return data.keys().hasAll([
+        'id', 'matchId', 'content', 'tagId', 'tagLabel',
+        'createdBy', 'createdByName', 'createdAt', 'likes', 'likedBy', 'isEdited'
+      ]);
+    }
+
+    // Validació de tipus correctes per creació de comentaris
+    function hasCorrectTypesCommentCreate(data) {
+      return data.id is string
+        && data.matchId is string
+        && data.content is string
+        && data.tagId is string
+        && data.tagLabel is string
+        && data.createdBy is string
+        && data.createdByName is string
+        && data.createdAt is timestamp
+        && data.likes is number
+        && data.likedBy is list
+        && data.isEdited is bool;
+    }
+
+    // Validació de tipus correctes per actualització de comentaris
+    function hasCorrectTypesCommentUpdate(data) {
+      return data.id is string
+        && data.matchId is string
+        && data.content is string
+        && data.tagId is string
+        && data.tagLabel is string
+        && data.createdBy is string
+        && data.createdByName is string
+        && data.createdAt is timestamp
+        && data.likes is number
+        && data.likedBy is list
+        && data.isEdited is bool;
+    }
+
+    // Validació que els camps immutables de comentaris no es modifiquin
+    function isImmutableCommentFieldsPreserved(newData, oldData) {
+      return newData.createdBy == oldData.createdBy
+        && newData.createdAt == oldData.createdAt
+        && newData.matchId == oldData.matchId
+        && newData.id == oldData.id
+        && newData.createdByName == oldData.createdByName
+        && newData.tagId == oldData.tagId
+        && newData.tagLabel == oldData.tagLabel;
+    }
+
     match /{document=**} {
       // ⚠️ Només per desenvolupament local (altres col·leccions continuen obertes)
       allow read, write: if true;

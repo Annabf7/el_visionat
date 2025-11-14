@@ -58,7 +58,7 @@ class VisionatHighlightProvider extends ChangeNotifier {
   // --- Mètodes públics ---
 
   /// Estableix el partit a gestionar
-  /// Cancel·la streams anteriors i inicia la càrrega del nou partit
+  /// NOMÉS estableix el matchId, NO carrega automàticament
   void setMatch(String matchId) {
     if (_matchId == matchId) return; // No canvis si és el mateix partit
 
@@ -78,11 +78,14 @@ class VisionatHighlightProvider extends ChangeNotifier {
   }
 
   /// Carrega els highlights inicials i activa el stream en temps real
+  /// Prevé múltiples càrregues simultànies
   Future<void> loadInitial() async {
     if (_matchId == null) {
       _setError('No s\'ha especificat un partit');
       return;
     }
+
+    if (_isLoading) return; // Prevenir múltiples càrregues
 
     _setLoading(true);
     _clearError();
@@ -90,14 +93,24 @@ class VisionatHighlightProvider extends ChangeNotifier {
     try {
       // Càrrega inicial (snapshot)
       final initialHighlights = await _service.getHighlights(_matchId!);
-      _highlights = _sortHighlights(initialHighlights);
 
-      // Activar stream en temps real
-      _listenRealTime();
+      // Change detection i mounted check
+      if (hasListeners) {
+        _highlights = _sortHighlights(initialHighlights);
+
+        // Activar stream en temps real només una vegada
+        if (_streamSubscription == null) {
+          _listenRealTime();
+        }
+      }
     } catch (e) {
-      _setError('Error carregant highlights: ${e.toString()}');
+      if (hasListeners) {
+        _setError('Error carregant highlights: ${e.toString()}');
+      }
     } finally {
-      _setLoading(false);
+      if (hasListeners) {
+        _setLoading(false);
+      }
     }
   }
 
@@ -109,9 +122,16 @@ class VisionatHighlightProvider extends ChangeNotifier {
         .streamHighlights(_matchId!)
         .listen(
           (highlights) {
-            _highlights = _sortHighlights(highlights);
-            _clearError();
-            notifyListeners();
+            // Change detection per evitar rebuilds innecessaris
+            final sortedHighlights = _sortHighlights(highlights);
+            if (!listEquals(_highlights, sortedHighlights)) {
+              _highlights = sortedHighlights;
+              _clearError();
+              // Mounted check per evitar calls després de dispose
+              if (hasListeners) {
+                notifyListeners();
+              }
+            }
           },
           onError: (error) {
             _setError('Error en temps real: ${error.toString()}');
@@ -126,6 +146,8 @@ class VisionatHighlightProvider extends ChangeNotifier {
       return;
     }
 
+    if (!hasListeners) return; // Mounted check
+
     _setLoading(true);
     _clearError();
 
@@ -133,9 +155,13 @@ class VisionatHighlightProvider extends ChangeNotifier {
       await _service.addHighlight(entry);
       // El stream s'actualitzarà automàticament
     } catch (e) {
-      _setError('Error afegint highlight: ${e.toString()}');
+      if (hasListeners) {
+        _setError('Error afegint highlight: ${e.toString()}');
+      }
     } finally {
-      _setLoading(false);
+      if (hasListeners) {
+        _setLoading(false);
+      }
     }
   }
 
@@ -146,6 +172,8 @@ class VisionatHighlightProvider extends ChangeNotifier {
       return;
     }
 
+    if (!hasListeners) return; // Mounted check
+
     _setLoading(true);
     _clearError();
 
@@ -153,9 +181,13 @@ class VisionatHighlightProvider extends ChangeNotifier {
       await _service.deleteHighlight(_matchId!, highlightId);
       // El stream s'actualitzarà automàticament
     } catch (e) {
-      _setError('Error eliminant highlight: ${e.toString()}');
+      if (hasListeners) {
+        _setError('Error eliminant highlight: ${e.toString()}');
+      }
     } finally {
-      _setLoading(false);
+      if (hasListeners) {
+        _setLoading(false);
+      }
     }
   }
 
@@ -175,7 +207,9 @@ class VisionatHighlightProvider extends ChangeNotifier {
   void setCategory(String? category) {
     if (_selectedCategory != category) {
       _selectedCategory = category;
-      notifyListeners();
+      if (hasListeners) {
+        notifyListeners();
+      }
     }
   }
 
@@ -184,20 +218,26 @@ class VisionatHighlightProvider extends ChangeNotifier {
   void _setLoading(bool loading) {
     if (_isLoading != loading) {
       _isLoading = loading;
-      notifyListeners();
+      if (hasListeners) {
+        notifyListeners();
+      }
     }
   }
 
-  void _setError(String error) {
-    _errorMessage = error;
+  void _setError(String message) {
+    _errorMessage = message;
     _isLoading = false;
-    notifyListeners();
+    if (hasListeners) {
+      notifyListeners();
+    }
   }
 
   void _clearError() {
     if (_errorMessage != null) {
       _errorMessage = null;
-      notifyListeners();
+      if (hasListeners) {
+        notifyListeners();
+      }
     }
   }
 

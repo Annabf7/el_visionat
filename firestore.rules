@@ -12,6 +12,97 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // 🎯 Regles per Highlights de la feature Visionat
+    // Col·lecció: highlights/{matchId}/entries/{highlightId}
+    match /highlights/{matchId}/entries/{highlightId} {
+      
+      // 🔐 1. Requisit general: Totes les operacions requereixen autenticació
+      // 🟩 2. Permisos de lectura: Qualsevol usuari autenticat pot llegir highlights
+      allow read: if request.auth != null;
+
+      // 🟧 3. Permisos de creació: Només el creador pot afegir highlights
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.createdBy
+        && request.time == request.resource.data.createdAt
+        && isValidHighlightCreate(request.resource.data, matchId);
+
+      // 🟥 4. Permisos d'actualització: Només el creador pot modificar els seus highlights
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.createdBy
+        && isValidHighlightUpdate(request.resource.data, resource.data);
+
+      // ❌ 5. Permisos d'eliminació: Només el creador pot eliminar els seus highlights
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.createdBy;
+    }
+
+    // 📦 Funcions auxiliars per validació de highlights
+    function isValidHighlightCreate(data, matchId) {
+      return hasRequiredFieldsCreate(data)
+        && hasCorrectTypesCreate(data)
+        && data.matchId == matchId;
+    }
+
+    function isValidHighlightUpdate(newData, oldData) {
+      return hasRequiredFieldsUpdate(newData)
+        && hasCorrectTypesUpdate(newData)
+        && isImmutableFieldsPreserved(newData, oldData);
+    }
+
+    // Validació de camps obligatoris per creació
+    function hasRequiredFieldsCreate(data) {
+      return data.keys().hasAll([
+        'id', 'matchId', 'timestamp', 'title', 'tag', 'category',
+        'tagId', 'tagLabel', 'description', 'createdBy', 'createdAt'
+      ]);
+    }
+
+    // Validació de camps obligatoris per actualització
+    function hasRequiredFieldsUpdate(data) {
+      return data.keys().hasAll([
+        'id', 'matchId', 'timestamp', 'title', 'tag', 'category',
+        'tagId', 'tagLabel', 'description', 'createdBy', 'createdAt'
+      ]);
+    }
+
+    // Validació de tipus correctes per creació
+    function hasCorrectTypesCreate(data) {
+      return data.id is string
+        && data.matchId is string
+        && data.timestamp is number
+        && data.title is string
+        && data.tag is string
+        && data.category is string
+        && data.tagId is string
+        && data.tagLabel is string
+        && data.description is string
+        && data.createdBy is string
+        && data.createdAt is timestamp;
+    }
+
+    // Validació de tipus correctes per actualització
+    function hasCorrectTypesUpdate(data) {
+      return data.id is string
+        && data.matchId is string
+        && data.timestamp is number
+        && data.title is string
+        && data.tag is string
+        && data.category is string
+        && data.tagId is string
+        && data.tagLabel is string
+        && data.description is string
+        && data.createdBy is string
+        && data.createdAt is timestamp;
+    }
+
+    // Validació que els camps immutables no es modifiquin
+    function isImmutableFieldsPreserved(newData, oldData) {
+      return newData.createdBy == oldData.createdBy
+        && newData.createdAt == oldData.createdAt
+        && newData.matchId == oldData.matchId
+        && newData.id == oldData.id;
+    }
+
     match /{document=**} {
       // ⚠️ Només per desenvolupament local (altres col·leccions continuen obertes)
       allow read, write: if true;

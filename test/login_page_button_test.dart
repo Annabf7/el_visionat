@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('RegisterStep3 button text is "Iniciar sessió"', () {
-    final content = File('lib/screens/login_page.dart').readAsStringSync();
+    final content = File(
+      'lib/features/auth/pages/login_page.dart',
+    ).readAsStringSync();
     expect(
       content.contains("Iniciar sessió"),
       isTrue,
@@ -14,7 +16,9 @@ void main() {
   });
 
   test('RegisterStep3 button uses theme colorScheme.onPrimary', () {
-    final content = File('lib/screens/login_page.dart').readAsStringSync();
+    final content = File(
+      'lib/features/auth/pages/login_page.dart',
+    ).readAsStringSync();
     expect(
       content.contains('colorScheme.onPrimary'),
       isTrue,

@@ -1,17 +1,15 @@
 import 'package:el_visionat/firebase_options.dart';
-import 'package:el_visionat/providers/auth_provider.dart';
-import 'package:el_visionat/screens/create_password_page.dart';
-import 'package:el_visionat/screens/home_page.dart';
-import 'package:el_visionat/screens/login_page.dart';
-import 'package:el_visionat/screens/visionat/visionat_match_page.dart';
-import 'package:el_visionat/widgets/voting_section.dart';
+import 'package:el_visionat/features/auth/index.dart';
+import 'package:el_visionat/features/home/index.dart';
+
+import 'package:el_visionat/features/visionat/index.dart';
+import 'package:el_visionat/features/voting/index.dart';
 import 'package:el_visionat/widgets/side_navigation_menu.dart';
-import 'package:el_visionat/services/auth_service.dart';
+
 import 'package:el_visionat/services/isar_service.dart';
 import 'package:el_visionat/services/team_data_service.dart';
 import 'package:el_visionat/services/firestore_seeder.dart';
 import 'package:el_visionat/theme/app_theme.dart';
-import 'package:el_visionat/providers/home_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -20,7 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart'; // Importat per kDebugMode
 import 'package:el_visionat/providers/navigation_provider.dart';
-import 'package:el_visionat/widgets/require_auth.dart';
+
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 

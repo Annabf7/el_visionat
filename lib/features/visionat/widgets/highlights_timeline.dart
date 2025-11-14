@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../models/highlight_entry.dart';
+import '../models/highlight_entry.dart';
 import '../../../theme/app_theme.dart';
 
 class HighlightsTimeline extends StatelessWidget {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
-import '../../../models/collective_comment.dart';
+import '../models/collective_comment.dart';
 
 class CollectiveAnalysisModal extends StatefulWidget {
   final List<CollectiveComment> comments;

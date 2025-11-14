@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:el_visionat/widgets/side_navigation_menu.dart';
-import 'package:el_visionat/widgets/featured_visioning_section.dart';
-import 'package:el_visionat/widgets/user_profile_summary_card.dart';
-import 'package:el_visionat/widgets/voting_section.dart';
-import 'package:el_visionat/providers/home_provider.dart'; // Importació del Provider Correcte
+import '../widgets/featured_visioning_section.dart';
+import '../widgets/user_profile_summary_card.dart';
+import 'package:el_visionat/features/voting/index.dart';
+import '../providers/home_provider.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});

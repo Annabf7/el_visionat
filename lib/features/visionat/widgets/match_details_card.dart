@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../models/match_models.dart';
+import '../models/match_models.dart';
 import '../../../theme/app_theme.dart';
 
 class MatchDetailsCard extends StatelessWidget {

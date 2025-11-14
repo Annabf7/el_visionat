@@ -1,8 +1,8 @@
-import 'package:el_visionat/screens/create_password_page.dart';
+import '../pages/create_password_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import '../../providers/auth_provider.dart';
+import '../providers/auth_provider.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});

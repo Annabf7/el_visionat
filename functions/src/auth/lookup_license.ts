@@ -10,7 +10,7 @@ const db = admin.firestore();
  * Funció Callable (Pas 1 del flux)
  * Busca una llicència al registre i retorna les dades si és vàlida i pendent.
  */
-export const lookupLicense = onCall(async (request) => { 
+export const lookupLicense = onCall({ timeoutSeconds: 30 }, async (request) => { 
   // Afegim un log aquí per veure si arriba la crida
   console.log('[lookupLicense onCall] Received request with data:', JSON.stringify(request.data));
 

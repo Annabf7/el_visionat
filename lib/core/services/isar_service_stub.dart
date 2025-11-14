@@ -1,6 +1,6 @@
 // No-op IsarService for Web: keeps the same API surface but doesn't require
 // Isar or generated code. This avoids compilation/codegen issues on web.
-import 'package:el_visionat/models/team_stub.dart';
+import 'package:el_visionat/features/teams/models/team_stub.dart';
 
 class IsarService {
   // Provide a dummy future so callers can await db, but it will throw if used.

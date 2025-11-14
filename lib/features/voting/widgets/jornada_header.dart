@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../theme/app_theme.dart';
+import 'package:el_visionat/core/theme/app_theme.dart';
 
 /// Reusable header that shows the jornada number and voting status.
 ///

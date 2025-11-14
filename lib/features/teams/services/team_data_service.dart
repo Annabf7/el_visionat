@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:el_visionat/models/team_platform.dart';
+import 'package:el_visionat/features/teams/models/team_platform.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
-import 'package:el_visionat/services/isar_service.dart';
+import 'package:el_visionat/core/services/isar_service.dart';
 
 class TeamDataService {
   final IsarService _isarService;

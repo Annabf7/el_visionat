@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/highlight_entry.dart';
 import '../models/match_models.dart';
 import '../models/collective_comment.dart';
-import '../../../widgets/side_navigation_menu.dart';
+import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
 import '../widgets/match_header.dart';
 import '../widgets/match_video_section.dart';
 import '../widgets/tag_filter_bar.dart';

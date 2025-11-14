@@ -4,12 +4,8 @@ import 'package:el_visionat/features/home/index.dart';
 
 import 'package:el_visionat/features/visionat/index.dart';
 import 'package:el_visionat/features/voting/index.dart';
-import 'package:el_visionat/widgets/side_navigation_menu.dart';
-
-import 'package:el_visionat/services/isar_service.dart';
-import 'package:el_visionat/services/team_data_service.dart';
-import 'package:el_visionat/services/firestore_seeder.dart';
-import 'package:el_visionat/theme/app_theme.dart';
+import 'package:el_visionat/features/teams/index.dart';
+import 'package:el_visionat/core/index.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -17,7 +13,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart'; // Importat per kDebugMode
-import 'package:el_visionat/providers/navigation_provider.dart';
+// Navigation provider importat des de core/index.dart
 
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
@@ -109,6 +105,11 @@ void main() async {
             authService: authService,
           ), // El nostre provider d'autenticació/registre
         ),
+        ChangeNotifierProvider(
+          create: (context) => TeamProvider(
+            teamDataService: context.read<TeamDataService>(),
+          ), // Provider per a la gestió d'equips
+        ),
         // Navigation provider to keep track of the current route name
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
       ],
@@ -140,11 +141,12 @@ class MyApp extends StatelessWidget {
         '/home': (context) => RequireAuth(child: const HomePage()),
         '/all-matches': (context) => RequireAuth(child: const AllMatchesPage()),
         '/profile': (context) => RequireAuth(child: const ProfilePage()),
+        '/teams': (context) => RequireAuth(child: const TeamsPage()),
         '/visionat': (context) => RequireAuth(child: const VisionatMatchPage()),
         '/login': (context) => const LoginPage(), // Ruta explícita per a Login
         '/create-password': (context) =>
             const CreatePasswordPage(), // Ruta per crear contrasenya
-        // Pots afegir més rutes aquí si calen
+        // Pots afegir més rutes aquí si callen
       },
     );
   }

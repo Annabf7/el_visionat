@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../theme/app_theme.dart';
+import 'package:el_visionat/core/theme/app_theme.dart';
 
 typedef VoteCallback = void Function();
 

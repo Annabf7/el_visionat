@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:math' as math;
 import 'package:provider/provider.dart';
-import '../providers/navigation_provider.dart';
-import '../theme/app_theme.dart';
+import 'package:el_visionat/core/navigation/navigation_provider.dart';
+import 'package:el_visionat/core/theme/app_theme.dart';
 
 class SideNavigationMenu extends StatelessWidget {
   const SideNavigationMenu({super.key});
@@ -81,6 +81,12 @@ class SideNavigationMenu extends StatelessWidget {
                       text: 'Visionats setmanals',
                       isSelected: isActive('/visionat'),
                       onTap: () => Navigator.pushNamed(ctx, '/visionat'),
+                    ),
+                    _NavigationItem(
+                      icon: Icons.groups,
+                      text: 'Equips de Bàsquet',
+                      isSelected: isActive('/teams'),
+                      onTap: () => Navigator.pushNamed(ctx, '/teams'),
                     ),
                     _NavigationItem(
                       icon: Icons.science,
@@ -205,7 +211,7 @@ class _NavigationItem extends StatelessWidget {
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: Colors.black.withAlpha(31),
+                      color: Colors.black.withValues(alpha: 0.12),
                       offset: const Offset(0, 6),
                       blurRadius: 12,
                     ),

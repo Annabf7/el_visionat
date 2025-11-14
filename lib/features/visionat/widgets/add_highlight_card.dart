@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../theme/app_theme.dart';
+import 'package:el_visionat/core/theme/app_theme.dart';
 import 'tag_selector/index.dart';
 
 class AddHighlightCard extends StatefulWidget {

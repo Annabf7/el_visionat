@@ -192,8 +192,8 @@ extension TeamQueryWhere on QueryBuilder<Team, Team, QWhereClause> {
       return query.addWhereClause(
         IdWhereClause.between(
           lower: lowerId,
-          includeLower: includeLower,
           upper: upperId,
+          includeLower: includeLower,
           includeUpper: includeUpper,
         ),
       );

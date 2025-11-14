@@ -34,7 +34,7 @@ interface CompleteRegistrationData {
  * - 'already-exists': Si l'email ja està en ús a Firebase Auth.
  * - 'internal': Per a errors inesperats durant el procés.
  */
-export const completeRegistration = onCall(async (request) => {
+export const completeRegistration = onCall({ timeoutSeconds: 60 }, async (request) => {
   const { llissenciaId, email, password } = request.data as CompleteRegistrationData;
 
   // 1. Validació d'entrada

@@ -190,10 +190,28 @@ class AuthService {
       debugPrint(
         'Functions Exception on completeRegistration: ${e.code} - ${e.message}',
       );
-      throw Exception(e.message ?? "Error en completar el registre.");
+      // Proporcionem missatges més específics segons el tipus d'error
+      switch (e.code) {
+        case 'deadline-exceeded':
+          throw Exception(
+            "La sol·licitud ha trigat massa temps. Torna-ho a provar.",
+          );
+        case 'unavailable':
+          throw Exception(
+            "El servei no està disponible temporalment. Torna-ho a provar.",
+          );
+        case 'internal':
+          throw Exception(
+            "Error intern del servidor. Contacta amb suport si persisteix.",
+          );
+        default:
+          throw Exception(e.message ?? "Error en completar el registre.");
+      }
     } catch (e) {
       debugPrint('Generic Exception in completeRegistration: $e');
-      throw Exception("Error inesperat en completar el registre.");
+      throw Exception(
+        "Error inesperat en completar el registre. Verifica la connexió a internet.",
+      );
     }
   }
 

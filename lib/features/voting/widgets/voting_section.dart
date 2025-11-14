@@ -9,11 +9,11 @@ import 'package:provider/provider.dart';
 // Authentication is handled centrally by RequireAuth / AuthProvider.
 
 import '../providers/vote_provider.dart';
-import '../providers/auth_provider.dart';
+import '../../auth/index.dart';
 import 'voting_card.dart';
 import 'jornada_header.dart';
 
-import '../theme/app_theme.dart';
+import '../../../theme/app_theme.dart';
 
 /// Minimal match model for the seed JSON.
 class MatchSeed {

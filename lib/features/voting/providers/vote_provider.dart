@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/vote_model.dart';
 import '../services/vote_service.dart';
-import 'auth_provider.dart';
+import '../../auth/index.dart';
 
 class VoteProvider with ChangeNotifier {
   final VoteService _service;

@@ -1,4 +1,4 @@
-import 'package:el_visionat/screens/create_password_page.dart';
+import 'create_password_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_functions/cloud_functions.dart';

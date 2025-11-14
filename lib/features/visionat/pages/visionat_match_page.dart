@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import '../../../models/highlight_entry.dart';
-import '../../../models/match_models.dart';
-import '../../../models/collective_comment.dart';
+import '../models/highlight_entry.dart';
+import '../models/match_models.dart';
+import '../models/collective_comment.dart';
 import '../../../widgets/side_navigation_menu.dart';
-import 'widgets/match_header.dart';
-import 'widgets/match_video_section.dart';
-import 'widgets/tag_filter_bar.dart';
-import 'widgets/highlights_timeline.dart';
-import 'widgets/match_details_card.dart';
-import 'widgets/referee_comment_card.dart';
-import 'widgets/add_highlight_card.dart';
-import 'widgets/collective_analysis_modal.dart';
-import 'widgets/analysis_section_card.dart';
+import '../widgets/match_header.dart';
+import '../widgets/match_video_section.dart';
+import '../widgets/tag_filter_bar.dart';
+import '../widgets/highlights_timeline.dart';
+import '../widgets/match_details_card.dart';
+import '../widgets/referee_comment_card.dart';
+import '../widgets/add_highlight_card.dart';
+import '../widgets/collective_analysis_modal.dart';
+import '../widgets/analysis_section_card.dart';
 
 class VisionatMatchPage extends StatefulWidget {
   const VisionatMatchPage({super.key});

@@ -4,8 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/highlight_entry.dart';
 import '../models/match_models.dart';
 import '../models/collective_comment.dart';
+
 import '../providers/highlight_provider.dart';
 import '../providers/collective_comment_provider.dart';
+import '../providers/personal_analysis_provider.dart';
 
 import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
 import '../widgets/match_header.dart';
@@ -18,6 +20,7 @@ import '../widgets/add_highlight_card.dart';
 import '../widgets/collective_analysis_modal.dart';
 import '../widgets/analysis_section_card.dart';
 
+
 class VisionatMatchPage extends StatefulWidget {
   const VisionatMatchPage({super.key});
 
@@ -26,7 +29,6 @@ class VisionatMatchPage extends StatefulWidget {
 }
 
 class _VisionatMatchPageState extends State<VisionatMatchPage> {
-  String userAnalysisText = '';
   final String _mockMatchId =
       'match_123'; // TODO: Obtenir de paràmetres de ruta
 
@@ -35,17 +37,24 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
   /// Utilitza Future.microtask per evitar crides dins de build()
   void initState() {
     super.initState();
-    
+
     // Lazy initialization per evitar rebuild loops
     Future.microtask(() {
       if (!mounted) return;
-      
+
       // Accedir als providers globals i inicialitzar només una vegada
       final highlightProvider = context.read<VisionatHighlightProvider>();
       final commentProvider = context.read<VisionatCollectiveCommentProvider>();
-      
+      final personalAnalysisProvider = context.read<PersonalAnalysisProvider>();
+
       highlightProvider.setMatch(_mockMatchId);
       commentProvider.setMatch(_mockMatchId);
+
+      // Inicialitzar personal analysis amb userId actual
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        personalAnalysisProvider.setUser(user.uid);
+      }
     });
   }
 
@@ -230,17 +239,6 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
     highlightProvider.setCategory(category);
   }
 
-  void _onAnalysisTextChanged(String text) {
-    setState(() {
-      userAnalysisText = text;
-    });
-  }
-
-  void _savePersonalAnalysis() {
-    // Aquí es guardaria a userProfile en el futur
-    debugPrint('Guardant anàlisi personal: $userAnalysisText');
-  }
-
   void _addCollectiveComment(String text, bool isAnonymous) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -384,9 +382,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
                         Consumer<VisionatCollectiveCommentProvider>(
                           builder: (context, provider, child) {
                             return AnalysisSectionCard(
-                              personalAnalysisText: userAnalysisText,
-                              onPersonalAnalysisChanged: _onAnalysisTextChanged,
-                              onPersonalAnalysisSave: _savePersonalAnalysis,
+                              matchId: _mockMatchId,
                               collectiveComments: provider.comments,
                               onViewAllComments: _openCollectiveAnalysisModal,
                             );
@@ -457,9 +453,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
           Consumer<VisionatCollectiveCommentProvider>(
             builder: (context, provider, child) {
               return AnalysisSectionCard(
-                personalAnalysisText: userAnalysisText,
-                onPersonalAnalysisChanged: _onAnalysisTextChanged,
-                onPersonalAnalysisSave: _savePersonalAnalysis,
+                matchId: _mockMatchId,
                 collectiveComments: provider.comments,
                 onViewAllComments: _openCollectiveAnalysisModal,
               );

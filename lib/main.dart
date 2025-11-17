@@ -119,6 +119,9 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => VisionatCollectiveCommentProvider(CollectiveCommentService()),
         ),
+        ChangeNotifierProvider(
+          create: (_) => PersonalAnalysisProvider(PersonalAnalysisService()),
+        ),
       ],
       child: const MyApp(), // L'aplicació principal
     ),

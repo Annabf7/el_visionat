@@ -243,6 +243,93 @@ service cloud.firestore {
         && newData.tagLabel == oldData.tagLabel;
     }
 
+    // 🔒 Regles per Personal Analysis de la feature Visionat
+    // Col·lecció: personal_analysis/{analysisId}
+    match /personal_analysis/{analysisId} {
+      
+      // 🔐 1. Requisit general: Totes les operacions requereixen autenticació
+      // 📚 2. Permisos de lectura: Només l'usuari propietari pot llegir els seus apunts
+      allow read: if request.auth != null
+        && request.auth.uid == resource.data.userId;
+
+      // 🆕 3. Permisos de creació: Només l'usuari pot crear els seus propis apunts
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.userId
+        && request.time == request.resource.data.createdAt
+        && isValidPersonalAnalysisCreate(request.resource.data);
+
+      // ✏️ 4. Permisos d'actualització: Només l'usuari propietari pot modificar els seus apunts
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.userId
+        && request.auth.uid == request.resource.data.userId
+        && isValidPersonalAnalysisUpdate(request.resource.data, resource.data);
+
+      // 🗑️ 5. Permisos d'eliminació: Només l'usuari propietari pot eliminar els seus apunts
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.userId;
+    }
+
+    // 📦 Funcions auxiliars per validació d'apunts personals
+    function isValidPersonalAnalysisCreate(data) {
+      return hasRequiredFieldsPersonalAnalysisCreate(data)
+        && hasCorrectTypesPersonalAnalysisCreate(data);
+    }
+
+    function isValidPersonalAnalysisUpdate(newData, oldData) {
+      return hasRequiredFieldsPersonalAnalysisUpdate(newData)
+        && hasCorrectTypesPersonalAnalysisUpdate(newData)
+        && isImmutablePersonalAnalysisFieldsPreserved(newData, oldData);
+    }
+
+    // Validació de camps obligatoris per creació d'apunts personals
+    function hasRequiredFieldsPersonalAnalysisCreate(data) {
+      return data.keys().hasAll([
+        'userId', 'matchId', 'jornadaId', 'text', 'tags',
+        'createdAt', 'userDisplayName', 'isEdited'
+      ]);
+    }
+
+    // Validació de camps obligatoris per actualització d'apunts personals
+    function hasRequiredFieldsPersonalAnalysisUpdate(data) {
+      return data.keys().hasAll([
+        'userId', 'matchId', 'jornadaId', 'text', 'tags',
+        'createdAt', 'userDisplayName', 'isEdited'
+      ]);
+    }
+
+    // Validació de tipus correctes per creació d'apunts personals
+    function hasCorrectTypesPersonalAnalysisCreate(data) {
+      return data.userId is string
+        && data.matchId is string
+        && data.jornadaId is string
+        && data.text is string
+        && data.tags is list
+        && data.createdAt is timestamp
+        && data.userDisplayName is string
+        && data.isEdited is bool;
+    }
+
+    // Validació de tipus correctes per actualització d'apunts personals
+    function hasCorrectTypesPersonalAnalysisUpdate(data) {
+      return data.userId is string
+        && data.matchId is string
+        && data.jornadaId is string
+        && data.text is string
+        && data.tags is list
+        && data.createdAt is timestamp
+        && data.userDisplayName is string
+        && data.isEdited is bool;
+    }
+
+    // Validació que els camps immutables d'apunts personals no es modifiquin
+    function isImmutablePersonalAnalysisFieldsPreserved(newData, oldData) {
+      return newData.userId == oldData.userId
+        && newData.matchId == oldData.matchId
+        && newData.jornadaId == oldData.jornadaId
+        && newData.createdAt == oldData.createdAt
+        && newData.userDisplayName == oldData.userDisplayName;
+    }
+
     match /{document=**} {
       // ⚠️ Només per desenvolupament local (altres col·leccions continuen obertes)
       allow read, write: if true;

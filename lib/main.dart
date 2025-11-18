@@ -142,6 +142,9 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => PersonalAnalysisProvider(PersonalAnalysisService()),
         ),
+        ChangeNotifierProvider(
+          create: (_) => YouTubeProvider(YouTubeService()),
+        ),
       ],
       child: const MyApp(), // L'aplicació principal
     ),

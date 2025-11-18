@@ -20,6 +20,7 @@ import '../widgets/referee_comment_card.dart';
 import '../widgets/add_highlight_card.dart';
 import '../widgets/collective_analysis_modal.dart';
 import '../widgets/analysis_section_card.dart';
+import '../widgets/clips_section.dart';
 
 class VisionatMatchPage extends StatefulWidget {
   const VisionatMatchPage({super.key});
@@ -363,6 +364,8 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
                           );
                         },
                       ),
+                      const SizedBox(height: 24),
+                      const ClipsSection(),
                     ],
                   ),
                 ),
@@ -462,6 +465,8 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
               );
             },
           ),
+          const SizedBox(height: 16),
+          const ClipsSection(),
         ],
       ),
     );

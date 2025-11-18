@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase-admin/firestore';
+import {Timestamp} from "firebase-admin/firestore";
 
 /**
  * Interface for the document stored in the /referees_registry/{licenseId} collection.
@@ -6,18 +6,18 @@ import { Timestamp } from 'firebase-admin/firestore';
  */
 export interface LicenseProfile {
     // Clau de validació primària
-    email: string; 
-    
+    email: string;
+
     // Camps per a la validació estricta (Nom, Cognoms)
     nom: string;
     cognoms: string;
-    telefon?: string; 
-    
+    telefon?: string;
+
     // Dades de perfil
     llissenciaId: string; // Utilitzat com a ID del document a la col·lecció
     categoriaRrtt: string; // Ex: C1, C2, TT, etc.
-    
+
     // Estat del compte
-    accountStatus: 'pending' | 'active' | 'suspended'; 
+    accountStatus: "pending" | "active" | "suspended";
     createdAt: Timestamp;
 }

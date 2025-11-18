@@ -1,16 +1,16 @@
-import { onRequest, HttpsError } from 'firebase-functions/v2/https';
-import * as admin from 'firebase-admin';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import {onRequest, HttpsError} from "firebase-functions/v2/https";
+import * as admin from "firebase-admin";
+import {getFirestore, FieldValue} from "firebase-admin/firestore";
 // For callable compatibility with the client SDK (httpsCallable), export a
 // small wrapper using the v1 `onCall` API. Importing v1 here is safe and
 // keeps the existing onRequest implementation for direct HTTP use.
-import * as functionsV1 from 'firebase-functions';
-import { inspect } from 'util';
+import * as functionsV1 from "firebase-functions";
+import {inspect} from "util";
 
 const db = getFirestore();
 
 // Control verbose logging via env var. In production this should be false.
-const VERBOSE_LOG = (process.env.FUNCTIONS_VERBOSE || 'false').toLowerCase() === 'true';
+const VERBOSE_LOG = (process.env.FUNCTIONS_VERBOSE || "false").toLowerCase() === "true";
 
 // Shared core logic: validate email+token, enforce TTL and mark token used
 // transactionally. Throws HttpsError (v2) or functionsV1.https.HttpsError on
@@ -18,16 +18,16 @@ const VERBOSE_LOG = (process.env.FUNCTIONS_VERBOSE || 'false').toLowerCase() ===
 async function validateActivationTokenCore(email: string, token: string) {
   // Query for a registration request that matches email, token and unused
   const q = await db
-    .collection('registration_requests')
-    .where('email', '==', email)
-    .where('activationToken', '==', token)
-    .where('activationTokenUsed', '==', false)
+    .collection("registration_requests")
+    .where("email", "==", email)
+    .where("activationToken", "==", token)
+    .where("activationTokenUsed", "==", false)
     .limit(1)
     .get();
 
   if (q.empty) {
-    if (VERBOSE_LOG) console.warn('[validateActivationTokenCore] Token match not found for provided email');
-    throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
+    if (VERBOSE_LOG) console.warn("[validateActivationTokenCore] Token match not found for provided email");
+    throw new HttpsError("permission-denied", "Token invàlid o caducat.");
   }
 
   const doc = q.docs[0];
@@ -36,33 +36,33 @@ async function validateActivationTokenCore(email: string, token: string) {
 
   const createdAt = data.activationTokenCreatedAt;
   if (!createdAt) {
-    if (VERBOSE_LOG) console.warn('[validateActivationTokenCore] No token timestamp');
-    throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
+    if (VERBOSE_LOG) console.warn("[validateActivationTokenCore] No token timestamp");
+    throw new HttpsError("permission-denied", "Token invàlid o caducat.");
   }
 
   const createdMs = (createdAt.toDate ? createdAt.toDate().getTime() : new Date(createdAt).getTime());
   const now = Date.now();
   const ttlMs = 48 * 60 * 60 * 1000; // 48 hours
   if (now - createdMs > ttlMs) {
-    if (VERBOSE_LOG) console.warn('[validateActivationTokenCore] Token expired');
-    throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
+    if (VERBOSE_LOG) console.warn("[validateActivationTokenCore] Token expired");
+    throw new HttpsError("permission-denied", "Token invàlid o caducat.");
   }
 
   // Atomically mark token used in a transaction (double-check fields to avoid race)
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(docRef);
     if (!snap.exists) {
-      if (VERBOSE_LOG) console.warn('[validateActivationTokenCore] Document disappeared in transaction');
-      throw new HttpsError('not-found', 'Token not found');
+      if (VERBOSE_LOG) console.warn("[validateActivationTokenCore] Document disappeared in transaction");
+      throw new HttpsError("not-found", "Token not found");
     }
     const cur = snap.data() as any;
     if ((cur.activationTokenUsed ?? false) === true) {
-      if (VERBOSE_LOG) console.warn('[validateActivationTokenCore] Token already marked used');
-      throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
+      if (VERBOSE_LOG) console.warn("[validateActivationTokenCore] Token already marked used");
+      throw new HttpsError("permission-denied", "Token invàlid o caducat.");
     }
-    if ((cur.activationToken || '') !== token || (cur.email || '').toLowerCase() !== email) {
-      if (VERBOSE_LOG) console.warn('[validateActivationTokenCore] Token/email mismatch in transaction');
-      throw new HttpsError('permission-denied', 'Token invàlid o caducat.');
+    if ((cur.activationToken || "") !== token || (cur.email || "").toLowerCase() !== email) {
+      if (VERBOSE_LOG) console.warn("[validateActivationTokenCore] Token/email mismatch in transaction");
+      throw new HttpsError("permission-denied", "Token invàlid o caducat.");
     }
     tx.update(docRef, {
       activationTokenUsed: true,
@@ -70,7 +70,7 @@ async function validateActivationTokenCore(email: string, token: string) {
     });
   });
 
-  if (VERBOSE_LOG) console.log('[validateActivationTokenCore] Token match found and marked used');
+  if (VERBOSE_LOG) console.log("[validateActivationTokenCore] Token match found and marked used");
 }
 
 interface ValidateBody {
@@ -80,17 +80,17 @@ interface ValidateBody {
 
 export const validateActivationToken = onRequest(async (req, res) => {
   try {
-    if (req.method !== 'POST') {
-      res.status(405).json({ success: false, message: 'Method Not Allowed' });
+    if (req.method !== "POST") {
+      res.status(405).json({success: false, message: "Method Not Allowed"});
       return;
     }
 
     const body = req.body as ValidateBody;
-    const token = (body?.token || '').trim();
-    const email = (body?.email || '').trim().toLowerCase();
+    const token = (body?.token || "").trim();
+    const email = (body?.email || "").trim().toLowerCase();
 
     if (!token || !email) {
-      res.status(400).json({ success: false, message: 'Invalid request' });
+      res.status(400).json({success: false, message: "Invalid request"});
       return;
     }
 
@@ -99,31 +99,31 @@ export const validateActivationToken = onRequest(async (req, res) => {
     await validateActivationTokenCore(email, token);
 
     // Success: return a clear message
-    res.status(200).json({ success: true, message: 'Token valid. User may proceed.' });
+    res.status(200).json({success: true, message: "Token valid. User may proceed."});
     return;
   } catch (err) {
-    console.error('[validateActivationToken] Error', err);
+    console.error("[validateActivationToken] Error", err);
     // Handle errors that follow the HttpsError shape (some runtimes don't
     // expose the same HttpsError constructor for instanceof checks). Fall
     // back to checking for a string `code` property so we don't trigger a
     // TypeError when the constructor is missing in the emulator/runtime.
     // Map some common HttpsError codes to HTTP statuses.
-    if (err && (err as any).code && typeof (err as any).code === 'string') {
-      const code = (err as any).code || 'internal';
+    if (err && (err as any).code && typeof (err as any).code === "string") {
+      const code = (err as any).code || "internal";
       let status = 500;
-      if (code === 'permission-denied') status = 403;
-      else if (code === 'invalid-argument') status = 400;
-      else if (code === 'not-found') status = 404;
-      else if (code === 'already-exists') status = 409;
+      if (code === "permission-denied") status = 403;
+      else if (code === "invalid-argument") status = 400;
+      else if (code === "not-found") status = 404;
+      else if (code === "already-exists") status = 409;
 
       try {
-        res.status(status).json({ success: false, message: (err as any).message });
+        res.status(status).json({success: false, message: (err as any).message});
       } catch (_) {}
       return;
     }
 
     try {
-      res.status(500).json({ success: false, message: 'Server error' });
+      res.status(500).json({success: false, message: "Server error"});
     } catch (_) {}
     return;
   }
@@ -142,27 +142,27 @@ export const validateActivationTokenCallable = functionsV1.https.onCall(async (d
     // "Converting circular structure to JSON" errors when the payload contains
     // circular references (seen in emulator environments).
     try {
-      console.log('[validateActivationTokenCallable] incoming payload:', JSON.stringify(body));
+      console.log("[validateActivationTokenCallable] incoming payload:", JSON.stringify(body));
     } catch (logErr) {
-      console.log('[validateActivationTokenCallable] incoming payload (inspect):', inspect(body, { depth: null }));
+      console.log("[validateActivationTokenCallable] incoming payload (inspect):", inspect(body, {depth: null}));
     }
 
     // Some clients (notably the callable emulator and some SDK versions)
     // wrap the payload under a `data` property (or rarely `payload`). Normalize
     // to a single `payload` object so we can accept both shapes.
-    const normalized = (body && typeof body === 'object' && (body.data || body.payload))
-      ? (body.data ?? body.payload)
-      : body;
+    const normalized = (body && typeof body === "object" && (body.data || body.payload)) ?
+      (body.data ?? body.payload) :
+      body;
 
     // Accept either { token } or { activationToken } from clients
-    const tokenRaw = (normalized?.token ?? normalized?.activationToken ?? '');
-    const token = (typeof tokenRaw === 'string' ? tokenRaw : String(tokenRaw)).trim();
-    const emailRaw = (normalized?.email ?? '');
-    const email = (typeof emailRaw === 'string' ? emailRaw : String(emailRaw)).trim().toLowerCase();
+    const tokenRaw = (normalized?.token ?? normalized?.activationToken ?? "");
+    const token = (typeof tokenRaw === "string" ? tokenRaw : String(tokenRaw)).trim();
+    const emailRaw = (normalized?.email ?? "");
+    const email = (typeof emailRaw === "string" ? emailRaw : String(emailRaw)).trim().toLowerCase();
 
     if (!token || !email) {
-      console.warn('[validateActivationTokenCallable] Invalid request, missing token or email');
-      throw new functionsV1.https.HttpsError('invalid-argument', 'Invalid request');
+      console.warn("[validateActivationTokenCallable] Invalid request, missing token or email");
+      throw new functionsV1.https.HttpsError("invalid-argument", "Invalid request");
     }
 
     if (VERBOSE_LOG) console.log(`[validateActivationTokenCallable] Received token validation request for email: ${email}`);
@@ -170,12 +170,12 @@ export const validateActivationTokenCallable = functionsV1.https.onCall(async (d
     // Reuse the same core validation logic; map errors to the callable
     await validateActivationTokenCore(email, token);
 
-    return { success: true, message: 'Token valid. User may proceed.' };
+    return {success: true, message: "Token valid. User may proceed."};
   } catch (err) {
-    console.error('[validateActivationTokenCallable] Error', err);
+    console.error("[validateActivationTokenCallable] Error", err);
     if (err instanceof functionsV1.https.HttpsError) {
       throw err; // client receives proper callable error
     }
-    throw new functionsV1.https.HttpsError('internal', 'Server error');
+    throw new functionsV1.https.HttpsError("internal", "Server error");
   }
 });

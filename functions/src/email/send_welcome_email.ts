@@ -1,4 +1,4 @@
-import { Resend } from 'resend';
+import {Resend} from "resend";
 
 export interface WelcomeEmailArgs {
   email: string;
@@ -9,12 +9,12 @@ export interface WelcomeEmailArgs {
 }
 
 export async function sendWelcomeEmail(args: WelcomeEmailArgs): Promise<void> {
-  const { email, nom, cognoms, llissenciaId, activationToken } = args;
+  const {email, nom, cognoms, llissenciaId, activationToken} = args;
 
-  const fullName = `${nom || ''} ${cognoms || ''}`.trim();
+  const fullName = `${nom || ""} ${cognoms || ""}`.trim();
 
-  const tokenSection = activationToken
-    ? `
+  const tokenSection = activationToken ?
+    `
     <tr>
       <td style="padding-top:18px; text-align:center;">
         <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:520px; margin:0 auto;">
@@ -32,8 +32,8 @@ export async function sendWelcomeEmail(args: WelcomeEmailArgs): Promise<void> {
         </table>
       </td>
     </tr>
-    `
-    : '';
+    ` :
+    "";
 
   const html = `
   <!doctype html>
@@ -60,15 +60,15 @@ export async function sendWelcomeEmail(args: WelcomeEmailArgs): Promise<void> {
                 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#4D5061; border-radius:12px; padding:24px;">
                   <tr>
                     <td style="color:#CDD1C4; font-size:15px;">
-                      <p style="margin:0 0 12px 0;">Benvingut/da, <strong style="color:#FFFFFF;">${fullName || ''}</strong>!</p>
+                      <p style="margin:0 0 12px 0;">Benvingut/da, <strong style="color:#FFFFFF;">${fullName || ""}</strong>!</p>
                       <p style="margin:0 0 12px 0;">La teva sol·licitud a <strong style="color:#FFFFFF;">El Visionat</strong> ha estat <strong style="color:#E8C547;">aprovada</strong>. Ja formes part de la nostra comunitat.</p>
                     </td>
                   </tr>
 
-                  ${activationToken ? '' : ''}
+                  ${activationToken ? "" : ""}
 
-                  ${/* insert tokenSection as table rows */ ''}
-                  ${activationToken ? tokenSection : ''}
+                  ${/* insert tokenSection as table rows */ ""}
+                  ${activationToken ? tokenSection : ""}
 
                   <tr>
                     <td style="padding-top:18px; text-align:center;">
@@ -105,9 +105,9 @@ export async function sendWelcomeEmail(args: WelcomeEmailArgs): Promise<void> {
   const resend = new Resend(process.env.RESEND_API_KEY as string);
 
   await resend.emails.send({
-    from: 'noreply@elvisionat.com',
+    from: "noreply@elvisionat.com",
     to: email,
-    subject: 'El teu registre ha estat aprovat — Benvingut a El Visionat',
+    subject: "El teu registre ha estat aprovat — Benvingut a El Visionat",
     html,
   });
 }

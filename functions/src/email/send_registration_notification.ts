@@ -1,5 +1,5 @@
 // functions/src/email/send_registration_notification.ts
-import { Resend } from 'resend';
+import {Resend} from "resend";
 
 export interface SendRegistrationNotificationArgs {
   llissenciaId: string;
@@ -13,14 +13,14 @@ export interface SendRegistrationNotificationArgs {
 export async function sendRegistrationNotification(args: SendRegistrationNotificationArgs) {
   const resend = new Resend(process.env.RESEND_API_KEY as string);
 
-  const { llissenciaId, email, nom, cognoms, requestId, createdAt } = args;
+  const {llissenciaId, email, nom, cognoms, requestId, createdAt} = args;
 
   const createdAtStr =
-    createdAt && typeof createdAt.toDate === 'function'
-      ? createdAt.toDate().toISOString()
-      : createdAt
-      ? String(createdAt)
-      : 'N/A';
+    createdAt && typeof createdAt.toDate === "function" ?
+      createdAt.toDate().toISOString() :
+      createdAt ?
+        String(createdAt) :
+        "N/A";
 
   const html = `
     <h2>Nova sol·licitud de registre</h2>
@@ -37,15 +37,15 @@ export async function sendRegistrationNotification(args: SendRegistrationNotific
 
   try {
     await resend.emails.send({
-      from: 'noreply@elvisionat.com',
-      to: 'info@elvisionat.com', // 📌 email intern del Visionat
-      subject: 'Nova sol·licitud de registre',
+      from: "noreply@elvisionat.com",
+      to: "info@elvisionat.com", // 📌 email intern del Visionat
+      subject: "Nova sol·licitud de registre",
       html,
     });
 
-    console.log('[sendRegistrationNotification] Email sent for request', requestId);
+    console.log("[sendRegistrationNotification] Email sent for request", requestId);
   } catch (err) {
-    console.error('[sendRegistrationNotification] Failed to send notification', err);
+    console.error("[sendRegistrationNotification] Failed to send notification", err);
     throw err;
   }
 }

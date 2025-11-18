@@ -4,6 +4,6 @@
  * Defineix les categories de gènere per als equips de la Supercopa.
  */
 export enum TeamGender {
-    Masculina = 'Masculina',
-    Femenina = 'Femenina',
+    Masculina = "Masculina",
+    Femenina = "Femenina",
 }

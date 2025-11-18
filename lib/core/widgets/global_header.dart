@@ -9,12 +9,14 @@ class GlobalHeader extends StatelessWidget implements PreferredSizeWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
   final String title;
   final bool showSearch;
+  final bool showMenuButton;
 
   const GlobalHeader({
     super.key,
     this.scaffoldKey,
     this.title = 'El Visionat',
     this.showSearch = true,
+    this.showMenuButton = true,
   });
 
   @override
@@ -38,10 +40,11 @@ class GlobalHeader extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       backgroundColor: AppTheme.porpraFosc,
       elevation: 0,
-      leading: IconButton(
+      leading: showMenuButton ? IconButton(
         onPressed: () => scaffoldKey?.currentState?.openDrawer(),
         icon: const Icon(Icons.menu, color: AppTheme.white),
-      ),
+      ) : null,
+      automaticallyImplyLeading: showMenuButton,
       title: showSearch
           ? Container(
               height: 36,
@@ -65,7 +68,7 @@ class GlobalHeader extends StatelessWidget implements PreferredSizeWidget {
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 8,
+                    vertical: 10,
                   ),
                 ),
               ),
@@ -79,17 +82,25 @@ class GlobalHeader extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
       actions: [
-        // Botó Perfil
-        TextButton(
-          onPressed: () => Navigator.pushNamed(context, '/profile'),
-          style: TextButton.styleFrom(
-            foregroundColor: AppTheme.white,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-          ),
-          child: const Text(
-            'Perfil',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-          ),
+        // Botó Perfil (només en desktop)
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // Només mostrar en pantalles grans (desktop)
+            if (MediaQuery.of(context).size.width > 900) {
+              return TextButton(
+                onPressed: () => Navigator.pushNamed(context, '/profile'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                child: const Text(
+                  'Perfil',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              );
+            }
+            return const SizedBox.shrink(); // No mostrar res en mòbil
+          },
         ),
 
         // Icona campana (notificacions)

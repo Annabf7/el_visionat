@@ -77,7 +77,7 @@ core/ ⏳ Pròxim Infraestructura global (tema, navegació, Isar, etc.)
 
 S'utilitza Provider + ChangeNotifier:
 
-AuthProvider → estat d’autenticació
+AuthProvider → estat d'autenticació + flux de tokens
 
 VoteProvider → votació i temps real
 
@@ -86,6 +86,29 @@ NavigationProvider → menú i navegació
 VisionatState → estat intern de visionat (local)
 
 HomeProvider → dades del dashboard
+
+### Flux d'Autenticació Avançat
+
+L'`AuthProvider` implementa un sistema de gestió d'estat sofisticat per controlar el flux de registre i verificació de tokens:
+
+**Variables clau:**
+```dart
+bool _isWaitingForToken = false;      // Control automàtic de diàlegs
+String? _pendingLicenseId;            // Llicència pendent de completar
+String? _pendingEmail;                // Email pendent de verificació
+```
+
+**Patró de detecció automàtica:**
+- `_isWaitingForToken` s'activa després de `submitRegistrationRequest()`
+- La UI detecta aquest estat via listeners i mostra automàticament el diàleg de token
+- Diàlegs modals amb `barrierDismissible: false` i `PopScope(canPop: false)`
+- Validació server-side obligatòria via `validateActivationToken` Cloud Function
+
+**Beneficis arquitecturals:**
+- Navegació intel·ligent sense intervenció manual
+- Robustesa cross-platform (mobile/desktop)
+- Seguretat server-side amb validació atòmica
+- Experiència d'usuari fluïda amb recuperació automàtica d'estat
 
 Normes:
 

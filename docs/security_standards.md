@@ -42,13 +42,40 @@ Ha de passar sempre per AuthProvider i RequireAuth.
 
 No s’han d’exposar UID ni dades sensibles a logs.
 
-2.3 Tokens i activacions
+2.3 Tokens i activacions — Sistema de Verificació Segura
 
-Tokens d’activació tenen TTL curt.
+**Arquitectura de seguretat dels tokens:**
 
-Expiració gestionada per Cloud Functions.
+TTL obligatori: 48 hores màxim per token d'activació.
 
-Tokens emmagatzemats només a activation_tokens/ amb dades mínimes.
+Validació atòmica: Cloud Function `validateActivationToken` amb transaccions Firestore.
+
+Single-use enforcement: Tokens marcats com utilitzats després de validació exitosa.
+
+Server-side authority: Cap validació crítica es fa al client.
+
+**Propietats de seguretat:**
+
+```typescript
+// Validació amb double-check pattern per evitar race conditions
+await db.runTransaction(async (tx) => {
+  const snap = await tx.get(docRef);
+  const cur = snap.data();
+  if (cur.activationTokenUsed === true) {
+    throw new HttpsError("permission-denied", "Token ja utilitzat");
+  }
+  tx.update(docRef, {
+    activationTokenUsed: true,
+    activationTokenUsedAt: FieldValue.serverTimestamp(),
+  });
+});
+```
+
+**Col·leccions de seguretat:**
+
+- `/registration_requests/{id}` → tokens amb TTL i estat d'ús
+- `/emails/{email}` → reserva d'unicitat d'email
+- Logs de validació per auditoria
 
 3. Estàndards de Firestore
    3.1 Estructura principal protegida

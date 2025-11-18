@@ -2,13 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
+import 'package:el_visionat/core/widgets/global_header.dart';
 import '../widgets/featured_visioning_section.dart';
 import '../widgets/user_profile_summary_card.dart';
 import 'package:el_visionat/features/voting/index.dart';
 import '../providers/home_provider.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context) {
@@ -19,26 +27,26 @@ class HomePage extends StatelessWidget {
       builder: (context, constraints) {
         final isLargeScreen = constraints.maxWidth > 900;
 
-        // 1. Scaffold principal
+        // 1. Scaffold principal amb GlobalHeader
         return Scaffold(
-          // L'AppBar només es mostra en mòbil (layout estret)
-          appBar: isLargeScreen
-              ? null
-              : AppBar(
-                  title: Text(
-                    'El Visionat',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                ),
-
+          key: _scaffoldKey,
           // El Drawer (menú lateral en mode mòbil)
           drawer: isLargeScreen ? null : const SideNavigationMenu(),
 
-          // El cos del Scaffold s'adapta
-          body: isLargeScreen
-              ? _buildWideLayout(context, provider)
-              : _buildNarrowLayout(context, provider),
+          // El cos del Scaffold amb GlobalHeader integrat
+          body: Column(
+            children: [
+              // GlobalHeader amb referència al scaffold
+              GlobalHeader(scaffoldKey: _scaffoldKey, title: 'El Visionat'),
+
+              // Contingut principal expandit
+              Expanded(
+                child: isLargeScreen
+                    ? _buildWideLayout(context, provider)
+                    : _buildNarrowLayout(context, provider),
+              ),
+            ],
+          ),
         );
       },
     );

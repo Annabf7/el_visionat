@@ -10,6 +10,7 @@ import '../providers/collective_comment_provider.dart';
 import '../providers/personal_analysis_provider.dart';
 
 import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
+import 'package:el_visionat/core/widgets/global_header.dart';
 import '../widgets/match_header.dart';
 import '../widgets/match_video_section.dart';
 import '../widgets/tag_filter_bar.dart';
@@ -20,7 +21,6 @@ import '../widgets/add_highlight_card.dart';
 import '../widgets/collective_analysis_modal.dart';
 import '../widgets/analysis_section_card.dart';
 
-
 class VisionatMatchPage extends StatefulWidget {
   const VisionatMatchPage({super.key});
 
@@ -29,6 +29,7 @@ class VisionatMatchPage extends StatefulWidget {
 }
 
 class _VisionatMatchPageState extends State<VisionatMatchPage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final String _mockMatchId =
       'match_123'; // TODO: Obtenir de paràmetres de ruta
 
@@ -283,19 +284,21 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
         final isWideScreen = constraints.maxWidth >= 900;
 
         return Scaffold(
+          key: _scaffoldKey,
           backgroundColor: Theme.of(context).colorScheme.surface,
-          // AppBar només en mòbil per accés al drawer
-          appBar: isWideScreen
-              ? null
-              : AppBar(
-                  title: const Text('El Visionat'),
-                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                  elevation: 0,
-                ),
           // Drawer en mòbil per navegació
           drawer: isWideScreen ? null : const SideNavigationMenu(),
 
-          body: isWideScreen ? _buildWebLayout() : _buildMobileLayout(),
+          body: Column(
+            children: [
+              // GlobalHeader sempre visible
+              GlobalHeader(scaffoldKey: _scaffoldKey),
+              // Contingut principal expandit
+              Expanded(
+                child: isWideScreen ? _buildWebLayout() : _buildMobileLayout(),
+              ),
+            ],
+          ),
         );
       },
     );

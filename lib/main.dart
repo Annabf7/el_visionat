@@ -5,6 +5,7 @@ import 'package:el_visionat/features/home/index.dart';
 import 'package:el_visionat/features/visionat/index.dart';
 import 'package:el_visionat/features/voting/index.dart';
 import 'package:el_visionat/features/teams/index.dart';
+import 'package:el_visionat/features/profile/index.dart';
 import 'package:el_visionat/core/index.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:firebase_core/firebase_core.dart';
@@ -117,7 +118,8 @@ void main() async {
           create: (_) => VisionatHighlightProvider(HighlightService()),
         ),
         ChangeNotifierProvider(
-          create: (_) => VisionatCollectiveCommentProvider(CollectiveCommentService()),
+          create: (_) =>
+              VisionatCollectiveCommentProvider(CollectiveCommentService()),
         ),
         ChangeNotifierProvider(
           create: (_) => PersonalAnalysisProvider(PersonalAnalysisService()),
@@ -151,6 +153,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => RequireAuth(child: const HomePage()),
         '/all-matches': (context) => RequireAuth(child: const AllMatchesPage()),
         '/profile': (context) => RequireAuth(child: const ProfilePage()),
+        '/accounting': (context) => RequireAuth(child: const AccountingPage()),
         '/teams': (context) => RequireAuth(child: const TeamsPage()),
         '/visionat': (context) => RequireAuth(child: const VisionatMatchPage()),
         '/login': (context) => const LoginPage(), // Ruta explícita per a Login

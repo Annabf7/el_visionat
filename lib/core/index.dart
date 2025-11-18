@@ -17,5 +17,8 @@ export 'navigation/side_navigation_menu.dart';
 // --- Theme ---
 export 'theme/app_theme.dart';
 
+// --- Widgets ---
+export 'widgets/global_header.dart';
+
 // --- Utils ---
 // (Reserved for future utilities)

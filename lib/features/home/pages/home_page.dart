@@ -27,76 +27,91 @@ class _HomePageState extends State<HomePage> {
       builder: (context, constraints) {
         final isLargeScreen = constraints.maxWidth > 900;
 
-        // 1. Scaffold principal amb GlobalHeader
-        return Scaffold(
-          key: _scaffoldKey,
-          // El Drawer (menú lateral en mode mòbil)
-          drawer: isLargeScreen ? null : const SideNavigationMenu(),
+        if (isLargeScreen) {
+          // Layout desktop: Menú lateral ocupa tota l'alçada
+          return Scaffold(
+            key: _scaffoldKey,
+            body: Row(
+              children: [
+                // Menú lateral amb alçada completa (inclou l'espai del header)
+                Container(
+                  width: 288,
+                  height: double.infinity,
+                  child: const SideNavigationMenu(),
+                ),
 
-          // El cos del Scaffold amb GlobalHeader integrat
-          body: Column(
-            children: [
-              // GlobalHeader amb referència al scaffold
-              GlobalHeader(scaffoldKey: _scaffoldKey, title: 'El Visionat'),
+                // Columna dreta amb GlobalHeader + contingut
+                Expanded(
+                  child: Column(
+                    children: [
+                      // GlobalHeader només per l'amplada restant
+                      GlobalHeader(
+                        scaffoldKey: _scaffoldKey,
+                        title: 'El Visionat',
+                        showMenuButton: false,
+                      ),
 
-              // Contingut principal expandit
-              Expanded(
-                child: isLargeScreen
-                    ? _buildWideLayout(context, provider)
-                    : _buildNarrowLayout(context, provider),
-              ),
-            ],
-          ),
-        );
+                      // Contingut principal
+                      Expanded(
+                        child: _buildWideLayoutContent(context, provider),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        } else {
+          // Layout mòbil: comportament tradicional
+          return Scaffold(
+            key: _scaffoldKey,
+            drawer: const SideNavigationMenu(),
+            body: Column(
+              children: [
+                // GlobalHeader amb icona hamburguesa
+                GlobalHeader(
+                  scaffoldKey: _scaffoldKey,
+                  title: 'El Visionat',
+                  showMenuButton: true,
+                ),
+
+                // Contingut principal
+                Expanded(child: _buildNarrowLayout(context, provider)),
+              ],
+            ),
+          );
+        }
       },
     );
   }
 
-  // --- Layout Ample (Web/Tablet) ---
-  Widget _buildWideLayout(BuildContext context, HomeProvider provider) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Columna 1: Menú Lateral (Amplada fixa de 288px)
-        const SizedBox(
-          width: 288,
-          child: SideNavigationMenu(), // Ara el Spacer funciona
-        ),
-
-        // Columna 2: Contingut Principal (Expandeix a la resta d'espai)
-        Expanded(
-          flex: 2,
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTopSearchRow(context),
-                  const SizedBox(height: 16),
-
-                  // Fila de Visionat Destacat i Perfil (Layout de la dreta)
-                  const Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Featured Visioning Section (2/3 de l'espai central)
-                      Expanded(flex: 2, child: FeaturedVisioningSection()),
-                      SizedBox(width: 16),
-                      // User Profile Card (1/3 de l'espai central)
-                      Expanded(flex: 1, child: UserProfileSummaryCard()),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Secció de Votacions (Full width)
-                  const VotingSection(),
-                  const SizedBox(height: 500), // Placeholder extra per scroll
-                ],
-              ),
+  // --- Contingut del Layout Desktop (sense menú lateral) ---
+  Widget _buildWideLayoutContent(BuildContext context, HomeProvider provider) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Fila de Visionat Destacat i Perfil
+            const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Featured Visioning Section (2/3 de l'espai)
+                Expanded(flex: 2, child: FeaturedVisioningSection()),
+                SizedBox(width: 16),
+                // User Profile Card (1/3 de l'espai)
+                Expanded(flex: 1, child: UserProfileSummaryCard()),
+              ],
             ),
-          ),
+            const SizedBox(height: 16),
+
+            // Secció de Votacions (Full width)
+            const VotingSection(),
+            const SizedBox(height: 500), // Placeholder extra per scroll
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -116,37 +131,6 @@ class _HomePageState extends State<HomePage> {
             SizedBox(height: 500), // Placeholder extra per scroll
           ],
         ),
-      ),
-    );
-  }
-
-  // Widget placeholder per a la barra superior de cerca del layout web
-  Widget _buildTopSearchRow(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: Row(
-        children: [
-          const SizedBox(width: 32),
-          Expanded(
-            child: Container(
-              height: 48,
-              color: Theme.of(context).colorScheme.surface,
-              child: Center(
-                child: Text(
-                  'Barra de Cerca',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Icon(Icons.person, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 8),
-          Icon(Icons.settings, color: Theme.of(context).colorScheme.onSurface),
-        ],
       ),
     );
   }

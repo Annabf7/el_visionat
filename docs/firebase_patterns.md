@@ -61,7 +61,44 @@ completeRegistration
 
 checkRegistrationStatus
 
-3.2 Maneig d’estat
+resendActivationToken
+
+warmFunctions
+
+### 3.1.1 Patrons Avançats de Cloud Functions
+
+**Verificació Segura de Tokens (`validateActivationToken`):**
+
+```typescript
+// Configuració optimitzada per robustesa i escalabilitat
+export const validateActivationTokenCallable = functionsV1.https.onCall(
+  {
+    timeoutSeconds: 60, // Evita deadline_exceeded
+    memory: "256MiB", // Memòria adequada per processament
+    maxInstances: 10, // Gestió de peticions concurrents
+  },
+  async (data, context) => {
+    await validateActivationTokenCore(email, token);
+  }
+);
+```
+
+**Optimització d'Emulador (`warmFunctions`):**
+
+```typescript
+// functions/src/utils/warm_functions.ts - Prevé cold starts
+export const warmFunctions = onCall(
+  {
+    timeoutSeconds: 10,
+    memory: "128MiB",
+  },
+  async (request) => {
+    return { success: true, message: "Functions emulator warmed!" };
+  }
+);
+```
+
+3.2 Maneig d'estat
 
 El AuthProvider controla:
 

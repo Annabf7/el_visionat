@@ -72,7 +72,9 @@ class AuthService {
 
   /// PAS 1: Verifica la llicència contra el registre.
   Future<Map<String, dynamic>> lookupLicense(String licenseId) async {
-    final callable = functions.httpsCallable('lookupLicense');
+    final callable = functions.httpsCallable('lookupLicense', options: HttpsCallableOptions(
+      timeout: const Duration(seconds: 60), // Timeout més alt per cold start
+    ));
     try {
       // In debug, do a quick TCP check to the Functions emulator to provide
       // an earlier, clearer diagnostic if the emulator isn't reachable.
@@ -117,7 +119,9 @@ class AuthService {
     // race conditions. If the doc already exists, we throw a standard
     // Exception('emailAlreadyInUse') which the caller (AuthProvider) will
     // surface to the UI as a readable message.
-    final callable = functions.httpsCallable('requestRegistration');
+    final callable = functions.httpsCallable('requestRegistration', options: HttpsCallableOptions(
+      timeout: const Duration(seconds: 60), // Timeout més alt per cold start
+    ));
     final emailLower = email.trim().toLowerCase();
     final emailDoc = firestore.collection('emails').doc(emailLower);
 

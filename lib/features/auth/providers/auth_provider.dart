@@ -50,6 +50,7 @@ class AuthProvider with ChangeNotifier {
   Map<String, dynamic>? _verifiedLicenseData;
   String? _pendingLicenseId;
   String? _pendingEmail;
+  bool _isWaitingForToken = false;
 
   // --- Getters Públics ---
   bool get isLoading => _isLoading;
@@ -58,6 +59,7 @@ class AuthProvider with ChangeNotifier {
   Map<String, dynamic>? get verifiedLicenseData => _verifiedLicenseData;
   String? get pendingLicenseId => _pendingLicenseId;
   String? get pendingEmail => _pendingEmail;
+  bool get isWaitingForToken => _isWaitingForToken;
 
   // --- Convenience accessors for UI (avoid screens reading Firebase directly)
   bool get isAuthenticated => authService.auth.currentUser != null;
@@ -149,6 +151,7 @@ class AuthProvider with ChangeNotifier {
       );
       _pendingEmail = email;
       _currentStep = RegistrationStep.requestSent;
+      _isWaitingForToken = true; // Activem l'estat d'espera del token
       _setLoading(false);
       notifyListeners();
     } on Exception catch (e) {
@@ -292,6 +295,14 @@ class AuthProvider with ChangeNotifier {
     reset();
   }
 
+  /// Clear the token waiting state (called when token is validated or cancelled)
+  void clearTokenWaitingState() {
+    if (_isWaitingForToken) {
+      _isWaitingForToken = false;
+      notifyListeners();
+    }
+  }
+
   /// Restaura l'estat inicial del provider.
   void reset() {
     _isLoading = false;
@@ -300,6 +311,7 @@ class AuthProvider with ChangeNotifier {
     _verifiedLicenseData = null;
     _pendingLicenseId = null;
     _pendingEmail = null;
+    _isWaitingForToken = false;
     notifyListeners();
   }
 

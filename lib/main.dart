@@ -19,6 +19,19 @@ import 'package:flutter/foundation.dart'; // Importat per kDebugMode
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
+/// Escalfa les Cloud Functions en mode debug per evitar cold start
+Future<void> _warmUpFunctions() async {
+  try {
+    final functions = FirebaseFunctions.instance;
+    final callable = functions.httpsCallable('warmFunctions');
+    await callable.call();
+    debugPrint('✅ Functions emulator warmed up successfully');
+  } catch (e) {
+    debugPrint('⚠️  Failed to warm up Functions emulator: $e');
+    // No és crític, l'aplicació pot continuar
+  }
+}
+
 void main() async {
   // --- Configuració Inicial ---
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,6 +69,11 @@ void main() async {
     FirebaseFunctions.instance.useFunctionsEmulator(emulatorHost, 5001);
     FirebaseAuth.instance.useAuthEmulator(emulatorHost, 9198);
     debugPrint('Web debug: connected to emulators at $emulatorHost');
+  }
+
+  // Warm up Functions emulator in debug mode to avoid cold start delays
+  if (kDebugMode) {
+    _warmUpFunctions();
   }
 
   // --- Inicialització Isar i TeamDataService (persistència local) ---

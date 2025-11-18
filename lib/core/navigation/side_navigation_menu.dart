@@ -1,4 +1,3 @@
-import 'package:el_visionat/features/auth/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:math' as math;
@@ -9,7 +8,7 @@ import 'package:el_visionat/core/theme/app_theme.dart';
 class SideNavigationMenu extends StatelessWidget {
   const SideNavigationMenu({super.key});
 
-  // La URL del logo que vam obtenir de Firebase Storage
+  // La URL del logo que obtenim de Firebase Storage
   final String logoUrl =
       'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/xiulet.svg?alt=media&token=bfac6951-619d-4c2d-962b-ea4a301843ed';
 
@@ -127,51 +126,7 @@ class SideNavigationMenu extends StatelessWidget {
   }
 }
 
-/// Pàgina de perfil de marcador de posició per a usuaris que han iniciat sessió.
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    debugPrint(
-      'ProfilePage.build — currentRoute=/profile, isAuthenticated=${authProvider.isAuthenticated}',
-    );
-    assert(
-      authProvider.isAuthenticated,
-      'ProfilePage built without authenticated user',
-    );
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('El Meu Perfil')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Has iniciat sessió com: \n${authProvider.currentUserEmail ?? 'Usuari desconegut'}',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                if (!context.mounted) return;
-                final auth = context.read<AuthProvider>();
-                final navigator = Navigator.of(context);
-                await auth.signOut();
-                if (!context.mounted) return;
-                // Ensure explicit navigation to login to clear any existing
-                // navigation stack and avoid landing on a stale protected page.
-                navigator.pushNamedAndRemoveUntil('/login', (r) => false);
-              },
-              child: const Text('Tancar Sessió'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _NavigationItem extends StatelessWidget {
   final IconData icon;

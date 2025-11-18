@@ -1,7 +1,7 @@
 // functions/src/models/team.ts
 
-import { Timestamp } from 'firebase-admin/firestore';
-import { TeamGender } from './team_gender';
+import {Timestamp} from "firebase-admin/firestore";
+import {TeamGender} from "./team_gender";
 
 /**
  * Model de dades per als documents a la col·lecció /teams.
@@ -30,4 +30,4 @@ export interface Team {
     lastUpdated: Timestamp;
 }
 
-export { TeamGender };
+export {TeamGender};

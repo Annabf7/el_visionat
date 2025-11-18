@@ -9,6 +9,7 @@ export 'models/highlight_entry.dart';
 export 'models/collective_comment.dart';
 export 'models/personal_analysis.dart';
 export 'models/match_models.dart';
+export 'models/youtube_video.dart';
 
 // Widgets
 export 'widgets/analysis_section_card.dart';
@@ -23,13 +24,16 @@ export 'widgets/tag_filter_bar.dart';
 export 'widgets/tag_selector/index.dart';
 export 'widgets/personal_analysis_modal.dart';
 export 'widgets/user_profile_personal_notes_widget.dart';
+export 'widgets/clips_section.dart';
 
 // Services
 export 'services/highlight_service.dart';
 export 'services/collective_comment_service.dart';
 export 'services/personal_analysis_service.dart';
+export 'services/youtube_service.dart';
 
 // Providers
 export 'providers/highlight_provider.dart';
 export 'providers/collective_comment_provider.dart';
 export 'providers/personal_analysis_provider.dart';
+export 'providers/youtube_provider.dart';

@@ -1,11 +1,11 @@
 // functions/src/auth/complete_registration.ts
 
-import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { getAuth, UserRecord } from "firebase-admin/auth";
-import { RegistrationRequest } from "../models/registration_request";
-import { AppUser } from "../models/app_user";
-import { LicenseProfile } from "../models/license_profile";
+import {onCall, HttpsError} from "firebase-functions/v2/https";
+import {getFirestore, FieldValue} from "firebase-admin/firestore";
+import {getAuth, UserRecord} from "firebase-admin/auth";
+import {RegistrationRequest} from "../models/registration_request";
+import {AppUser} from "../models/app_user";
+import {LicenseProfile} from "../models/license_profile";
 
 // NOTA: No cal admin.initializeApp() aquí, ja es fa a index.ts
 const db = getFirestore();
@@ -34,31 +34,31 @@ interface CompleteRegistrationData {
  * - 'already-exists': Si l'email ja està en ús a Firebase Auth.
  * - 'internal': Per a errors inesperats durant el procés.
  */
-export const completeRegistration = onCall({ timeoutSeconds: 60 }, async (request) => {
-  const { llissenciaId, email, password } = request.data as CompleteRegistrationData;
+export const completeRegistration = onCall({timeoutSeconds: 60}, async (request) => {
+  const {llissenciaId, email, password} = request.data as CompleteRegistrationData;
 
   // 1. Validació d'entrada
   if (!llissenciaId || !email || !password) {
-    throw new HttpsError('invalid-argument', 'Falten dades necessàries per completar el registre.');
+    throw new HttpsError("invalid-argument", "Falten dades necessàries per completar el registre.");
   }
   // Firebase Auth requereix mínim 6 caràcters per a la contrasenya
   if (password.length < 6) {
-    throw new HttpsError('invalid-argument', 'La contrasenya ha de tenir almenys 6 caràcters.');
+    throw new HttpsError("invalid-argument", "La contrasenya ha de tenir almenys 6 caràcters.");
   }
 
   const normalizedEmail = email.toLowerCase();
 
   try {
-    const requestCollectionRef = db.collection('registration_requests');
-    const registryCollectionRef = db.collection('referees_registry');
-    const usersCollectionRef = db.collection('users');
+    const requestCollectionRef = db.collection("registration_requests");
+    const registryCollectionRef = db.collection("referees_registry");
+    const usersCollectionRef = db.collection("users");
 
     // 2. Cercar la sol·licitud APROVADA
     // Busquem per llicència I email per assegurar-nos que coincideixen amb la sol·licitud original
     const requestQuery = requestCollectionRef
-      .where('llissenciaId', '==', llissenciaId)
-      .where('email', '==', normalizedEmail)
-      .where('status', '==', 'approved') // <-- CLAU: Només si està aprovada!
+      .where("llissenciaId", "==", llissenciaId)
+      .where("email", "==", normalizedEmail)
+      .where("status", "==", "approved") // <-- CLAU: Només si està aprovada!
       .limit(1); // Només n'hi hauria d'haver una
 
     const requestSnapshot = await requestQuery.get();
@@ -67,21 +67,21 @@ export const completeRegistration = onCall({ timeoutSeconds: 60 }, async (reques
       // Podria ser que no existeixi, que estigui pendent o rebutjada.
       // Comprovem si existeix però amb un altre estat per donar un error més específic.
       const checkOtherStatusQuery = requestCollectionRef
-        .where('llissenciaId', '==', llissenciaId)
-        .where('email', '==', normalizedEmail)
+        .where("llissenciaId", "==", llissenciaId)
+        .where("email", "==", normalizedEmail)
         .limit(1);
       const checkOtherStatusSnapshot = await checkOtherStatusQuery.get();
 
       if (checkOtherStatusSnapshot.empty) {
-        throw new HttpsError('not-found', 'No s\'ha trobat cap sol·licitud de registre aprovada per a aquestes dades.');
+        throw new HttpsError("not-found", "No s'ha trobat cap sol·licitud de registre aprovada per a aquestes dades.");
       } else {
         const existingRequest = checkOtherStatusSnapshot.docs[0].data() as RegistrationRequest;
-        if (existingRequest.status === 'pending') {
-           throw new HttpsError('permission-denied', 'La teva sol·licitud de registre encara està pendent de revisió.');
-        } else if (existingRequest.status === 'rejected') {
-           throw new HttpsError('permission-denied', `La teva sol·licitud de registre ha estat rebutjada. Motiu: ${existingRequest.rejectionReason || 'No especificat'}`);
+        if (existingRequest.status === "pending") {
+          throw new HttpsError("permission-denied", "La teva sol·licitud de registre encara està pendent de revisió.");
+        } else if (existingRequest.status === "rejected") {
+          throw new HttpsError("permission-denied", `La teva sol·licitud de registre ha estat rebutjada. Motiu: ${existingRequest.rejectionReason || "No especificat"}`);
         } else {
-           throw new HttpsError('not-found', 'No s\'ha trobat cap sol·licitud de registre aprovada vàlida.');
+          throw new HttpsError("not-found", "No s'ha trobat cap sol·licitud de registre aprovada vàlida.");
         }
       }
     }
@@ -94,8 +94,8 @@ export const completeRegistration = onCall({ timeoutSeconds: 60 }, async (reques
       // 3a. Llegir de nou el registre dins la transacció per assegurar l'estat 'pending'
       const registryDocRef = registryCollectionRef.doc(llissenciaId);
       const registryDoc = await transaction.get(registryDocRef);
-      if (!registryDoc.exists || registryDoc.data()?.accountStatus !== 'pending') {
-        throw new HttpsError('failed-precondition', 'L\'estat de la llicència al registre no és vàlid per completar el registre.');
+      if (!registryDoc.exists || registryDoc.data()?.accountStatus !== "pending") {
+        throw new HttpsError("failed-precondition", "L'estat de la llicència al registre no és vàlid per completar el registre.");
       }
       const registryData = registryDoc.data() as LicenseProfile;
 
@@ -108,11 +108,11 @@ export const completeRegistration = onCall({ timeoutSeconds: 60 }, async (reques
           displayName: `${registryData.nom} ${registryData.cognoms}`, // Nom agafat del registre
         });
       } catch (error: any) {
-        if (error.code === 'auth/email-already-exists') {
-          throw new HttpsError('already-exists', 'Aquest correu electrònic ja està registrat.');
+        if (error.code === "auth/email-already-exists") {
+          throw new HttpsError("already-exists", "Aquest correu electrònic ja està registrat.");
         } else {
           console.error("Error creant usuari a Auth:", error);
-          throw new HttpsError('internal', 'Error intern al crear el compte d\'usuari.');
+          throw new HttpsError("internal", "Error intern al crear el compte d'usuari.");
         }
       }
       const createdUid = userRecord.uid;
@@ -122,7 +122,7 @@ export const completeRegistration = onCall({ timeoutSeconds: 60 }, async (reques
         uid: createdUid,
         email: normalizedEmail,
         displayName: `${registryData.nom} ${registryData.cognoms}`,
-        role: 'referee', // O determinar si és 'auxiliar' basat en registryData.categoriaRrtt si cal
+        role: "referee", // O determinar si és 'auxiliar' basat en registryData.categoriaRrtt si cal
         llissenciaId: llissenciaId,
         categoriaRrtt: registryData.categoriaRrtt,
         isSubscribed: false, // Estat inicial de subscripció
@@ -132,12 +132,12 @@ export const completeRegistration = onCall({ timeoutSeconds: 60 }, async (reques
       transaction.set(userDocRef, newUserProfile);
 
       // 3d. Actualitzar l'estat a /referees_registry/{llissenciaId} a 'active'
-      transaction.update(registryDocRef, { accountStatus: 'active' });
+      transaction.update(registryDocRef, {accountStatus: "active"});
 
       // 3e. Actualitzar l'estat a /registration_requests/{requestId} a 'completed'
       transaction.update(approvedRequestDoc.ref, {
-         status: 'completed', // Marquem com a completada
-         updatedAt: FieldValue.serverTimestamp()
+        status: "completed", // Marquem com a completada
+        updatedAt: FieldValue.serverTimestamp(),
       });
 
       return createdUid; // La transacció retorna el UID del nou usuari
@@ -147,14 +147,13 @@ export const completeRegistration = onCall({ timeoutSeconds: 60 }, async (reques
     return {
       success: true,
       uid: newUid,
-      message: 'Registre completat amb èxit! Ja pots iniciar sessió.',
+      message: "Registre completat amb èxit! Ja pots iniciar sessió.",
     };
-
   } catch (error) {
     if (error instanceof HttpsError) {
       throw error; // Re-llancem els errors HttpsError
     }
-    console.error('Error a completeRegistration:', error);
-    throw new HttpsError('internal', 'Ha ocorregut un error inesperat en finalitzar el registre.');
+    console.error("Error a completeRegistration:", error);
+    throw new HttpsError("internal", "Ha ocorregut un error inesperat en finalitzar el registre.");
   }
 });

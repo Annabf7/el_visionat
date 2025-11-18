@@ -1,11 +1,11 @@
 // functions/src/auth/request_registration.ts
 // Versió amb onCall v2, regió especificada, i logs de depuració
 
-import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { RegistrationRequest } from "../models/registration_request";
-import { LicenseProfile } from "../models/license_profile"; // Importem LicenseProfile
-import { sendRegistrationNotification } from '../email/send_registration_notification';
+import {onCall, HttpsError} from "firebase-functions/v2/https";
+import {getFirestore, FieldValue} from "firebase-admin/firestore";
+import {RegistrationRequest} from "../models/registration_request";
+import {LicenseProfile} from "../models/license_profile"; // Importem LicenseProfile
+import {sendRegistrationNotification} from "../email/send_registration_notification";
 
 const db = getFirestore();
 
@@ -16,21 +16,21 @@ interface RequestRegistrationData {
 
 // Assegurem la regió aquí
 // Declare the secret used by this function so Secret Manager and emulators can provide it
-export const requestRegistration = onCall({ secrets: ['RESEND_API_KEY'], timeoutSeconds: 60 }, async (request) => {
+export const requestRegistration = onCall({secrets: ["RESEND_API_KEY"], timeoutSeconds: 60}, async (request) => {
   // Log inicial
-  console.log('[requestRegistration onCall] Received request with data:', JSON.stringify(request.data));
+  console.log("[requestRegistration onCall] Received request with data:", JSON.stringify(request.data));
 
-  const { llissenciaId, email } = request.data as RequestRegistrationData;
+  const {llissenciaId, email} = request.data as RequestRegistrationData;
 
   // 1. Validació bàsica d'entrada
   if (!llissenciaId || !email) {
-     console.warn('[requestRegistration onCall] Invalid argument: Missing llissenciaId or email');
-    throw new HttpsError('invalid-argument', 'Falten l\'ID de llicència o el correu electrònic.');
+    console.warn("[requestRegistration onCall] Invalid argument: Missing llissenciaId or email");
+    throw new HttpsError("invalid-argument", "Falten l'ID de llicència o el correu electrònic.");
   }
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
-     console.warn('[requestRegistration onCall] Invalid argument: Invalid email format');
-    throw new HttpsError('invalid-argument', 'El format del correu electrònic no és vàlid.');
+    console.warn("[requestRegistration onCall] Invalid argument: Invalid email format");
+    throw new HttpsError("invalid-argument", "El format del correu electrònic no és vàlid.");
   }
   const normalizedEmail = email.toLowerCase();
   console.log(`[requestRegistration onCall] Processing request for license ${llissenciaId} and email ${normalizedEmail}`);
@@ -39,12 +39,12 @@ export const requestRegistration = onCall({ secrets: ['RESEND_API_KEY'], timeout
   let createdRequestId: string | null = null;
   let capturedRegistryData: LicenseProfile | undefined;
   try {
-    const registryDocRef = db.collection('referees_registry').doc(llissenciaId);
-    const requestCollectionRef = db.collection('registration_requests');
+    const registryDocRef = db.collection("referees_registry").doc(llissenciaId);
+    const requestCollectionRef = db.collection("registration_requests");
 
-  // 2. Transacció per garantir consistència
-  await db.runTransaction(async (transaction) => {
-      console.log('[requestRegistration onCall] Starting transaction...'); // Log transacció
+    // 2. Transacció per garantir consistència
+    await db.runTransaction(async (transaction) => {
+      console.log("[requestRegistration onCall] Starting transaction..."); // Log transacció
 
       // 2a. Llegir el document del registre dins la transacció
       const registryDoc = await transaction.get(registryDocRef);
@@ -52,10 +52,10 @@ export const requestRegistration = onCall({ secrets: ['RESEND_API_KEY'], timeout
 
 
       if (!registryDoc.exists) {
-         console.warn(`[requestRegistration onCall] Transaction: Registry doc ${llissenciaId} not found.`);
+        console.warn(`[requestRegistration onCall] Transaction: Registry doc ${llissenciaId} not found.`);
         throw new HttpsError(
-          'not-found',
-          'El número de llicència no s\'ha trobat al nostre registre.'
+          "not-found",
+          "El número de llicència no s'ha trobat al nostre registre."
         );
       }
 
@@ -65,104 +65,102 @@ export const requestRegistration = onCall({ secrets: ['RESEND_API_KEY'], timeout
         capturedRegistryData = registryData;
       }
       if (!registryData) { // Comprovació més segura
-         console.error(`[requestRegistration onCall] Transaction: Failed to read registry data for ${llissenciaId}.`);
-        throw new HttpsError('internal', 'Error llegint les dades del registre.');
+        console.error(`[requestRegistration onCall] Transaction: Failed to read registry data for ${llissenciaId}.`);
+        throw new HttpsError("internal", "Error llegint les dades del registre.");
       }
 
       // 2b. Comprovar l'estat al registre
-      if (registryData.accountStatus !== 'pending') {
-         console.warn(`[requestRegistration onCall] Transaction: License ${llissenciaId} status is not pending (${registryData.accountStatus}).`);
+      if (registryData.accountStatus !== "pending") {
+        console.warn(`[requestRegistration onCall] Transaction: License ${llissenciaId} status is not pending (${registryData.accountStatus}).`);
         throw new HttpsError(
-          'failed-precondition',
-          'Aquesta llicència ja té un compte actiu o està en un estat inesperat.'
+          "failed-precondition",
+          "Aquesta llicència ja té un compte actiu o està en un estat inesperat."
         );
       }
 
       // 2c. Comprovar si JA EXISTEIX una sol·licitud PENDENT per aquesta llicència
       console.log(`[requestRegistration onCall] Transaction: Querying existing pending request by license ${llissenciaId}...`);
       const existingRequestLicenseQuery = requestCollectionRef
-        .where('llissenciaId', '==', llissenciaId)
-        .where('status', '==', 'pending');
+        .where("llissenciaId", "==", llissenciaId)
+        .where("status", "==", "pending");
       const existingRequestLicenseSnapshot = await transaction.get(existingRequestLicenseQuery);
-       console.log(`[requestRegistration onCall] Transaction: Found ${existingRequestLicenseSnapshot.size} pending requests for license.`);
+      console.log(`[requestRegistration onCall] Transaction: Found ${existingRequestLicenseSnapshot.size} pending requests for license.`);
 
       if (!existingRequestLicenseSnapshot.empty) {
-          console.warn(`[requestRegistration onCall] Transaction: Pending request already exists for license ${llissenciaId}.`);
-         throw new HttpsError(
-          'already-exists',
-          'Ja existeix una sol·licitud de registre pendent per a aquesta llicència.'
+        console.warn(`[requestRegistration onCall] Transaction: Pending request already exists for license ${llissenciaId}.`);
+        throw new HttpsError(
+          "already-exists",
+          "Ja existeix una sol·licitud de registre pendent per a aquesta llicència."
         );
       }
 
       // 2d. Comprovar si JA EXISTEIX una sol·licitud PENDENT per aquest EMAIL
-       console.log(`[requestRegistration onCall] Transaction: Querying existing pending request by email ${normalizedEmail}...`);
-       const existingRequestEmailQuery = requestCollectionRef
-        .where('email', '==', normalizedEmail)
-        .where('status', '==', 'pending');
+      console.log(`[requestRegistration onCall] Transaction: Querying existing pending request by email ${normalizedEmail}...`);
+      const existingRequestEmailQuery = requestCollectionRef
+        .where("email", "==", normalizedEmail)
+        .where("status", "==", "pending");
       const existingRequestEmailSnapshot = await transaction.get(existingRequestEmailQuery);
       console.log(`[requestRegistration onCall] Transaction: Found ${existingRequestEmailSnapshot.size} pending requests for email.`);
 
-       if (!existingRequestEmailSnapshot.empty) {
-         console.warn(`[requestRegistration onCall] Transaction: Pending request already exists for email ${normalizedEmail}.`);
-         throw new HttpsError(
-          'already-exists',
-          'Ja existeix una sol·licitud de registre pendent per a aquest correu electrònic.'
+      if (!existingRequestEmailSnapshot.empty) {
+        console.warn(`[requestRegistration onCall] Transaction: Pending request already exists for email ${normalizedEmail}.`);
+        throw new HttpsError(
+          "already-exists",
+          "Ja existeix una sol·licitud de registre pendent per a aquest correu electrònic."
         );
       }
 
       // 3. Crear el nou document de sol·licitud
-      console.log('[requestRegistration onCall] Transaction: Creating new request document...');
+      console.log("[requestRegistration onCall] Transaction: Creating new request document...");
       const newRequestRef = requestCollectionRef.doc(); // Firestore genera un ID automàtic
       const newRequestData: RegistrationRequest = {
         llissenciaId: llissenciaId,
         email: normalizedEmail,
         nom: registryData.nom, // Agafem nom/cognoms del document llegit dins la transacció
         cognoms: registryData.cognoms,
-        status: 'pending',
+        status: "pending",
         createdAt: FieldValue.serverTimestamp(),
       };
 
       transaction.set(newRequestRef, newRequestData);
       // Guardem l'ID perquè després, després del commit, puguem enviar la notificació
       createdRequestId = newRequestRef.id;
-      console.log('[requestRegistration onCall] Transaction: New request document set with id', createdRequestId);
-
+      console.log("[requestRegistration onCall] Transaction: New request document set with id", createdRequestId);
     }); // Fi de la transacció
-     console.log('[requestRegistration onCall] Transaction committed successfully.');
+    console.log("[requestRegistration onCall] Transaction committed successfully.");
 
     // 4. Després del commit: enviem la notificació per correu (si s'ha creat l'ID)
     if (createdRequestId) {
       try {
         // Llegim el document creat per obtenir el timestamp de creació real
-        const createdDoc = await db.collection('registration_requests').doc(createdRequestId).get();
+        const createdDoc = await db.collection("registration_requests").doc(createdRequestId).get();
         const createdAt = createdDoc.exists ? createdDoc.data()?.createdAt : undefined;
         await sendRegistrationNotification({
           llissenciaId,
           email: normalizedEmail,
-          nom: capturedRegistryData?.nom || '',
-          cognoms: capturedRegistryData?.cognoms || '',
+          nom: capturedRegistryData?.nom || "",
+          cognoms: capturedRegistryData?.cognoms || "",
           requestId: createdRequestId,
           createdAt,
         });
       } catch (notifyErr) {
         // No volem fallar la funció principal si l'enviament d'email falla; es registra l'error
-        console.error('[requestRegistration onCall] Failed to send registration notification:', notifyErr);
+        console.error("[requestRegistration onCall] Failed to send registration notification:", notifyErr);
       }
     }
 
     // 4. Èxit (es retorna al client)
-     console.log('[requestRegistration onCall] Request processed successfully.');
+    console.log("[requestRegistration onCall] Request processed successfully.");
     return {
       success: true,
-      message: 'Sol·licitud de registre enviada correctament. Serà revisada aviat.',
+      message: "Sol·licitud de registre enviada correctament. Serà revisada aviat.",
     };
-
   } catch (error) {
-     console.error('[requestRegistration onCall] Error during execution:', error); // Log d'error
+    console.error("[requestRegistration onCall] Error during execution:", error); // Log d'error
     if (error instanceof HttpsError) {
       throw error; // Re-llancem els errors HttpsError
     }
     // Per a qualsevol altre error inesperat dins la lògica o transacció
-    throw new HttpsError('internal', 'Ha ocorregut un error inesperat en processar la sol·licitud.');
+    throw new HttpsError("internal", "Ha ocorregut un error inesperat en processar la sol·licitud.");
   }
 });

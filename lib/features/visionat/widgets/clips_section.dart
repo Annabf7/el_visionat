@@ -303,16 +303,45 @@ class _ClipsSectionState extends State<ClipsSection> {
   Future<void> _openVideo(String url) async {
     try {
       final uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        if (mounted) {
-          _showError('No es pot obrir el vídeo');
+
+      // Estratègia múltiple per Android: provar diferents modes de llançament
+      bool launched = false;
+
+      // 1. Intentar obrir amb app externa específica (YouTube app si està disponible)
+      try {
+        launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalNonBrowserApplication,
+        );
+      } catch (e) {
+        // Continuar amb la següent estratègia
+      }
+
+      // 2. Si no funciona, provar amb aplicació externa general
+      if (!launched) {
+        try {
+          launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } catch (e) {
+          // Continuar amb la següent estratègia
         }
+      }
+
+      // 3. Fallback: verificar disponibilitat i obrir en navegador extern
+      if (!launched) {
+        if (await canLaunchUrl(uri)) {
+          launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+        }
+      }
+
+      // 4. Si tot falla, mostrar error descriptiu
+      if (!launched && mounted) {
+        _showError(
+          'No es pot obrir YouTube. Assegura\'t que tens una app compatible instal·lada.',
+        );
       }
     } catch (e) {
       if (mounted) {
-        _showError('Error obrint el vídeo');
+        _showError('Error obrint el vídeo: ${e.toString()}');
       }
     }
   }

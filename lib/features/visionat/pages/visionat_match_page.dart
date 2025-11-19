@@ -284,23 +284,54 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
       builder: (context, constraints) {
         final isWideScreen = constraints.maxWidth >= 900;
 
-        return Scaffold(
-          key: _scaffoldKey,
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          // Drawer en mòbil per navegació
-          drawer: isWideScreen ? null : const SideNavigationMenu(),
+        if (isWideScreen) {
+          // Layout desktop: Menú lateral ocupa tota l'alçada
+          return Scaffold(
+            key: _scaffoldKey,
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            body: Row(
+              children: [
+                // Menú lateral amb alçada completa (inclou l'espai del header)
+                Container(
+                  width: 288,
+                  height: double.infinity,
+                  child: const SideNavigationMenu(),
+                ),
 
-          body: Column(
-            children: [
-              // GlobalHeader sempre visible
-              GlobalHeader(scaffoldKey: _scaffoldKey),
-              // Contingut principal expandit
-              Expanded(
-                child: isWideScreen ? _buildWebLayout() : _buildMobileLayout(),
-              ),
-            ],
-          ),
-        );
+                // Columna dreta amb GlobalHeader + contingut
+                Expanded(
+                  child: Column(
+                    children: [
+                      // GlobalHeader només per l'amplada restant
+                      GlobalHeader(
+                        scaffoldKey: _scaffoldKey,
+                        showMenuButton: false,
+                      ),
+
+                      // Contingut principal
+                      Expanded(child: _buildWebLayout()),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        } else {
+          // Layout mòbil: comportament tradicional
+          return Scaffold(
+            key: _scaffoldKey,
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            drawer: const SideNavigationMenu(),
+            body: Column(
+              children: [
+                // GlobalHeader sempre visible
+                GlobalHeader(scaffoldKey: _scaffoldKey),
+                // Contingut principal expandit
+                Expanded(child: _buildMobileLayout()),
+              ],
+            ),
+          );
+        }
       },
     );
   }
@@ -309,97 +340,86 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Menú lateral fix en mode desktop
-        const SizedBox(width: 288, child: SideNavigationMenu()),
-
-        // Contingut principal
+        // Columna esquerra
         Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Columna esquerra
-              Expanded(
-                flex: 2,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      const MatchHeader(),
-                      const SizedBox(height: 24),
-                      const MatchVideoSection(),
-                      const SizedBox(height: 24),
-                      Consumer<VisionatHighlightProvider>(
-                        builder: (context, provider, child) => TagFilterBar(
-                          selectedCategory: provider.selectedCategory,
-                          onCategoryChanged: _onCategoryChanged,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Consumer<VisionatHighlightProvider>(
-                        builder: (context, provider, child) {
-                          if (provider.isLoading) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          }
-                          if (provider.hasError) {
-                            return Center(
-                              child: Column(
-                                children: [
-                                  Text(
-                                    'Error: ${provider.errorMessage}',
-                                    style: TextStyle(color: Colors.red),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () => provider.refresh(),
-                                    child: Text('Tornar a carregar'),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
-                          return HighlightsTimeline(
-                            entries: provider.filteredHighlights,
-                            selectedCategory: provider.selectedCategory,
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                      const ClipsSection(),
-                    ],
+          flex: 2,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                const MatchHeader(),
+                const SizedBox(height: 24),
+                const MatchVideoSection(),
+                const SizedBox(height: 24),
+                Consumer<VisionatHighlightProvider>(
+                  builder: (context, provider, child) => TagFilterBar(
+                    selectedCategory: provider.selectedCategory,
+                    onCategoryChanged: _onCategoryChanged,
                   ),
                 ),
-              ),
-              // Columna dreta
-              Expanded(
-                flex: 1,
-                child: Container(
-                  color: Theme.of(context).colorScheme.surface,
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      children: [
-                        MatchDetailsCard(details: mockMatchDetails),
-                        const SizedBox(height: 16),
-                        AddHighlightCard(onHighlightAdded: _addNewHighlight),
-                        const SizedBox(height: 16),
-                        const RefereeCommentCard(),
-                        const SizedBox(height: 16),
-                        Consumer<VisionatCollectiveCommentProvider>(
-                          builder: (context, provider, child) {
-                            return AnalysisSectionCard(
-                              matchId: _mockMatchId,
-                              collectiveComments: provider.comments,
-                              onViewAllComments: _openCollectiveAnalysisModal,
-                            );
-                          },
+                const SizedBox(height: 24),
+                Consumer<VisionatHighlightProvider>(
+                  builder: (context, provider, child) {
+                    if (provider.isLoading) {
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
+                    if (provider.hasError) {
+                      return Center(
+                        child: Column(
+                          children: [
+                            Text(
+                              'Error: ${provider.errorMessage}',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => provider.refresh(),
+                              child: Text('Tornar a carregar'),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
+                      );
+                    }
+                    return HighlightsTimeline(
+                      entries: provider.filteredHighlights,
+                      selectedCategory: provider.selectedCategory,
+                    );
+                  },
                 ),
+                const SizedBox(height: 24),
+                const ClipsSection(),
+              ],
+            ),
+          ),
+        ),
+        // Columna dreta
+        Expanded(
+          flex: 1,
+          child: Container(
+            color: Theme.of(context).colorScheme.surface,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  MatchDetailsCard(details: mockMatchDetails),
+                  const SizedBox(height: 16),
+                  AddHighlightCard(onHighlightAdded: _addNewHighlight),
+                  const SizedBox(height: 16),
+                  const RefereeCommentCard(),
+                  const SizedBox(height: 16),
+                  Consumer<VisionatCollectiveCommentProvider>(
+                    builder: (context, provider, child) {
+                      return AnalysisSectionCard(
+                        matchId: _mockMatchId,
+                        collectiveComments: provider.comments,
+                        onViewAllComments: _openCollectiveAnalysisModal,
+                      );
+                    },
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ],

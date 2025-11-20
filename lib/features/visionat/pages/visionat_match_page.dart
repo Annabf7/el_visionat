@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/highlight_entry.dart';
-import '../models/match_models.dart';
 import '../models/collective_comment.dart';
 
 import '../providers/highlight_provider.dart';
 import '../providers/collective_comment_provider.dart';
 import '../providers/personal_analysis_provider.dart';
+import '../providers/weekly_match_provider.dart';
 
 import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
 import 'package:el_visionat/core/widgets/global_header.dart';
@@ -48,9 +48,13 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
       final highlightProvider = context.read<VisionatHighlightProvider>();
       final commentProvider = context.read<VisionatCollectiveCommentProvider>();
       final personalAnalysisProvider = context.read<PersonalAnalysisProvider>();
+      final weeklyMatchProvider = context.read<WeeklyMatchProvider>();
 
       highlightProvider.setMatch(_mockMatchId);
       commentProvider.setMatch(_mockMatchId);
+
+      // Inicialitzar weekly match provider per carregar àrbitre
+      weeklyMatchProvider.initialize();
 
       // Inicialitzar personal analysis amb userId actual
       final user = FirebaseAuth.instance.currentUser;
@@ -60,12 +64,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
     });
   }
 
-  // Mock data per a detalls del partit
-  final MatchDetails mockMatchDetails = const MatchDetails(
-    refereeName: 'Marc Ribas',
-    league: 'Super copa Catalunya',
-    matchday: 10,
-  );
+  // Les dades del partit es gestionen pel WeeklyMatchProvider
 
   @override
   void dispose() {
@@ -292,7 +291,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
             body: Row(
               children: [
                 // Menú lateral amb alçada completa (inclou l'espai del header)
-                Container(
+                SizedBox(
                   width: 288,
                   height: double.infinity,
                   child: const SideNavigationMenu(),
@@ -361,9 +360,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
                 Consumer<VisionatHighlightProvider>(
                   builder: (context, provider, child) {
                     if (provider.isLoading) {
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
+                      return const Center(child: CircularProgressIndicator());
                     }
                     if (provider.hasError) {
                       return Center(
@@ -402,7 +399,11 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  MatchDetailsCard(details: mockMatchDetails),
+                  Consumer<WeeklyMatchProvider>(
+                    builder: (context, matchProvider, child) {
+                      return MatchDetailsCard(details: matchProvider.matchDetails);
+                    },
+                  ),
                   const SizedBox(height: 16),
                   AddHighlightCard(onHighlightAdded: _addNewHighlight),
                   const SizedBox(height: 16),
@@ -470,7 +471,11 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
             },
           ),
           const SizedBox(height: 16),
-          MatchDetailsCard(details: mockMatchDetails),
+          Consumer<WeeklyMatchProvider>(
+            builder: (context, matchProvider, child) {
+              return MatchDetailsCard(details: matchProvider.matchDetails);
+            },
+          ),
           const SizedBox(height: 16),
           AddHighlightCard(onHighlightAdded: _addNewHighlight),
           const SizedBox(height: 16),

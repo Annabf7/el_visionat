@@ -31,9 +31,11 @@ export 'services/highlight_service.dart';
 export 'services/collective_comment_service.dart';
 export 'services/personal_analysis_service.dart';
 export 'services/youtube_service.dart';
+export 'services/match_referee_service.dart';
 
 // Providers
 export 'providers/highlight_provider.dart';
 export 'providers/collective_comment_provider.dart';
 export 'providers/personal_analysis_provider.dart';
 export 'providers/youtube_provider.dart';
+export 'providers/weekly_match_provider.dart';

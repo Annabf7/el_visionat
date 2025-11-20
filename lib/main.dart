@@ -129,6 +129,11 @@ void main() async {
             teamDataService: context.read<TeamDataService>(),
           ), // Provider per a la gestió d'equips
         ),
+        ChangeNotifierProvider(
+          create: (_) => WeeklyMatchProvider(
+            MatchRefereeService(), // Service per carregar àrbitres
+          ), // Provider per al partit de la setmana
+        ),
         // Navigation provider to keep track of the current route name
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
         // Visionat feature providers

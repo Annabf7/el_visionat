@@ -18,6 +18,7 @@ class HomeProvider with ChangeNotifier {
   final int analyzedMatches = 127;
   final String averagePrecision = '91%';
   final String currentLevel = 'Avançat';
+  final int yearsOfExperience = 8; // Years of referee experience
   final String openVotingTitle = 'VOTACIÓ OBERTA PER AL PRÒXIM VISIONAT';
 
   // Lògica d'accés (per a la visibilitat de contingut de pagament)

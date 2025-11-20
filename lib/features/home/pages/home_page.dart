@@ -34,7 +34,7 @@ class _HomePageState extends State<HomePage> {
             body: Row(
               children: [
                 // Menú lateral amb alçada completa (inclou l'espai del header)
-                Container(
+                SizedBox(
                   width: 288,
                   height: double.infinity,
                   child: const SideNavigationMenu(),

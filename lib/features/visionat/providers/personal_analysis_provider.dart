@@ -46,6 +46,37 @@ class PersonalAnalysisProvider extends ChangeNotifier {
   /// Indica si hi ha un error actiu
   bool get hasError => _errorMessage != null;
 
+  /// Nombre total de partits analitzats (estimat pels apunts únics per partit)
+  int get totalMatchesAnalyzed {
+    final uniqueMatches = <String>{};
+    for (final analysis in _analyses) {
+      uniqueMatches.add(analysis.matchId);
+    }
+    return uniqueMatches.length;
+  }
+
+  /// Nombre total d'apunts personals creats
+  int get totalPersonalNotes => _analyses.length;
+
+  /// Llista dels tags més utilitzats (màxim 3)
+  List<String> get topTags {
+    final tagCounts = <String, int>{};
+
+    // Comptar la freqüència de cada tag
+    for (final analysis in _analyses) {
+      for (final tag in analysis.tags) {
+        final tagName = tag.name;
+        tagCounts[tagName] = (tagCounts[tagName] ?? 0) + 1;
+      }
+    }
+
+    // Ordenar per freqüència i retornar els 3 primers
+    final sortedTags = tagCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return sortedTags.take(3).map((entry) => entry.key).toList();
+  }
+
   // --- Mètodes públics ---
 
   /// Estableix l'usuari a gestionar

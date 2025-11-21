@@ -51,6 +51,9 @@ dependencies:
   http: ^1.1.0
   url_launcher: ^6.2.1
   video_player: ^2.10.1
+  # Profile & Image handling dependencies
+  image_picker: ^1.0.4
+  cached_network_image: ^3.3.0
 
 dev_dependencies:
   flutter_test:
@@ -79,6 +82,7 @@ flutter:
   assets:
     - assets/data/
     - assets/images/teams/
+    - assets/images/profile/
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

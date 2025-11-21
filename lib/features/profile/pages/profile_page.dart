@@ -3,8 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:el_visionat/core/widgets/global_header.dart';
 import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
-import 'package:el_visionat/features/auth/providers/auth_provider.dart';
-import 'package:el_visionat/features/visionat/providers/personal_analysis_provider.dart';
+
+import 'package:el_visionat/features/visionat/providers/weekly_match_provider.dart';
+import '../widgets/profile_header_widget.dart';
+import '../widgets/profile_info_widget.dart';
+import '../widgets/profile_footprint_widget.dart';
+import '../widgets/personal_notes_table_widget.dart';
 
 /// Pàgina de perfil d'usuari amb layout responsiu
 /// Segueix el prototip Figma amb la paleta de colors Visionat
@@ -24,7 +28,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: AppTheme.porpraFosc,
+      backgroundColor: Colors.white, // Fons blanc per la transició del header
       drawer: isDesktop ? null : const SideNavigationMenu(),
       body: Column(
         children: [
@@ -39,16 +43,12 @@ class _ProfilePageState extends State<ProfilePage> {
                       // Contingut principal
                       Expanded(
                         child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(32),
                           child: _buildDesktopLayout(),
                         ),
                       ),
                     ],
                   )
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: _buildMobileLayout(),
-                  ),
+                : SingleChildScrollView(child: _buildMobileLayout()),
           ),
         ],
       ),
@@ -56,31 +56,52 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildDesktopLayout() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
       children: [
-        // Columna esquerra
-        Expanded(
-          flex: 1,
-          child: Column(
-            children: [
-              _buildPersonalInfo(),
-              const SizedBox(height: 24),
-              _buildEmpremtaVisionat(),
-              const SizedBox(height: 24),
-              _buildObjectiusTemporada(),
-            ],
-          ),
+        // 🔥 PROFILE HEADER - Segueix prototip Figma (desktop, pantalla completa)
+        ProfileHeaderWidget(
+          height: 300, // Més alt en desktop
+          onEditProfile: () => _handleEditProfile(),
+          onChangeVisibility: () => _handleChangeVisibility(),
+          onCompareProfileEvolution: () => _handleCompareEvolution(),
         ),
-        const SizedBox(width: 32),
-        // Columna dreta
-        Expanded(
-          flex: 1,
+        const SizedBox(height: 32),
+        // Contingut amb padding lateral
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
             children: [
-              _buildApuntsPersonals(),
-              const SizedBox(height: 24),
-              _buildBadges(),
+              // Layout de dues columnes
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Columna esquerra
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      children: [
+                        _buildPersonalInfo(),
+                        const SizedBox(height: 24),
+                        _buildEmpremtaVisionat(),
+                        const SizedBox(height: 24),
+                        _buildObjectiusTemporada(),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 32),
+                  // Columna dreta
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      children: [
+                        _buildApuntsPersonals(),
+                        const SizedBox(height: 24),
+                        _buildBadges(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -91,306 +112,63 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildMobileLayout() {
     return Column(
       children: [
-        _buildPersonalInfo(),
+        // 🔥 PROFILE HEADER - Segueix prototip Figma (pantalla completa)
+        ProfileHeaderWidget(
+          onEditProfile: () => _handleEditProfile(),
+          onChangeVisibility: () => _handleChangeVisibility(),
+          onCompareProfileEvolution: () => _handleCompareEvolution(),
+        ),
         const SizedBox(height: 24),
-        _buildEmpremtaVisionat(),
-        const SizedBox(height: 24),
-        _buildApuntsPersonals(),
-        const SizedBox(height: 24),
-        _buildObjectiusTemporada(),
-        const SizedBox(height: 24),
-        _buildBadges(),
+        // Contingut amb padding lateral
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: [
+              _buildPersonalInfo(),
+              const SizedBox(height: 24),
+              _buildEmpremtaVisionat(),
+              const SizedBox(height: 24),
+              _buildApuntsPersonals(),
+              const SizedBox(height: 24),
+              _buildObjectiusTemporada(),
+              const SizedBox(height: 24),
+              _buildBadges(),
+            ],
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildPersonalInfo() {
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, _) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppTheme.textBlackLow,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Informació personal',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppTheme.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              Row(
-                children: [
-                  // Avatar
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: const BoxDecoration(
-                      color: AppTheme.mostassa,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.person,
-                      size: 40,
-                      color: AppTheme.porpraFosc,
-                    ),
-                  ),
-                  const SizedBox(width: 24),
-
-                  // Informació
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildInfoField(
-                          'Nom i cognoms',
-                          authProvider.currentUserDisplayName ?? 'Usuari',
-                        ),
-                        const SizedBox(height: 12),
-                        _buildInfoField(
-                          'Email',
-                          authProvider.currentUserEmail ?? 'email@exemple.com',
-                        ),
-                        const SizedBox(height: 12),
-                        _buildInfoField(
-                          'Categoria arbitral actual',
-                          'Categoria Regional',
-                        ),
-                        const SizedBox(height: 12),
-                        _buildInfoField('Anys d\'experiència', '5 anys'),
-                        const SizedBox(height: 12),
-                        _buildInfoField('Número de llicència', 'LIC-2024-001'),
-                        const SizedBox(height: 12),
-                        _buildInfoField('Comitè territorial', 'Comitè Català'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-
-              // Botons d'acció
-              Row(
-                children: [
-                  _buildActionButton(Icons.edit, 'Editar'),
-                  const SizedBox(width: 12),
-                  _buildActionButton(Icons.attach_file, 'Adjuntar'),
-                  const SizedBox(width: 12),
-                  _buildActionButton(Icons.settings, 'Configurar'),
-                ],
-              ),
-            ],
-          ),
+    return Consumer<WeeklyMatchProvider>(
+      builder: (context, matchProvider, _) {
+        return ProfileInfoWidget(
+          // portraitImageUrl: null, // Utilitzarà imatge local per defecte
+          refereeName: matchProvider.isLoading
+              ? 'Carregant àrbitre...'
+              : matchProvider.hasError
+              ? 'Anna Borràs Font' // Fallback
+              : matchProvider.refereeName,
+          refereeCategory: matchProvider.isLoading
+              ? '...'
+              : matchProvider.hasError
+              ? 'Categoria A2 - RT Girona' // Fallback del prototip
+              : matchProvider.refereeCategory,
+          refereeExperience: '10 anys arbitrats', // Del prototip Figma
+          onChangePortrait: () => _handleChangePortrait(),
+          enableImageEdit: true,
         );
       },
-    );
-  }
-
-  Widget _buildInfoField(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(color: AppTheme.grisBody, fontSize: 12),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: const TextStyle(
-            color: AppTheme.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButton(IconData icon, String tooltip) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: AppTheme.grisBody,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: IconButton(
-        onPressed: () {
-          // TODO: Implementar accions
-          debugPrint('Acció: $tooltip');
-        },
-        icon: Icon(icon, color: AppTheme.white, size: 20),
-        tooltip: tooltip,
-      ),
     );
   }
 
   Widget _buildEmpremtaVisionat() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppTheme.textBlackLow,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'La teva Empremta al Visionat',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppTheme.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          _buildEmpremtaCard('Partits analitzats', '12'),
-          const SizedBox(height: 12),
-          _buildEmpremtaCard('Apunts personals creats', '48'),
-          const SizedBox(height: 12),
-          _buildEmpremtaCard(
-            'Tags més utilitzats',
-            'Falta personal, Violació 3 segons',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmpremtaCard(String title, String value) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.grisBody.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppTheme.grisBody,
-              fontSize: 12,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: AppTheme.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
+    return const ProfileFootprintWidget();
   }
 
   Widget _buildApuntsPersonals() {
-    return Consumer<PersonalAnalysisProvider>(
-      builder: (context, provider, _) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppTheme.textBlackLow,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Apunts personals',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppTheme.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Estadístiques ràpides
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      '${provider.analysesCount}',
-                      'Total apunts',
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildStatCard('12', 'Aquest mes')),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildStatCard('5', 'Aquesta setmana')),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Botó per veure tots
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Navegar a vista completa d'apunts
-                    debugPrint('Mostrar tots els apunts');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.mostassa,
-                    foregroundColor: AppTheme.porpraFosc,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    'Mostrar tot',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildStatCard(String value, String label) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.grisBody.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: const TextStyle(
-              color: AppTheme.mostassa,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(color: AppTheme.grisBody, fontSize: 10),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
+    return const PersonalNotesTableWidget();
   }
 
   Widget _buildObjectiusTemporada() {
@@ -542,6 +320,63 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // 🔥 PROFILE HEADER CALLBACKS
+  // Implementació placeholder per les funcions del menú kebab
+
+  /// Gestiona l'edició del perfil d'usuari
+  void _handleEditProfile() {
+    debugPrint('🔧 ProfilePage: Editant perfil d\'usuari');
+    // TODO: Navegar a pàgina d'edició de perfil
+    // TODO: Obrir bottomsheet amb formulari
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          '🔧 Funcionalitat d\'edició del perfil en desenvolupament',
+        ),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  /// Gestiona la configuració de visibilitat del perfil
+  void _handleChangeVisibility() {
+    debugPrint('👁️ ProfilePage: Configurant visibilitat del perfil');
+    // TODO: Mostrar diàleg de configuració de privacitat
+    // TODO: Opcions: Públic, Només àrbitres, Privat
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('👁️ Configuració de visibilitat en desenvolupament'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  /// Gestiona la comparació d'evolució del perfil
+  void _handleCompareEvolution() {
+    debugPrint('📊 ProfilePage: Mostrant evolució del perfil');
+    // TODO: Generar informe de comparativa temporal
+    // TODO: Mostrar estadístiques d'evolució (1 any enrere)
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('📊 Comparativa d\'evolució en desenvolupament'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  /// Gestiona el canvi de la imatge de portrait/avatar
+  void _handleChangePortrait() {
+    debugPrint('📸 ProfilePage: Canviant imatge de portrait');
+    // TODO: Implementar upload a Firebase Storage
+    // TODO: Actualitzar URL al perfil d'usuari
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('📸 Selecció d\'imatge de portrait en desenvolupament'),
+        duration: Duration(seconds: 2),
       ),
     );
   }

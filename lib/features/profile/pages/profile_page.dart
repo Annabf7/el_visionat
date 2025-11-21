@@ -9,6 +9,7 @@ import '../widgets/profile_header_widget.dart';
 import '../widgets/profile_info_widget.dart';
 import '../widgets/profile_footprint_widget.dart';
 import '../widgets/personal_notes_table_widget.dart';
+import '../widgets/season_goals_widget.dart';
 
 /// Pàgina de perfil d'usuari amb layout responsiu
 /// Segueix el prototip Figma amb la paleta de colors Visionat
@@ -172,69 +173,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildObjectiusTemporada() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppTheme.textBlackLow,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Objectius de la Temporada',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppTheme.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          _buildObjectiveCard('3 punts forts', 'Expandir'),
-          const SizedBox(height: 12),
-          _buildObjectiveCard('3 punts a millorar', 'Expandir'),
-          const SizedBox(height: 12),
-          _buildObjectiveCard('3 objectius trimestrals', 'Expandir'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildObjectiveCard(String title, String action) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.grisBody.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppTheme.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          Row(
-            children: [
-              Text(
-                action,
-                style: const TextStyle(color: AppTheme.grisBody, fontSize: 12),
-              ),
-              const SizedBox(width: 4),
-              const Icon(
-                Icons.keyboard_arrow_down,
-                color: AppTheme.grisBody,
-                size: 16,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+    return const SeasonGoalsWidget();
   }
 
   Widget _buildBadges() {

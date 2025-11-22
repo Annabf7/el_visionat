@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 
@@ -12,12 +11,11 @@ import 'package:el_visionat/core/theme/app_theme.dart';
 /// • Mostra imatge fixa durant desenvolupament
 /// • Preparada per imatges d'usuari via image_picker
 /// • Menú kebab (3 punts) amb opcions de perfil
-/// • Shimmer loading per imatges externes
 /// • Responsive design (mòbil/desktop)
 ///
 /// ASSETS REQUERIT:
 /// • assets/images/profile/profile_header.webp
-class ProfileHeaderWidget extends StatelessWidget {
+class ProfileHeaderWidget extends StatefulWidget {
   /// URL de la imatge de perfil de l'usuari (null = imatge per defecte)
   final String? imageUrl;
 
@@ -29,6 +27,9 @@ class ProfileHeaderWidget extends StatelessWidget {
   /// Altura del header (responsive)
   final double? height;
 
+  /// Callback per guardar l'offset de la imatge
+  final Function(double offset)? onImageOffsetChanged;
+
   const ProfileHeaderWidget({
     super.key,
     this.imageUrl,
@@ -36,13 +37,21 @@ class ProfileHeaderWidget extends StatelessWidget {
     this.onChangeVisibility,
     this.onCompareProfileEvolution,
     this.height,
+    this.onImageOffsetChanged,
   });
 
+  @override
+  State<ProfileHeaderWidget> createState() => _ProfileHeaderWidgetState();
+}
+
+class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
+  bool _isAdjustingImage = false;
+  double _imageOffsetY = 0.0; // -1.5 (dalt) a 1.5 (baix)
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth > 900;
-    final headerHeight = height ?? (isDesktop ? 300.0 : 250.0);
+    final headerHeight = widget.height ?? (isDesktop ? 500.0 : 250.0);
 
     return SizedBox(
       width: double.infinity,
@@ -50,114 +59,199 @@ class ProfileHeaderWidget extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Imatge principal del header - pantalla completa sense marges
+          // Imatge principal del header
           _buildHeaderImage(),
 
           // Efecte blur a la part inferior
           _buildBottomBlurOverlay(),
 
-          // Gradient overlay per millor contrast del botó kebab
+          // Gradient overlay per millor contrast dels botons
           _buildTopGradientOverlay(),
 
           // Botó menú kebab (3 punts) - part superior dreta
           Positioned(top: 16, right: 16, child: _buildKebabMenuButton(context)),
+
+          // Botó d'ajustament d'imatge - part superior esquerra
+          Positioned(top: 16, left: 16, child: _buildImageAdjustButton()),
+
+          // Controls d'ajustament quan està actiu
+          if (_isAdjustingImage) _buildAdjustmentControls(),
         ],
       ),
     );
   }
 
-  /// Construeix la imatge principal del header
+  /// Imatge principal del header amb ajustament interactiu
   Widget _buildHeaderImage() {
-    if (imageUrl != null && imageUrl!.isNotEmpty) {
-      // Imatge d'usuari des de URL externa
-      return _buildNetworkImage();
-    } else {
-      // Imatge per defecte local durant desenvolupament
-      return _buildDefaultImage();
-    }
-  }
+    final imageWidget = widget.imageUrl != null && widget.imageUrl!.isNotEmpty
+        ? Image.network(
+            widget.imageUrl!,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                color: AppTheme.grisPistacho.withValues(alpha: 0.3),
+                child: const Center(
+                  child: CircularProgressIndicator(color: AppTheme.mostassa),
+                ),
+              );
+            },
+          )
+        : Image.asset(
+            'assets/images/profile/profile_header.webp',
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
+          );
 
-  /// Imatge de xarxa amb cache i shimmer loading - pantalla completa
-  Widget _buildNetworkImage() {
     return Positioned.fill(
-      child: CachedNetworkImage(
-        imageUrl: imageUrl!,
-        fit: BoxFit.cover,
-        placeholder: (context, url) => _buildShimmerPlaceholder(),
-        errorWidget: (context, url, error) => _buildDefaultImage(),
-        fadeInDuration: const Duration(milliseconds: 300),
-        fadeOutDuration: const Duration(milliseconds: 100),
+      child: GestureDetector(
+        onPanUpdate: _isAdjustingImage
+            ? (details) {
+                setState(() {
+                  _imageOffsetY += details.delta.dy / 150;
+                  _imageOffsetY = _imageOffsetY.clamp(-1.5, 1.5);
+                });
+              }
+            : null,
+        child: ClipRect(
+          child: OverflowBox(
+            minHeight: 0,
+            maxHeight: double.infinity,
+            alignment: Alignment(0.0, _imageOffsetY),
+            child: SizedBox(
+              width: double.infinity,
+              height: 850, // Altura més gran per permetre més desplaçament
+              child: imageWidget,
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  /// Imatge per defecte local - pantalla completa
-  Widget _buildDefaultImage() {
-    return Positioned.fill(
-      child: Image.asset(
-        'assets/images/profile/profile_header.webp',
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          debugPrint('Error carregant imatge local: $error');
-          return _buildFallbackImage();
+  /// Imatge de fallback
+  Widget _buildFallbackImage() {
+    return Container(
+      color: AppTheme.grisPistacho,
+      child: const Center(
+        child: Icon(Icons.person, size: 64, color: AppTheme.mostassa),
+      ),
+    );
+  }
+
+  /// Botó per activar/desactivar mode d'ajustament
+  Widget _buildImageAdjustButton() {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: _isAdjustingImage
+            ? AppTheme.mostassa.withValues(alpha: 0.9)
+            : Colors.black.withValues(alpha: 0.5),
+      ),
+      child: IconButton(
+        icon: Icon(
+          _isAdjustingImage ? Icons.check : Icons.tune,
+          color: _isAdjustingImage ? Colors.black : Colors.white,
+          size: 20,
+        ),
+        onPressed: () {
+          setState(() {
+            if (_isAdjustingImage) {
+              // Guardar l'offset quan es confirma
+              widget.onImageOffsetChanged?.call(_imageOffsetY);
+            }
+            _isAdjustingImage = !_isAdjustingImage;
+          });
         },
       ),
     );
   }
 
-  /// Imatge de fallback si falla tot
-  Widget _buildFallbackImage() {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppTheme.grisPistacho,
-            AppTheme.porpraFosc.withValues(alpha: 0.8),
-          ],
-        ),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.sports_basketball, size: 64, color: AppTheme.mostassa),
-            const SizedBox(height: 16),
-            Text(
-              'El teu perfil d\'àrbitre',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.white,
+  /// Controls d'ajustament
+  Widget _buildAdjustmentControls() {
+    return Positioned(
+      bottom: 20,
+      left: 0,
+      right: 0,
+      child: Align(
+        alignment: const Alignment(1, 0), // Desplaçat cap a la dreta
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.85),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
-            ),
-          ],
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.swipe_vertical,
+                    color: AppTheme.mostassa,
+                    size: 24,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Arrossega per ajustar',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        setState(() => _imageOffsetY = 0.0);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white54),
+                      ),
+                      child: const Text('Reset'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        widget.onImageOffsetChanged?.call(_imageOffsetY);
+                        setState(() => _isAdjustingImage = false);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.mostassa,
+                        foregroundColor: Colors.black,
+                      ),
+                      child: const Text('Aplicar'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-    );
-  }
-
-  /// Shimmer placeholder mentre es carrega la imatge
-  Widget _buildShimmerPlaceholder() {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: const Alignment(-1.0, -1.0),
-          end: const Alignment(1.0, 1.0),
-          colors: [
-            AppTheme.grisBody.withValues(alpha: 0.6),
-            AppTheme.grisPistacho.withValues(alpha: 0.4),
-            AppTheme.grisBody.withValues(alpha: 0.6),
-          ],
-          stops: const [0.0, 0.5, 1.0],
-        ),
-      ),
-      child: const _ShimmerEffect(),
     );
   }
 
@@ -284,15 +378,15 @@ class ProfileHeaderWidget extends StatelessWidget {
     switch (action) {
       case 'edit_profile':
         debugPrint('🔧 Acció: Editar perfil');
-        onEditProfile?.call();
+        widget.onEditProfile?.call();
         break;
       case 'change_visibility':
         debugPrint('👁️ Acció: Configuració de visibilitat');
-        onChangeVisibility?.call();
+        widget.onChangeVisibility?.call();
         break;
       case 'compare_evolution':
         debugPrint('📊 Acció: Comparar evolució del perfil');
-        onCompareProfileEvolution?.call();
+        widget.onCompareProfileEvolution?.call();
         break;
       default:
         debugPrint('⚠️ Acció desconeguda: $action');

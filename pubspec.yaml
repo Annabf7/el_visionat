@@ -54,6 +54,7 @@ dependencies:
   # Profile & Image handling dependencies
   image_picker: ^1.0.4
   cached_network_image: ^3.3.0
+  crop_your_image: ^1.1.0
 
 dev_dependencies:
   flutter_test:

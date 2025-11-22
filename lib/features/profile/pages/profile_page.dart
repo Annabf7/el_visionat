@@ -61,7 +61,7 @@ class _ProfilePageState extends State<ProfilePage> {
       children: [
         // 🔥 PROFILE HEADER - Segueix prototip Figma (desktop, pantalla completa)
         ProfileHeaderWidget(
-          height: 300, // Més alt en desktop
+          height: 400, // Més alt en desktop per millor visualització
           onEditProfile: () => _handleEditProfile(),
           onChangeVisibility: () => _handleChangeVisibility(),
           onCompareProfileEvolution: () => _handleCompareEvolution(),

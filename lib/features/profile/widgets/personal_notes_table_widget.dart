@@ -54,7 +54,7 @@ class PersonalNotesTableWidget extends StatelessWidget {
                     child: IntrinsicWidth(child: tableContent),
                   );
                 } else {
-                  return Container(width: double.infinity, child: tableContent);
+                  return SizedBox(width: double.infinity, child: tableContent);
                 }
               },
             ),

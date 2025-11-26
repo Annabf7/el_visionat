@@ -86,7 +86,7 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
     final imageWidget = widget.imageUrl != null && widget.imageUrl!.isNotEmpty
         ? Image.network(
             widget.imageUrl!,
-            fit: BoxFit.cover,
+            fit: BoxFit.contain,
             width: double.infinity,
             height: double.infinity,
             errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
@@ -102,7 +102,7 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
           )
         : Image.asset(
             'assets/images/profile/profile_header.webp',
-            fit: BoxFit.cover,
+            fit: BoxFit.contain,
             width: double.infinity,
             height: double.infinity,
             errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
@@ -177,9 +177,8 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
     return Positioned(
       bottom: 20,
       left: 0,
-      right: 0,
       child: Align(
-        alignment: const Alignment(1, 0), // Desplaçat cap a la dreta
+        alignment: Alignment.centerLeft, // Ara a l'esquerra
         child: Container(
           constraints: const BoxConstraints(maxWidth: 400),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class EditProfileDialog extends StatefulWidget {
   final String initialCategory;
@@ -33,6 +37,73 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     _startYear = widget.initialStartYear;
   }
 
+  Future<String?> _handleImageChange({
+    required String userId,
+    required bool isHeader,
+  }) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 1200,
+    );
+    if (pickedFile == null) return null;
+
+    final dialogContext = context;
+    showDialog(
+      context: dialogContext,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final file = pickedFile;
+      final ext = 'webp';
+      final path = isHeader
+        ? 'profile_images/$userId/header.$ext'
+        : 'profile_images/$userId/portrait.$ext';
+      final storageRef = FirebaseStorage.instance.ref().child(path);
+      await storageRef.putData(await file.readAsBytes());
+      final url = await storageRef.getDownloadURL();
+      // Actualitza la URL a Firestore
+      final userDoc = FirebaseFirestore.instance.collection('users').doc(userId);
+      await userDoc.update({
+        isHeader ? 'headerImageUrl' : 'portraitImageUrl': url,
+      });
+      if (mounted) Navigator.of(dialogContext).pop();
+      if (mounted) {
+        ScaffoldMessenger.of(dialogContext).showSnackBar(
+          SnackBar(content: Text(isHeader
+            ? 'Imatge de capçalera actualitzada!'
+            : 'Imatge de perfil actualitzada!')),
+        );
+      }
+      return url;
+    } catch (e) {
+      if (mounted) Navigator.of(dialogContext).pop();
+      if (mounted) {
+        ScaffoldMessenger.of(dialogContext).showSnackBar(
+          SnackBar(
+            content: Text('Error pujant la imatge: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return null;
+    }
+  }
+
+  Future<void> _onChangeHeaderImage() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    await _handleImageChange(userId: user.uid, isHeader: true);
+  }
+
+  Future<void> _onChangePortraitImage() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    await _handleImageChange(userId: user.uid, isHeader: false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
@@ -56,7 +127,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
             ),
             const SizedBox(height: 24),
             TextButton.icon(
-              onPressed: widget.onChangeHeaderImage,
+              onPressed: _onChangeHeaderImage,
               icon: const Icon(Icons.photo, color: AppTheme.porpraFosc),
               label: const Text(
                 'Canviar imatge de capçalera',
@@ -77,7 +148,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
             ),
             const SizedBox(height: 12),
             TextButton.icon(
-              onPressed: widget.onChangePortraitImage,
+              onPressed: _onChangePortraitImage,
               icon: const Icon(Icons.photo, color: AppTheme.porpraFosc),
               label: const Text(
                 'Canviar imatge de perfil',
@@ -101,10 +172,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
               initialValue: _category,
               decoration: const InputDecoration(
                 labelText: 'Categoria arbitral',
-                labelStyle: TextStyle(
-                  color: AppTheme.textBlackLow,
-                  fontFamily: 'Inter',
-                ),
+                labelStyle: TextStyle(color: AppTheme.textBlackLow, fontFamily: 'Inter'),
                 border: OutlineInputBorder(
                   borderSide: BorderSide(color: AppTheme.porpraFosc),
                   borderRadius: BorderRadius.all(Radius.circular(12)),
@@ -114,10 +182,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
               ),
-              style: const TextStyle(
-                color: AppTheme.porpraFosc,
-                fontFamily: 'Inter',
-              ),
+              style: const TextStyle(color: AppTheme.porpraFosc, fontFamily: 'Inter'),
               onChanged: (v) => setState(() => _category = v),
             ),
             const SizedBox(height: 16),
@@ -125,10 +190,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
               initialValue: widget.initialStartYear.toString(),
               decoration: const InputDecoration(
                 labelText: 'Any d\'inici',
-                labelStyle: TextStyle(
-                  color: AppTheme.textBlackLow,
-                  fontFamily: 'Inter',
-                ),
+                labelStyle: TextStyle(color: AppTheme.textBlackLow, fontFamily: 'Inter'),
                 border: OutlineInputBorder(
                   borderSide: BorderSide(color: AppTheme.porpraFosc),
                   borderRadius: BorderRadius.all(Radius.circular(12)),
@@ -139,14 +201,12 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                 ),
               ),
               keyboardType: TextInputType.number,
-              style: const TextStyle(
-                color: AppTheme.porpraFosc,
-                fontFamily: 'Inter',
-              ),
+              style: const TextStyle(color: AppTheme.porpraFosc, fontFamily: 'Inter'),
               validator: (v) {
                 final parsed = int.tryParse(v ?? '');
                 if (parsed == null) return 'Introdueix un any vàlid';
                 if (parsed > currentYear) return 'L\'any no pot ser futur';
+                if (parsed < 1950) return 'L\'any ha de ser ≥ 1950';
                 return null;
               },
               onChanged: (v) {
@@ -161,6 +221,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
               onPressed: () {
                 if (_formKey.currentState?.validate() ?? true) {
                   widget.onSave(_category, _startYear);
+                  Navigator.of(context).pop();
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -170,10 +231,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                textStyle: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Inter',
-                ),
+                textStyle: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Inter'),
               ),
               child: const Text('Guardar canvis'),
             ),
@@ -200,3 +258,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     }
   }
 }
+
+// Exemple de càlcul d'anys arbitrats i guardar-los a Firestore:
+// final anysArbitrats = DateTime.now().year - startYear;
+// await FirebaseFirestore.instance.collection('users').doc(userId).update({'anysArbitrats': anysArbitrats});

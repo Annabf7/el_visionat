@@ -4,22 +4,22 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 
 /// 🔥 PROFILE INFO WIDGET - EL VISIONAT
-/// 
+///
 /// Widget per mostrar la informació personal de l'àrbitre.
 /// Inclou avatar editable, nom, categoria i experiència.
 /// Segueix el prototip Figma amb línia mostassa i layout integrat.
 class ProfileInfoWidget extends StatelessWidget {
   /// URL de la imatge de perfil de l'usuari (null = imatge per defecte)
   final String? portraitImageUrl;
-  
+
   /// Dades de l'àrbitre
   final String refereeName;
   final String refereeCategory;
   final String refereeExperience;
-  
+
   /// Callback per canviar la imatge de perfil
   final VoidCallback? onChangePortrait;
-  
+
   /// Permet edició de la imatge
   final bool enableImageEdit;
 
@@ -44,25 +44,29 @@ class ProfileInfoWidget extends StatelessWidget {
         horizontal: isDesktop ? 32 : 16,
         vertical: 24,
       ),
-      color: Colors.white,
+      color: Colors.transparent,
       child: Column(
         children: [
           // Informació principal amb avatar i dades
           Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Avatar circular amb opció d'edició
-              _buildEditableAvatar(context),
-              const SizedBox(width: 24),
-              
               // Informació de l'àrbitre
               Expanded(
-                child: _buildRefereeInfo(context, isDesktop),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _buildRefereeInfo(context, isDesktop),
+                ),
               ),
+              const SizedBox(width: 24),
+              // Avatar circular amb opció d'edició
+              _buildEditableAvatar(context),
             ],
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Línia separadora mostassa
           _buildMostassaSeparator(),
         ],
@@ -94,11 +98,9 @@ class ProfileInfoWidget extends StatelessWidget {
                 ),
               ],
             ),
-            child: ClipOval(
-              child: _buildAvatarImage(),
-            ),
+            child: ClipOval(child: _buildAvatarImage()),
           ),
-          
+
           // Icona d'edició si està habilitada
           if (enableImageEdit)
             Positioned(
@@ -126,7 +128,7 @@ class ProfileInfoWidget extends StatelessWidget {
                 ),
               ),
             ),
-          
+
           // Indicador d'estat (punt verd) si està actiu
           Positioned(
             top: 2,
@@ -221,9 +223,9 @@ class ProfileInfoWidget extends StatelessWidget {
             height: 1.2,
           ),
         ),
-        
+
         const SizedBox(height: 6),
-        
+
         // Categoria
         Text(
           refereeCategory,
@@ -235,9 +237,9 @@ class ProfileInfoWidget extends StatelessWidget {
             height: 1.3,
           ),
         ),
-        
+
         const SizedBox(height: 4),
-        
+
         // Experiència
         Text(
           refereeExperience,
@@ -285,20 +287,22 @@ class ProfileInfoWidget extends StatelessWidget {
         maxHeight: 400,
         imageQuality: 85,
       );
-      
+
       if (image != null) {
         debugPrint('📸 Portrait seleccionat: ${image.path}');
         // Cridar callback si existeix
         onChangePortrait?.call();
-        
+
         // TODO: Implementar upload a Firebase Storage
         // TODO: Actualitzar URL al perfil d'usuari
-        
+
         // Feedback visual temporarl
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('📸 Imatge seleccionada. Upload en desenvolupament...'),
+              content: Text(
+                '📸 Imatge seleccionada. Upload en desenvolupament...',
+              ),
               duration: Duration(seconds: 2),
             ),
           );
@@ -306,7 +310,7 @@ class ProfileInfoWidget extends StatelessWidget {
       }
     } catch (e) {
       debugPrint('❌ Error seleccionant portrait: $e');
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

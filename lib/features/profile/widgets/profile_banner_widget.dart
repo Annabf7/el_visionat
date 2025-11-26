@@ -9,16 +9,12 @@ class ProfileBannerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Image.network(
+      _bannerImageUrl,
+      fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        image: DecorationImage(
-          image: NetworkImage(_bannerImageUrl),
-          fit: BoxFit.cover,
-        ),
-      ),
+      alignment: const Alignment(0, -0.5), // Encaixa la imatge més amunt
     );
   }
 }

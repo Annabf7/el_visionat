@@ -86,125 +86,81 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildDesktopLayout() {
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 🔥 COLUMNA ESQUERRA: Imatge àvia que ocupa tota l'altura de la pàgina
-          Expanded(
-            flex: 3,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: const ProfileBannerWidget(),
-            ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Columna esquerra: Imatge sense cantonades arrodonides i menys ampla
+        Flexible(
+          flex: 4, // Encara menys espai per la imatge
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(),
+            child: ProfileBannerWidget(),
           ),
-
-          const SizedBox(width: 32),
-
-          // 🔥 COLUMNA DRETA: Imatge àrbitre + widgets inferiors amb scroll
-          Expanded(
-            flex: 2,
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  // Secció superior: Imatge àrbitre amb card info
-                  SizedBox(
-                    height: 600,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          // Imatge gran de l'àrbitre de fons
-                          Image.asset(
-                            'assets/images/profile/profile_header.webp',
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              debugPrint(
-                                '❌ Error carregant profile_header.webp: $error',
-                              );
-                              return Container(
-                                color: const Color(0xFFF5F5F5),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.person,
-                                    size: 64,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-
-                          // Gradient subtil a la part inferior per millorar contrast
-                          Positioned(
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            child: Container(
-                              height: 200,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.transparent,
-                                    Colors.black.withOpacity(0.05),
-                                    Colors.black.withOpacity(0.1),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          // Card d'informació personal superposat a la part inferior
-                          Positioned(
-                            bottom: 32,
-                            left: 0,
-                            right: 0,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                              ),
-                              child: Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.15),
-                                      blurRadius: 24,
-                                      offset: const Offset(0, 8),
-                                    ),
-                                  ],
-                                ),
-                                child: _buildPersonalInfo(),
-                              ),
-                            ),
-                          ),
-                        ],
+        ),
+        // Columna dreta: widgets amb scroll vertical i més espai
+        Flexible(
+          flex: 5,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SizedBox(
+                height: constraints.maxHeight,
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      // Stack per posar el ProfileInfoWidget a sobre del header
+                      // Header
+                      SizedBox(
+                        height: 600,
+                        child: ProfileHeaderWidget(
+                          onEditProfile: () => _handleEditProfile(),
+                          onChangeVisibility: () => _handleChangeVisibility(),
+                          onCompareProfileEvolution: () =>
+                              _handleCompareEvolution(),
+                        ),
                       ),
-                    ),
+                      // Widget d'informació personal, sota el header
+                      Padding(
+                        padding: const EdgeInsets.only(top: 0, right: 0),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: SizedBox(
+                            width: 420,
+                            child: _buildPersonalInfo(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: _buildEmpremtaVisionat(),
+                      ),
+                      const SizedBox(height: 32),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Row(
+                          children: [Expanded(child: _buildApuntsPersonals())],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: _buildObjectiusTemporada(),
+                      ),
+                      const SizedBox(height: 32),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: _buildBadges(),
+                      ),
+                    ],
                   ),
-
-                  const SizedBox(height: 32),
-
-                  // Widgets inferiors a la columna dreta
-                  _buildEmpremtaVisionat(),
-                  const SizedBox(height: 32),
-                  _buildApuntsPersonals(),
-                  const SizedBox(height: 32),
-                  _buildObjectiusTemporada(),
-                  const SizedBox(height: 32),
-                  _buildBadges(),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

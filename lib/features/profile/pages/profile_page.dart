@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:el_visionat/core/widgets/global_header.dart';
 import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
-
 import 'package:el_visionat/features/visionat/providers/weekly_match_provider.dart';
 import '../widgets/profile_header_widget.dart';
 import '../widgets/profile_info_widget.dart';
@@ -142,19 +141,20 @@ class _ProfilePageState extends State<ProfilePage> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: Row(
-                          children: [Expanded(child: _buildApuntsPersonals())],
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: _buildObjectiusTemporada()),
+                            const SizedBox(width: 32),
+                            Expanded(child: _buildBadges()),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 32),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: _buildObjectiusTemporada(),
+                        child: _buildApuntsPersonals(),
                       ),
                       const SizedBox(height: 32),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: _buildBadges(),
-                      ),
                     ],
                   ),
                 ),
@@ -175,7 +175,7 @@ class _ProfilePageState extends State<ProfilePage> {
           onChangeVisibility: () => _handleChangeVisibility(),
           onCompareProfileEvolution: () => _handleCompareEvolution(),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 8),
         // Contingut amb padding lateral
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -190,6 +190,7 @@ class _ProfilePageState extends State<ProfilePage> {
               _buildObjectiusTemporada(),
               const SizedBox(height: 24),
               _buildBadges(),
+              const SizedBox(height: 32), // Marge inferior extra
             ],
           ),
         ),

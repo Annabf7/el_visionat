@@ -41,7 +41,7 @@ class BadgesWidget extends StatelessWidget {
     String icon,
   ) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
@@ -50,21 +50,21 @@ class BadgesWidget extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             child: Center(
               child: Text(
                 icon,
                 style: const TextStyle(
                   color: AppTheme.white,
-                  fontSize: 20,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,16 +73,16 @@ class BadgesWidget extends StatelessWidget {
                   title,
                   style: TextStyle(
                     color: color,
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   description,
                   style: const TextStyle(
                     color: AppTheme.grisBody,
-                    fontSize: 12,
+                    fontSize: 11,
                   ),
                 ),
               ],

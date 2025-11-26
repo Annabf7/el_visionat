@@ -77,14 +77,17 @@ class ProfileInfoWidget extends StatelessWidget {
 
   /// Avatar circular amb funcionalitat d'edició
   Widget _buildEditableAvatar(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 900;
+    final avatarSize = isDesktop ? 120.0 : 92.0;
     return GestureDetector(
       onTap: enableImageEdit ? () => _handleChangePortrait(context) : null,
       child: Stack(
         children: [
           // Avatar principal
           Container(
-            width: 120,
-            height: 120,
+            width: avatarSize,
+            height: avatarSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(

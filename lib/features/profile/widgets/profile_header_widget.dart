@@ -51,7 +51,7 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth > 900;
-    final headerHeight = widget.height ?? (isDesktop ? 500.0 : 250.0);
+    final headerHeight = widget.height ?? (isDesktop ? 500.0 : 170.0);
 
     return SizedBox(
       width: double.infinity,
@@ -71,8 +71,9 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
           // Botó menú kebab (3 punts) - part superior dreta
           Positioned(top: 16, right: 16, child: _buildKebabMenuButton(context)),
 
-          // Botó d'ajustament d'imatge - part superior esquerra
-          Positioned(top: 16, left: 16, child: _buildImageAdjustButton()),
+          // Botó d'ajustament d'imatge - només desktop
+          if (isDesktop)
+            Positioned(top: 16, left: 16, child: _buildImageAdjustButton()),
 
           // Controls d'ajustament quan està actiu
           if (_isAdjustingImage) _buildAdjustmentControls(),

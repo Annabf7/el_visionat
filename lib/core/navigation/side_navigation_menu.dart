@@ -120,13 +120,62 @@ class SideNavigationMenu extends StatelessWidget {
             onTap: () => _handleProfileTap(context),
           ),
           const SizedBox(height: 32),
+          // Micro-text de marca (només desktop)
+          _DesktopBrandFooter(),
         ],
       ),
     );
   }
 }
 
+class _DesktopBrandFooter extends StatelessWidget {
+  const _DesktopBrandFooter();
 
+  @override
+  Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width > 900;
+    if (!isDesktop) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 32, right: 16, top: 8),
+      child: Row(
+        children: [
+          const Spacer(),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: const [
+              Text(
+                '© 2025 · El Visionat',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black,
+                  letterSpacing: 0.1,
+                  height: 1.3,
+                ),
+              ),
+              SizedBox(height: 2),
+              Text(
+                'Desenvolupat per ABorrasdesign',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black45,
+                  letterSpacing: 0.1,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _NavigationItem extends StatelessWidget {
   final IconData icon;

@@ -42,7 +42,7 @@ class ProfileInfoWidget extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? 32 : 16,
-        vertical: 24,
+        vertical: 2,
       ),
       color: Colors.transparent,
       child: Column(
@@ -50,13 +50,14 @@ class ProfileInfoWidget extends StatelessWidget {
           // Informació principal amb avatar i dades
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               // Informació de l'àrbitre
               Expanded(
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: _buildRefereeInfo(context, isDesktop),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [_buildRefereeInfo(context, isDesktop)],
                 ),
               ),
               const SizedBox(width: 24),
@@ -82,8 +83,8 @@ class ProfileInfoWidget extends StatelessWidget {
         children: [
           // Avatar principal
           Container(
-            width: 80,
-            height: 80,
+            width: 120,
+            height: 120,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
@@ -210,11 +211,12 @@ class ProfileInfoWidget extends StatelessWidget {
   /// Informació textual de l'àrbitre
   Widget _buildRefereeInfo(BuildContext context, bool isDesktop) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         // Nom de l'àrbitre
         Text(
           refereeName,
+          textAlign: TextAlign.right,
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: isDesktop ? 20 : 18,
@@ -229,6 +231,7 @@ class ProfileInfoWidget extends StatelessWidget {
         // Categoria
         Text(
           refereeCategory,
+          textAlign: TextAlign.right,
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: isDesktop ? 16 : 14,
@@ -243,6 +246,7 @@ class ProfileInfoWidget extends StatelessWidget {
         // Experiència
         Text(
           refereeExperience,
+          textAlign: TextAlign.right,
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: isDesktop ? 14 : 12,

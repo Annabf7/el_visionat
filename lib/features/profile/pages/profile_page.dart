@@ -109,29 +109,31 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      // Stack per posar el ProfileInfoWidget a sobre del header
-                      // Header
+                      // Header i info personal sobreposada
                       SizedBox(
-                        height: 600,
-                        child: ProfileHeaderWidget(
-                          onEditProfile: () => _handleEditProfile(),
-                          onChangeVisibility: () => _handleChangeVisibility(),
-                          onCompareProfileEvolution: () =>
-                              _handleCompareEvolution(),
+                        height: 450,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            ProfileHeaderWidget(
+                              onEditProfile: () => _handleEditProfile(),
+                              onChangeVisibility: () =>
+                                  _handleChangeVisibility(),
+                              onCompareProfileEvolution: () =>
+                                  _handleCompareEvolution(),
+                            ),
+                            Positioned(
+                              right: 0,
+                              bottom: -60, // Ara més avall per solapar més
+                              child: SizedBox(
+                                width: 420,
+                                child: _buildPersonalInfo(),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      // Widget d'informació personal, sota el header
-                      Padding(
-                        padding: const EdgeInsets.only(top: 0, right: 0),
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: SizedBox(
-                            width: 420,
-                            child: _buildPersonalInfo(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 35),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: _buildEmpremtaVisionat(),

@@ -12,6 +12,9 @@ class ActivityControllerProvider extends ChangeNotifier {
   /// Estat de les respostes: clau = "activityId_q{index}", valor = true/false/null
   final Map<String, bool?> answersState = {};
 
+  /// Índexs de les respostes seleccionades: clau = "activityId_q{index}", valor = índex de l'opció
+  final Map<String, int> selectedAnswers = {};
+
   /// Constructor
   ActivityControllerProvider({
     required this.activities,
@@ -36,7 +39,9 @@ class ActivityControllerProvider extends ChangeNotifier {
     );
     final isCorrect =
         activity.questions[questionIndex].respostaCorrectaIndex == answerIndex;
-    answersState['${activityId}_q$questionIndex'] = isCorrect;
+    final answerKey = '${activityId}_q$questionIndex';
+    answersState[answerKey] = isCorrect;
+    selectedAnswers[answerKey] = answerIndex;
     notifyListeners();
   }
 
@@ -45,10 +50,17 @@ class ActivityControllerProvider extends ChangeNotifier {
     return answersState['${activityId}_q$questionIndex'];
   }
 
+  /// Retorna l'índex de la resposta seleccionada per una pregunta
+  int? getSelectedAnswer(String activityId, int questionIndex) {
+    return selectedAnswers['${activityId}_q$questionIndex'];
+  }
+
   /// Reinicia totes les respostes d'una activitat
   void resetActivityAnswers(String activityId) {
     for (var i = 0; i < currentActivity.questions.length; i++) {
-      answersState.remove('${activityId}_q$i');
+      final key = '${activityId}_q$i';
+      answersState.remove(key);
+      selectedAnswers.remove(key);
     }
     notifyListeners();
   }

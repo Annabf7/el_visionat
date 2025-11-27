@@ -342,25 +342,25 @@ class _VotingSectionState extends State<VotingSection> {
                       bool right = false,
                       bool showName = true,
                     }) {
-                      return Row(
+                      return Column(
                         mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: right
-                            ? MainAxisAlignment.end
-                            : MainAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           logoWidget(name, logo),
                           if (showName) ...[
-                            const SizedBox(width: 8),
-                            Flexible(
-                              child: Text(
-                                name,
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 2,
-                                style: GoogleFonts.montserrat(
-                                  textStyle: const TextStyle(
-                                    color: Colors.white,
-                                  ),
-                                ),
+                            const SizedBox(height: 8),
+                            Text(
+                              name,
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AppTheme.grisPistacho,
+                                fontWeight: FontWeight.normal,
+                                fontSize: 14,
+                                height: 1.2,
+                                fontFamily: 'Inter',
                               ),
                             ),
                           ],
@@ -380,38 +380,66 @@ class _VotingSectionState extends State<VotingSection> {
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              logoWidget(m.homeName, m.homeLogo),
-                              Text(
-                                'vs',
-                                style: GoogleFonts.montserrat(
-                                  textStyle: const TextStyle(
-                                    color: Colors.white70,
+                              // Home team - perfectly centered
+                              Expanded(
+                                child: Center(
+                                  child: teamBlock(m.homeName, m.homeLogo),
+                                ),
+                              ),
+                              // VS separator - perfectly centered
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                ),
+                                child: Text(
+                                  'vs',
+                                  style: GoogleFonts.montserrat(
+                                    textStyle: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 20,
+                                      letterSpacing: 1.5,
+                                    ),
                                   ),
                                 ),
                               ),
-                              logoWidget(m.awayName, m.awayLogo),
+                              // Away team - perfectly centered
+                              Expanded(
+                                child: Center(
+                                  child: teamBlock(m.awayName, m.awayLogo),
+                                ),
+                              ),
                             ],
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 12),
+                          // Date/time perfectly centered
                           Center(
                             child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
                                   parts[0],
-                                  style: TextStyle(
-                                    color: Colors.grey[300],
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.montserrat(
+                                    textStyle: TextStyle(
+                                      color: Colors.grey[300],
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
                                 if (parts.length > 1) ...[
                                   const SizedBox(height: 4),
                                   Text(
                                     parts[1],
-                                    style: TextStyle(
-                                      color: Colors.grey[400],
-                                      fontSize: 12,
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.montserrat(
+                                      textStyle: TextStyle(
+                                        color: Colors.grey[400],
+                                        fontSize: 11,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -422,55 +450,71 @@ class _VotingSectionState extends State<VotingSection> {
                       );
                     }
 
+                    // Non-compact layout
                     return Column(
                       children: [
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Expanded(child: teamBlock(m.homeName, m.homeLogo)),
+                            // Home team - perfectly centered
+                            Expanded(
+                              child: Center(
+                                child: teamBlock(m.homeName, m.homeLogo),
+                              ),
+                            ),
+                            // VS separator - perfectly centered
                             Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8.0,
+                                horizontal: 20.0,
                               ),
                               child: Text(
                                 'vs',
                                 style: GoogleFonts.montserrat(
                                   textStyle: const TextStyle(
-                                    color: Colors.white70,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 24,
+                                    letterSpacing: 2.0,
                                   ),
                                 ),
                               ),
                             ),
+                            // Away team - perfectly centered
                             Expanded(
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: teamBlock(
-                                  m.awayName,
-                                  m.awayLogo,
-                                  right: true,
-                                ),
+                              child: Center(
+                                child: teamBlock(m.awayName, m.awayLogo),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 16),
+                        // Date/time perfectly centered
                         Center(
                           child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
                                 parts[0],
-                                style: TextStyle(
-                                  color: Colors.grey[300],
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.montserrat(
+                                  textStyle: TextStyle(
+                                    color: Colors.grey[300],
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                               if (parts.length > 1) ...[
                                 const SizedBox(height: 4),
                                 Text(
                                   parts[1],
-                                  style: TextStyle(
-                                    color: Colors.grey[400],
-                                    fontSize: 12,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.montserrat(
+                                    textStyle: TextStyle(
+                                      color: Colors.grey[400],
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -481,58 +525,127 @@ class _VotingSectionState extends State<VotingSection> {
                     );
                   },
                 ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.center,
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      final messenger = ScaffoldMessenger.of(ctx);
-                      try {
-                        await vp.castVote(
-                          jornada: m.jornada,
-                          matchId: m.homeLogo.isNotEmpty
-                              ? m.homeLogo
-                              : '${m.homeName}_${m.awayName}',
-                        );
-                        if (!mounted) return;
-                        messenger.showSnackBar(
-                          const SnackBar(content: Text('Vot registrat')),
-                        );
-                      } catch (e) {
-                        if (!mounted) return;
-                        messenger.showSnackBar(
-                          const SnackBar(
-                            content: Text('Error en registrar el vot'),
+                const SizedBox(height: 16),
+                // Vote button and vote count side by side
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isMobile = constraints.maxWidth < 420;
+                    final buttonHeight = isMobile ? 36.0 : 40.0;
+
+                    return Center(
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: isMobile ? 8 : 12,
+                        runSpacing: isMobile ? 8 : 12,
+                        children: [
+                          // Vote button
+                          SizedBox(
+                            height: buttonHeight,
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                final messenger = ScaffoldMessenger.of(ctx);
+                                try {
+                                  await vp.castVote(
+                                    jornada: m.jornada,
+                                    matchId: m.homeLogo.isNotEmpty
+                                        ? m.homeLogo
+                                        : '${m.homeName}_${m.awayName}',
+                                  );
+                                  if (!mounted) return;
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Vot registrat'),
+                                    ),
+                                  );
+                                } catch (e) {
+                                  if (!mounted) return;
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Error en registrar el vot',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: Icon(
+                                Icons.how_to_vote,
+                                size: isMobile ? 16 : 18,
+                              ),
+                              label: Text(
+                                'Votar',
+                                style: GoogleFonts.montserrat(
+                                  textStyle: TextStyle(
+                                    fontSize: isMobile ? 12 : 13,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.grisPistacho,
+                                foregroundColor: AppTheme.porpraFosc,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isMobile ? 14 : 20,
+                                  vertical: 0,
+                                ),
+                                minimumSize: Size(0, buttonHeight),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    isMobile ? 10 : 12,
+                                  ),
+                                ),
+                                elevation: 4,
+                              ),
+                            ),
                           ),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.how_to_vote, size: 18),
-                    label: Text(
-                      'Votar',
-                      style: GoogleFonts.montserrat(
-                        textStyle: const TextStyle(fontSize: 12),
+                          // Vote count
+                          Container(
+                            height: buttonHeight,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isMobile ? 12 : 16,
+                              vertical: 0,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withAlpha(51),
+                              borderRadius: BorderRadius.circular(
+                                isMobile ? 10 : 12,
+                              ),
+                              border: Border.all(
+                                color: Colors.grey[700]!,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.people_outline,
+                                  size: isMobile ? 14 : 16,
+                                  color: Colors.grey[400],
+                                ),
+                                SizedBox(width: isMobile ? 6 : 8),
+                                Text(
+                                  count == 1 ? '1 vot' : '$count vots',
+                                  style: GoogleFonts.montserrat(
+                                    textStyle: TextStyle(
+                                      color: Colors.grey[300],
+                                      fontSize: isMobile ? 12 : 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: AppTheme.grisPistacho,
-                    ),
-                  ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 8),
-                // bottom-right vote count like in VotingCard
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: Text(
-                    count == 1 ? '1 vot' : '$count vots',
-                    style: GoogleFonts.montserrat(
-                      textStyle: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),

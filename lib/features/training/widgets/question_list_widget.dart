@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/question_model.dart';
 import '../providers/activity_controller.dart';
 import 'activity_video_player.dart';
+import '../../../core/theme/app_theme.dart';
 
 /// Widget QuestionListWidget
 /// Mostra la llista de preguntes amb opcions interactives i feedback instantani.
@@ -87,31 +88,48 @@ class _QuestionCard extends StatelessWidget {
             const SizedBox(height: 12),
             ...List.generate(question.opcions.length, (oIndex) {
               final isAnswered = answerStatus != null;
-              final isSelected =
-                  isAnswered && question.respostaCorrectaIndex == oIndex;
-              Color? color;
+              final selectedIndex = controller.getSelectedAnswer(
+                activityId,
+                qIndex,
+              );
+
+              // If not answered, all borders are mostassa
+              // If answered and correct, only correct option is green
+              // If answered and incorrect, only selected option is red
+              bool isSelected = false;
               if (isAnswered) {
-                if (question.respostaCorrectaIndex == oIndex &&
-                    answerStatus == true) {
-                  color = Colors.green[100];
-                } else if (answerStatus == false &&
-                    oIndex == question.respostaCorrectaIndex) {
-                  color = Colors.green[50];
-                } else if (answerStatus == false &&
-                    oIndex != question.respostaCorrectaIndex) {
-                  color = Colors.red[50];
+                if (answerStatus == true) {
+                  isSelected = question.respostaCorrectaIndex == oIndex;
+                } else {
+                  // Find which option was tapped (incorrect)
+                  isSelected = selectedIndex == oIndex;
                 }
               }
-              return Container(
+              Color borderColor = AppTheme.mostassa;
+              if (isAnswered && isSelected) {
+                borderColor = answerStatus == true
+                    ? Colors.green[700]!
+                    : Colors.red[700]!;
+              }
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.ease,
                 margin: const EdgeInsets.symmetric(vertical: 4),
+                decoration: BoxDecoration(
+                  border: Border.all(color: borderColor, width: 1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: color,
-                    foregroundColor: Colors.black87,
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: AppTheme.mostassa,
+                    shadowColor: Colors.transparent,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    elevation: isSelected ? 2 : 0,
+                    elevation: 0,
+                    surfaceTintColor: Colors.transparent,
+                    disabledBackgroundColor: Colors.transparent,
                   ),
                   onPressed: isAnswered
                       ? null
@@ -121,15 +139,9 @@ class _QuestionCard extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       question.opcions[oIndex],
-                      style: TextStyle(
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                        color: isAnswered
-                            ? (question.respostaCorrectaIndex == oIndex
-                                  ? Colors.green[900]
-                                  : Colors.red[900])
-                            : Colors.black87,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.normal,
+                        color: AppTheme.mostassa,
                       ),
                     ),
                   ),
@@ -140,12 +152,13 @@ class _QuestionCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
                 child: Text(
-                  answerStatus == true ? 'Correcte!' : 'Incorrecte',
+                  answerStatus == true ? 'Correcte' : 'Incorrecte',
                   style: TextStyle(
                     color: answerStatus == true
-                        ? Colors.green[800]
-                        : Colors.red[800],
-                    fontWeight: FontWeight.w600,
+                        ? Colors.green[700]
+                        : Colors.red[700],
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
                   ),
                 ),
               ),

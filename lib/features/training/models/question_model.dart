@@ -1,7 +1,3 @@
-/// Model per a preguntes autoavaluatives
-///
-/// Representa una pregunta amb opcions i la resposta correcta.
-
 class QuestionModel {
   /// Enunciat de la pregunta
   final String enunciat;
@@ -26,7 +22,6 @@ class QuestionModel {
     this.youtubeVideoId,
     this.comment,
   });
-
 
   /// Crea una instància a partir de JSON
   factory QuestionModel.fromJson(Map<String, dynamic> json) {

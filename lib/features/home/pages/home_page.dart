@@ -5,6 +5,8 @@ import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
 import 'package:el_visionat/core/widgets/global_header.dart';
 import '../widgets/featured_visioning_section.dart';
 import '../widgets/user_profile_summary_card.dart';
+import 'package:el_visionat/features/visionat/widgets/match_details_card.dart';
+import 'package:el_visionat/features/visionat/models/match_models.dart';
 import 'package:el_visionat/features/voting/index.dart';
 import '../providers/home_provider.dart';
 
@@ -93,19 +95,41 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Fila de Visionat Destacat i Perfil
-            const Row(
+            // Fila de Visionat Destacat i Perfil/Detalls
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Featured Visioning Section (2/3 de l'espai)
-                Expanded(flex: 2, child: FeaturedVisioningSection()),
-                SizedBox(width: 16),
-                // User Profile Card (1/3 de l'espai)
-                Expanded(flex: 1, child: UserProfileSummaryCard()),
+                // Featured Visioning Section (esquerra, més ample)
+                const Expanded(flex: 3, child: FeaturedVisioningSection()),
+                const SizedBox(width: 16),
+                // Perfil i Detalls (dreta, molt més estret)
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    children: [
+                      Container(
+                        constraints: const BoxConstraints(maxWidth: 400),
+                        padding: const EdgeInsets.all(0),
+                        child: const UserProfileSummaryCard(),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        constraints: const BoxConstraints(maxWidth: 400),
+                        padding: const EdgeInsets.all(0),
+                        child: MatchDetailsCard(
+                          details: MatchDetails(
+                            refereeName: 'Joan Garcia',
+                            league: 'Lliga Catalana',
+                            matchday: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
-
             // Secció de Votacions (Full width)
             const VotingSection(),
             const SizedBox(height: 500), // Placeholder extra per scroll
@@ -117,18 +141,26 @@ class _HomePageState extends State<HomePage> {
 
   // --- Layout Estret (Mòbil) ---
   Widget _buildNarrowLayout(BuildContext context, HomeProvider provider) {
-    return const SingleChildScrollView(
+    return SingleChildScrollView(
       child: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             // Les targetes s'apilen verticalment en mòbil
-            FeaturedVisioningSection(),
-            SizedBox(height: 16),
-            UserProfileSummaryCard(),
-            SizedBox(height: 16),
-            VotingSection(),
-            SizedBox(height: 500), // Placeholder extra per scroll
+            const FeaturedVisioningSection(),
+            const SizedBox(height: 16),
+            const UserProfileSummaryCard(),
+            const SizedBox(height: 16),
+            MatchDetailsCard(
+              details: MatchDetails(
+                refereeName: 'Joan Garcia',
+                league: 'Lliga Catalana',
+                matchday: 14,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const VotingSection(),
+            const SizedBox(height: 500), // Placeholder extra per scroll
           ],
         ),
       ),

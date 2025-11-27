@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -407,11 +408,33 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
             Padding(
               padding: const EdgeInsets.only(top: 2, bottom: 8),
               child: Text(
-                "Format recomanat: JPG, PNG o WebP. Mida mínima: 1200x300px. Proporció horitzontal (4:1). Per un resultat professional, elimina el fons de la imatge i utilitza un fons blanc trencat (#F8F9FA). Pots fer-ho gratuïtament a remove.bg.",
+                "Format recomanat: JPG, PNG o WebP. Mida mínima: 1200x300px. Proporció horitzontal (4:1). Per un resultat professional, elimina el fons de la imatge i utilitza un fons blanc trencat (#F8F9FA). Pots fer-ho gratuïtament a ",
                 style: TextStyle(
                   fontSize: 12,
                   color: AppTheme.textBlackLow,
                   fontFamily: 'Inter',
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: GestureDetector(
+                  onTap: () async {
+                    final url = Uri.parse('https://www.remove.bg/');
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  },
+                  child: Text(
+                    'remove.bg',
+                    style: TextStyle(
+                      color: AppTheme.porpraFosc,
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline,
+                      fontSize: 13,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
                 ),
               ),
             ),

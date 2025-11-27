@@ -95,20 +95,25 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
   }) async {
     final picker = ImagePicker();
     final navigator = Navigator.of(context);
+    final dialogNavigator = Navigator.of(context, rootNavigator: true);
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => const Center(child: CircularProgressIndicator()),
     );
+
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 80,
       maxWidth: 1200,
     );
+
     if (!mounted || pickedFile == null) {
-      if (mounted) navigator.pop();
+      if (mounted) dialogNavigator.pop();
       return null;
     }
+
     try {
       final file = pickedFile;
       final ext = 'webp';
@@ -118,19 +123,26 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       final storageRef = FirebaseStorage.instance.ref().child(path);
       await storageRef.putData(await file.readAsBytes());
       final url = await storageRef.getDownloadURL();
-      // Actualitza la URL a Firestore
+
       final userDoc = FirebaseFirestore.instance
           .collection('users')
           .doc(userId);
       await userDoc.update({
         isHeader ? 'headerImageUrl' : 'portraitImageUrl': url,
       });
+
       if (!mounted) return null;
+
+      dialogNavigator.pop();
       navigator.pop(isHeader ? 'header_success' : 'portrait_success');
+
       return url;
     } catch (e) {
       if (!mounted) return null;
+
+      dialogNavigator.pop();
       navigator.pop('error');
+
       return null;
     }
   }
@@ -298,7 +310,9 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                           'anysArbitrats': anysArbitrats,
                         }, SetOptions(merge: true));
                     if (!mounted) return;
-                    navigator.pop('profile_success'); // Retorna resultat al pare
+                    navigator.pop(
+                      'profile_success',
+                    ); // Retorna resultat al pare
                   } catch (e) {
                     if (!mounted) return;
                     navigator.pop('error');

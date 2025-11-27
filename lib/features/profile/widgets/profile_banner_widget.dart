@@ -1,20 +1,38 @@
 import 'package:flutter/material.dart';
 
 /// Widget de banner amb imatge gran del perfil (només desktop)
+/// Mostra una imatge fixa (NO editable per l'usuari)
 class ProfileBannerWidget extends StatelessWidget {
   const ProfileBannerWidget({super.key});
 
-  static const String _bannerImageUrl =
+  // Imatge fixa del banner (NO editable)
+  static const String _fixedBannerImageUrl =
       'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/grandma_profile.webp?alt=media&token=fd59db9e-1b1b-47cf-a687-3306f80fd450';
 
   @override
   Widget build(BuildContext context) {
     return Image.network(
-      _bannerImageUrl,
+      _fixedBannerImageUrl,
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
       alignment: const Alignment(0, -0.5), // Encaixa la imatge més amunt
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          color: Colors.grey[200],
+          child: const Center(child: CircularProgressIndicator()),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) {
+        // Si falla la càrrega, mostra un placeholder
+        return Container(
+          color: Colors.grey[300],
+          child: const Center(
+            child: Icon(Icons.image, size: 64, color: Colors.grey),
+          ),
+        );
+      },
     );
   }
 }

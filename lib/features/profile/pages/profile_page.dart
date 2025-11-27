@@ -23,6 +23,7 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  int _profileRefreshKey = 0; // Força re-fetch de dades després de canvis
 
   @override
   Widget build(BuildContext context) {
@@ -86,127 +87,152 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildDesktopLayout() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Columna esquerra: Imatge sense cantonades arrodonides i menys ampla
-        Flexible(
-          flex: 4, // Encara menys espai per la imatge
-          child: Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: const BoxDecoration(),
-            child: ProfileBannerWidget(),
-          ),
-        ),
-        // Columna dreta: widgets amb scroll vertical i més espai
-        Flexible(
-          flex: 5,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SizedBox(
-                height: constraints.maxHeight,
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      // Header i info personal sobreposada
-                      SizedBox(
-                        height: 450,
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            ProfileHeaderWidget(
-                              onEditProfile: () => _handleEditProfile(),
-                              onChangeVisibility: () =>
-                                  _handleChangeVisibility(),
-                              onCompareProfileEvolution: () =>
-                                  _handleCompareEvolution(),
+    return FutureBuilder<Map<String, dynamic>?>(
+      key: ValueKey(_profileRefreshKey), // ✅ Sincronitza amb personal info
+      future: _fetchProfileInfo(),
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Columna esquerra: Imatge fixa del banner (NO editable)
+            Flexible(
+              flex: 4, // Encara menys espai per la imatge
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                decoration: const BoxDecoration(),
+                child: const ProfileBannerWidget(), // ✅ Banner amb imatge fixa
+              ),
+            ),
+            // Columna dreta: widgets amb scroll vertical i més espai
+            Flexible(
+              flex: 5,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SizedBox(
+                    height: constraints.maxHeight,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          // Header i info personal sobreposada
+                          SizedBox(
+                            height: 450,
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                ProfileHeaderWidget(
+                                  imageUrl:
+                                      data?['headerImageUrl']
+                                          as String?, // ✅ Passa URL dinàmica
+                                  onEditProfile: () => _handleEditProfile(),
+                                  onChangeVisibility: () =>
+                                      _handleChangeVisibility(),
+                                  onCompareProfileEvolution: () =>
+                                      _handleCompareEvolution(),
+                                ),
+                                Positioned(
+                                  right: 0,
+                                  bottom: -60, // Ara més avall per solapar més
+                                  child: SizedBox(
+                                    width: 420,
+                                    child: _buildPersonalInfo(),
+                                  ),
+                                ),
+                              ],
                             ),
-                            Positioned(
-                              right: 0,
-                              bottom: -60, // Ara més avall per solapar més
-                              child: SizedBox(
-                                width: 420,
-                                child: _buildPersonalInfo(),
-                              ),
+                          ),
+                          const SizedBox(height: 35),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: _buildEmpremtaVisionat(),
+                          ),
+                          const SizedBox(height: 32),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: _buildObjectiusTemporada()),
+                                const SizedBox(width: 32),
+                                Expanded(child: _buildBadges()),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 32),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: _buildApuntsPersonals(),
+                          ),
+                          const SizedBox(height: 32),
+                        ],
                       ),
-                      const SizedBox(height: 35),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: _buildEmpremtaVisionat(),
-                      ),
-                      const SizedBox(height: 32),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: _buildObjectiusTemporada()),
-                            const SizedBox(width: 32),
-                            Expanded(child: _buildBadges()),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: _buildApuntsPersonals(),
-                      ),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildMobileLayout() {
-    return Column(
-      children: [
-        // 🔥 PROFILE HEADER - Segueix prototip Figma (pantalla completa)
-        ProfileHeaderWidget(
-          onEditProfile: () => _handleEditProfile(),
-          onChangeVisibility: () => _handleChangeVisibility(),
-          onCompareProfileEvolution: () => _handleCompareEvolution(),
-        ),
-        const SizedBox(height: 8),
-        // Contingut amb padding lateral
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            children: [
-              _buildPersonalInfo(),
-              const SizedBox(height: 24),
-              _buildEmpremtaVisionat(),
-              const SizedBox(height: 24),
-              _buildApuntsPersonals(),
-              const SizedBox(height: 24),
-              _buildObjectiusTemporada(),
-              const SizedBox(height: 24),
-              _buildBadges(),
-              const SizedBox(height: 32), // Marge inferior extra
-            ],
-          ),
-        ),
-      ],
+    return FutureBuilder<Map<String, dynamic>?>(
+      key: ValueKey(_profileRefreshKey), // ✅ Sincronitza amb personal info
+      future: _fetchProfileInfo(),
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        return Column(
+          children: [
+            // 🔥 PROFILE HEADER - Segueix prototip Figma (pantalla completa)
+            ProfileHeaderWidget(
+              imageUrl:
+                  data?['headerImageUrl'] as String?, // ✅ Passa URL dinàmica
+              onEditProfile: () => _handleEditProfile(),
+              onChangeVisibility: () => _handleChangeVisibility(),
+              onCompareProfileEvolution: () => _handleCompareEvolution(),
+            ),
+            const SizedBox(height: 8),
+            // Contingut amb padding lateral
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: [
+                  _buildPersonalInfo(),
+                  const SizedBox(height: 24),
+                  _buildEmpremtaVisionat(),
+                  const SizedBox(height: 24),
+                  _buildApuntsPersonals(),
+                  const SizedBox(height: 24),
+                  _buildObjectiusTemporada(),
+                  const SizedBox(height: 24),
+                  _buildBadges(),
+                  const SizedBox(height: 32), // Marge inferior extra
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildPersonalInfo() {
     return FutureBuilder<Map<String, dynamic>?>(
+      key: ValueKey(_profileRefreshKey), // ✅ Força re-fetch quan canvia
       future: _fetchProfileInfo(),
       builder: (context, snapshot) {
         final data = snapshot.data;
         return ProfileInfoWidget(
-          // portraitImageUrl: null, // Imatge: es farà en un pas futur
-          refereeName: ' ', // Nom: es farà en un pas futur
+          portraitImageUrl:
+              data?['portraitImageUrl']
+                  as String?, // ✅ Passa la URL del portrait
+          refereeName:
+              data?['displayName'] as String? ??
+              data?['email'] as String? ??
+              'Àrbitre', // ✅ Passa el nom real
           refereeCategory: data == null || data['refereeCategory'] == null
               ? 'Defineix la teva categoria'
               : data['refereeCategory'] as String,
@@ -276,10 +302,14 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
     if (!mounted) return;
+
     if (result == 'header_success' ||
         result == 'portrait_success' ||
         result == 'profile_success') {
-      setState(() {}); // Refresca la UI després de canvis
+      setState(() {
+        _profileRefreshKey++;
+      });
+
       String msg;
       if (result == 'header_success') {
         msg = 'Imatge de capçalera actualitzada!';
@@ -288,21 +318,27 @@ class _ProfilePageState extends State<ProfilePage> {
       } else {
         msg = 'Perfil actualitzat correctament!';
       }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
+      });
     } else if (result == 'error') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('S\'ha produït un error. Torna-ho a intentar.'),
-        ),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('S\'ha produït un error. Torna-ho a intentar.'),
+          ),
+        );
+      });
     }
   }
 
-  /// Gestiona la configuració de visibilitat del perfil
   void _handleChangeVisibility() {
     debugPrint('👁️ ProfilePage: Configurant visibilitat del perfil');
-    // TODO: Mostrar diàleg de configuració de privacitat
-    // TODO: Opcions: Públic, Només àrbitres, Privat
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('👁️ Configuració de visibilitat en desenvolupament'),
@@ -311,11 +347,8 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  /// Gestiona la comparació d'evolució del perfil
   void _handleCompareEvolution() {
     debugPrint('📊 ProfilePage: Mostrant evolució del perfil');
-    // TODO: Generar informe de comparativa temporal
-    // TODO: Mostrar estadístiques d'evolució (1 any enrere)
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('📊 Comparativa d\'evolució en desenvolupament'),
@@ -324,11 +357,8 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  /// Gestiona el canvi de la imatge de portrait/avatar
   void _handleChangePortrait() {
     debugPrint('📸 ProfilePage: Canviant imatge de portrait');
-    // TODO: Implementar upload a Firebase Storage
-    // TODO: Actualitzar URL al perfil d'usuari
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('📸 Selecció d\'imatge de portrait en desenvolupament'),

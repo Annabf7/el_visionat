@@ -9,95 +9,125 @@ import 'package:firebase_auth/firebase_auth.dart';
 class _ImagePreviewWithName extends StatelessWidget {
   final String imageUrl;
   final String? label;
-  const _ImagePreviewWithName({required this.imageUrl, this.label});
+  final VoidCallback? onRemove;
+  const _ImagePreviewWithName({
+    required this.imageUrl,
+    this.label,
+    this.onRemove,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final fileName = imageUrl.split('/').last;
-    final dotIdx = fileName.lastIndexOf('.');
-    final base = dotIdx > 0 ? fileName.substring(0, dotIdx) : fileName;
-    final ext = dotIdx > 0 ? fileName.substring(dotIdx) : '';
+    // Mostra només el nom original (label) si existeix
+    String displayName = label ?? '';
+    if (displayName.toLowerCase().startsWith('scaled_')) {
+      displayName = displayName.substring(7);
+    }
+    if (displayName.trim().isEmpty) {
+      displayName = 'Imatge sense nom';
+    }
     return Tooltip(
-      message: fileName,
+      message: displayName,
       waitDuration: const Duration(milliseconds: 300),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.07),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
+          Stack(
+            alignment: Alignment.topRight,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    border: Border.all(color: Colors.grey.shade300, width: 1.2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const Icon(
-                  Icons.broken_image,
-                  color: Colors.grey,
-                  size: 28,
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.broken_image,
+                      color: Colors.grey,
+                      size: 32,
+                    ),
+                    loadingBuilder: (context, child, progress) =>
+                        progress == null
+                        ? child
+                        : const Center(
+                            child: SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                  ),
                 ),
-                loadingBuilder: (context, child, progress) => progress == null
-                    ? child
-                    : const Center(
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              if (onRemove != null)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: onRemove,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.10),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          size: 16,
+                          color: Colors.redAccent,
                         ),
                       ),
-              ),
-            ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Flexible(
-            child: RichText(
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: base,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppTheme.textBlackLow,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: 'Inter',
-                    ),
-                  ),
-                  TextSpan(
-                    text: ext,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppTheme.porpraFosc,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Inter',
-                    ),
-                  ),
-                ],
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.92),
+                borderRadius: BorderRadius.circular(7),
+                border: Border.all(color: Colors.grey.shade200, width: 1),
               ),
-              overflow: TextOverflow.ellipsis,
+              child: Text(
+                displayName,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: Colors.black,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'Inter',
+                  letterSpacing: 0.1,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                softWrap: false,
+              ),
             ),
           ),
-          if (label != null) ...[
-            const SizedBox(width: 8),
-            Text(
-              label!,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppTheme.textBlackLow,
-                fontStyle: FontStyle.italic,
-                fontFamily: 'Inter',
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -129,6 +159,8 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
   late int _startYear;
   String? _headerImageUrl;
   String? _portraitImageUrl;
+  String? _headerOriginalName;
+  String? _portraitOriginalName;
   bool _loadingInitial = true;
   final _formKey = GlobalKey<FormState>();
 
@@ -194,6 +226,13 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       _portraitImageUrl = (data != null && data['portraitImageUrl'] != null)
           ? data['portraitImageUrl'] as String
           : null;
+      _headerOriginalName = (data != null && data['headerOriginalName'] != null)
+          ? data['headerOriginalName'] as String
+          : null;
+      _portraitOriginalName =
+          (data != null && data['portraitOriginalName'] != null)
+          ? data['portraitOriginalName'] as String
+          : null;
       _loadingInitial = false;
     });
   }
@@ -235,8 +274,10 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       final userDoc = FirebaseFirestore.instance
           .collection('users')
           .doc(userId);
+      final originalName = file.name;
       await userDoc.update({
         isHeader ? 'headerImageUrl' : 'portraitImageUrl': url,
+        isHeader ? 'headerOriginalName' : 'portraitOriginalName': originalName,
       });
 
       if (!mounted) return null;
@@ -244,8 +285,10 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       setState(() {
         if (isHeader) {
           _headerImageUrl = url;
+          _headerOriginalName = originalName;
         } else {
           _portraitImageUrl = url;
+          _portraitOriginalName = originalName;
         }
       });
 
@@ -336,7 +379,29 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                 padding: const EdgeInsets.only(top: 6, bottom: 2),
                 child: _ImagePreviewWithName(
                   imageUrl: _headerImageUrl!,
-                  label: 'Imatge de capçalera',
+                  label: _headerOriginalName,
+                  onRemove: () async {
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user == null) return;
+                    // Remove from Firestore and Storage
+                    try {
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(user.uid)
+                          .update({
+                            'headerImageUrl': FieldValue.delete(),
+                            'headerOriginalName': FieldValue.delete(),
+                          });
+                      final ext = 'webp';
+                      final path = 'profile_images/${user.uid}/header.$ext';
+                      await FirebaseStorage.instance.ref().child(path).delete();
+                    } catch (_) {}
+                    if (!mounted) return;
+                    setState(() {
+                      _headerImageUrl = null;
+                      _headerOriginalName = null;
+                    });
+                  },
                 ),
               ),
             Padding(
@@ -377,7 +442,29 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                 padding: const EdgeInsets.only(top: 6, bottom: 2),
                 child: _ImagePreviewWithName(
                   imageUrl: _portraitImageUrl!,
-                  label: 'Imatge de perfil',
+                  label: _portraitOriginalName ?? 'Imatge de perfil',
+                  onRemove: () async {
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user == null) return;
+                    // Remove from Firestore and Storage
+                    try {
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(user.uid)
+                          .update({
+                            'portraitImageUrl': FieldValue.delete(),
+                            'portraitOriginalName': FieldValue.delete(),
+                          });
+                      final ext = 'webp';
+                      final path = 'profile_images/${user.uid}/portrait.$ext';
+                      await FirebaseStorage.instance.ref().child(path).delete();
+                    } catch (_) {}
+                    if (!mounted) return;
+                    setState(() {
+                      _portraitImageUrl = null;
+                      _portraitOriginalName = null;
+                    });
+                  },
                 ),
               ),
 

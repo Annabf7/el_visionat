@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
+import '../models/profile_model.dart';
 
 /// 🔥 PROFILE INFO WIDGET - EL VISIONAT
 ///
@@ -9,13 +10,8 @@ import 'package:el_visionat/core/theme/app_theme.dart';
 /// Inclou avatar editable, nom, categoria i experiència.
 /// Segueix el prototip Figma amb línia mostassa i layout integrat.
 class ProfileInfoWidget extends StatelessWidget {
-  /// URL de la imatge de perfil de l'usuari (null = imatge per defecte)
-  final String? portraitImageUrl;
-
-  /// Dades de l'àrbitre
-  final String refereeName;
-  final String refereeCategory;
-  final String refereeExperience;
+  /// Model de perfil amb tota la informació validada
+  final ProfileModel profile;
 
   /// Callback per canviar la imatge de perfil
   final VoidCallback? onChangePortrait;
@@ -25,10 +21,7 @@ class ProfileInfoWidget extends StatelessWidget {
 
   const ProfileInfoWidget({
     super.key,
-    this.portraitImageUrl,
-    required this.refereeName,
-    required this.refereeCategory,
-    required this.refereeExperience,
+    required this.profile,
     this.onChangePortrait,
     this.enableImageEdit = true,
   });
@@ -47,12 +40,10 @@ class ProfileInfoWidget extends StatelessWidget {
       color: Colors.transparent,
       child: Column(
         children: [
-          // Informació principal amb avatar i dades
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Informació de l'àrbitre
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -61,14 +52,10 @@ class ProfileInfoWidget extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 24),
-              // Avatar circular amb opció d'edició
               _buildEditableAvatar(context),
             ],
           ),
-
           const SizedBox(height: 24),
-
-          // Línia separadora mostassa
           _buildMostassaSeparator(),
         ],
       ),
@@ -80,90 +67,55 @@ class ProfileInfoWidget extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth > 900;
     final avatarSize = isDesktop ? 120.0 : 92.0;
-    return GestureDetector(
-      onTap: enableImageEdit ? () => _handleChangePortrait(context) : null,
-      child: Stack(
-        children: [
-          // Avatar principal
-          Container(
-            width: avatarSize,
-            height: avatarSize,
+    return Stack(
+      children: [
+        Container(
+          width: avatarSize,
+          height: avatarSize,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: AppTheme.grisPistacho.withValues(alpha: 0.3),
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipOval(child: _buildAvatarImage()),
+        ),
+        Positioned(
+          top: 2,
+          right: 2,
+          child: Container(
+            width: 16,
+            height: 16,
             decoration: BoxDecoration(
+              color: Colors.green,
               shape: BoxShape.circle,
-              border: Border.all(
-                color: AppTheme.grisPistacho.withValues(alpha: 0.3),
-                width: 2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: ClipOval(child: _buildAvatarImage()),
-          ),
-
-          // Icona d'edició si està habilitada
-          if (enableImageEdit)
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: AppTheme.mostassa,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.camera_alt,
-                  size: 14,
-                  color: AppTheme.porpraFosc,
-                ),
-              ),
-            ),
-
-          // Indicador d'estat (punt verd) si està actiu
-          Positioned(
-            top: 2,
-            right: 2,
-            child: Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                color: Colors.green,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-              ),
+              border: Border.all(color: Colors.white, width: 2),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   /// Imatge de l'avatar (local o de xarxa)
   Widget _buildAvatarImage() {
-    if (portraitImageUrl != null && portraitImageUrl!.isNotEmpty) {
-      // Imatge d'usuari des de URL externa
+    if (profile.portraitImageUrl != null &&
+        profile.portraitImageUrl!.isNotEmpty) {
       return CachedNetworkImage(
-        imageUrl: portraitImageUrl!,
+        imageUrl: profile.portraitImageUrl!,
         fit: BoxFit.cover,
         placeholder: (context, url) => _buildAvatarPlaceholder(),
         errorWidget: (context, url, error) => _buildDefaultAvatar(),
       );
     } else {
-      // Imatge per defecte local
       return _buildDefaultAvatar();
     }
   }
@@ -216,9 +168,8 @@ class ProfileInfoWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        // Nom de l'àrbitre
         Text(
-          refereeName,
+          profile.displayNameSafe,
           textAlign: TextAlign.right,
           style: TextStyle(
             fontFamily: 'Inter',
@@ -228,12 +179,9 @@ class ProfileInfoWidget extends StatelessWidget {
             height: 1.2,
           ),
         ),
-
         const SizedBox(height: 6),
-
-        // Categoria
         Text(
-          refereeCategory,
+          profile.categoriaSafe,
           textAlign: TextAlign.right,
           style: TextStyle(
             fontFamily: 'Inter',
@@ -243,12 +191,9 @@ class ProfileInfoWidget extends StatelessWidget {
             height: 1.3,
           ),
         ),
-
         const SizedBox(height: 4),
-
-        // Experiència
         Text(
-          refereeExperience,
+          profile.anysArbitratsSafe,
           textAlign: TextAlign.right,
           style: TextStyle(
             fontFamily: 'Inter',
@@ -282,52 +227,6 @@ class ProfileInfoWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(1),
       ),
     );
-  }
-
-  /// Gestiona el canvi de la imatge de perfil
-  void _handleChangePortrait(BuildContext context) async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 400,
-        maxHeight: 400,
-        imageQuality: 85,
-      );
-
-      if (image != null) {
-        debugPrint('📸 Portrait seleccionat: ${image.path}');
-        // Cridar callback si existeix
-        onChangePortrait?.call();
-
-        // TODO: Implementar upload a Firebase Storage
-        // TODO: Actualitzar URL al perfil d'usuari
-
-        // Feedback visual temporarl
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                '📸 Imatge seleccionada. Upload en desenvolupament...',
-              ),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('❌ Error seleccionant portrait: $e');
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Error seleccionant imatge: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    }
   }
 }
 

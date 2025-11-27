@@ -9,6 +9,7 @@ import 'package:el_visionat/features/visionat/widgets/match_details_card.dart';
 import 'package:el_visionat/features/visionat/models/match_models.dart';
 import 'package:el_visionat/features/voting/index.dart';
 import '../providers/home_provider.dart';
+import 'package:el_visionat/features/training/index.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -130,8 +131,63 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
             const SizedBox(height: 16),
-            // Secció de Votacions (Full width)
-            const VotingSection(),
+            // Fila: Votacions i Activitats de formació, 50% - 50%
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Secció de Votacions (esquerra)
+                const Expanded(
+                  flex: 1,
+                  child: VotingSection(),
+                ),
+                const SizedBox(width: 16),
+                // Activitats de formació (dreta)
+                Expanded(
+                  flex: 1,
+                  child: ChangeNotifierProvider(
+                    create: (_) => ActivityControllerProvider(activities: mockActivities),
+                    child: Card(
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 24,
+                          horizontal: 20,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.school_outlined,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Activitats de formació',
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Autoavaluació interactiva: mira el vídeo, respon les preguntes i comprova el teu progrés!',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                            const SizedBox(height: 20),
+                            TrainingActivitiesWidget(),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 500), // Placeholder extra per scroll
           ],
         ),
@@ -160,6 +216,50 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 16),
             const VotingSection(),
+            const SizedBox(height: 16),
+            // --- Activitats de formació ---
+            ChangeNotifierProvider(
+              create: (_) =>
+                  ActivityControllerProvider(activities: mockActivities),
+              child: Card(
+                elevation: 3,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 24,
+                    horizontal: 20,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.school_outlined,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Activitats de formació',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Autoavaluació interactiva: mira el vídeo, respon les preguntes i comprova el teu progrés!',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 20),
+                      TrainingActivitiesWidget(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(height: 500), // Placeholder extra per scroll
           ],
         ),

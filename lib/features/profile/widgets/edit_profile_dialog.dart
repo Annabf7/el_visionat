@@ -5,6 +5,105 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+// Widget per mostrar una previsualització de la imatge i el nom d'arxiu amb extensió i estil professional
+class _ImagePreviewWithName extends StatelessWidget {
+  final String imageUrl;
+  final String? label;
+  const _ImagePreviewWithName({required this.imageUrl, this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final fileName = imageUrl.split('/').last;
+    final dotIdx = fileName.lastIndexOf('.');
+    final base = dotIdx > 0 ? fileName.substring(0, dotIdx) : fileName;
+    final ext = dotIdx > 0 ? fileName.substring(dotIdx) : '';
+    return Tooltip(
+      message: fileName,
+      waitDuration: const Duration(milliseconds: 300),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.07),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const Icon(
+                  Icons.broken_image,
+                  color: Colors.grey,
+                  size: 28,
+                ),
+                loadingBuilder: (context, child, progress) => progress == null
+                    ? child
+                    : const Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: base,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.textBlackLow,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                  TextSpan(
+                    text: ext,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.porpraFosc,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                ],
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (label != null) ...[
+            const SizedBox(width: 8),
+            Text(
+              label!,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppTheme.textBlackLow,
+                fontStyle: FontStyle.italic,
+                fontFamily: 'Inter',
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class EditProfileDialog extends StatefulWidget {
   final String initialCategory;
   final int initialStartYear;
@@ -28,6 +127,8 @@ class EditProfileDialog extends StatefulWidget {
 class _EditProfileDialogState extends State<EditProfileDialog> {
   late String _category;
   late int _startYear;
+  String? _headerImageUrl;
+  String? _portraitImageUrl;
   bool _loadingInitial = true;
   final _formKey = GlobalKey<FormState>();
 
@@ -57,6 +158,8 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       setState(() {
         _category = widget.initialCategory;
         _startYear = widget.initialStartYear;
+        _headerImageUrl = null;
+        _portraitImageUrl = null;
         _loadingInitial = false;
       });
       return;
@@ -85,6 +188,12 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       _startYear = (data != null && data['startYear'] != null)
           ? (data['startYear'] as int)
           : widget.initialStartYear;
+      _headerImageUrl = (data != null && data['headerImageUrl'] != null)
+          ? data['headerImageUrl'] as String
+          : null;
+      _portraitImageUrl = (data != null && data['portraitImageUrl'] != null)
+          ? data['portraitImageUrl'] as String
+          : null;
       _loadingInitial = false;
     });
   }
@@ -94,7 +203,6 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     required bool isHeader,
   }) async {
     final picker = ImagePicker();
-    final navigator = Navigator.of(context);
     final dialogNavigator = Navigator.of(context, rootNavigator: true);
 
     showDialog(
@@ -133,16 +241,22 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
 
       if (!mounted) return null;
 
-      dialogNavigator.pop();
-      navigator.pop(isHeader ? 'header_success' : 'portrait_success');
+      setState(() {
+        if (isHeader) {
+          _headerImageUrl = url;
+        } else {
+          _portraitImageUrl = url;
+        }
+      });
 
+      dialogNavigator.pop();
+      // NO tanquem el diàleg ni fem navigator.pop aquí!
       return url;
     } catch (e) {
       if (!mounted) return null;
 
       dialogNavigator.pop();
-      navigator.pop('error');
-
+      // NO tanquem el diàleg ni fem navigator.pop aquí!
       return null;
     }
   }
@@ -176,16 +290,27 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Editar perfil',
-              style: TextStyle(
-                fontFamily: 'Geist',
-                color: AppTheme.porpraFosc,
-                fontSize: 22,
-                fontWeight: FontWeight.w600,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Editar perfil',
+                  style: TextStyle(
+                    fontFamily: 'Geist',
+                    color: AppTheme.porpraFosc,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: AppTheme.porpraFosc),
+                  tooltip: 'Tancar',
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
+            // Botó i info imatge capçalera
             TextButton.icon(
               onPressed: _onChangeHeaderImage,
               icon: const Icon(Icons.photo, color: AppTheme.porpraFosc),
@@ -206,7 +331,27 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                 foregroundColor: AppTheme.porpraFosc,
               ),
             ),
+            if (_headerImageUrl != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6, bottom: 2),
+                child: _ImagePreviewWithName(
+                  imageUrl: _headerImageUrl!,
+                  label: 'Imatge de capçalera',
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.only(top: 2, bottom: 8),
+              child: Text(
+                "Format recomanat: JPG, PNG o WebP. Mida mínima: 1200x300px. Proporció horitzontal (4:1). Per un resultat professional, elimina el fons de la imatge i utilitza un fons blanc trencat (#F8F9FA). Pots fer-ho gratuïtament a remove.bg.",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textBlackLow,
+                  fontFamily: 'Inter',
+                ),
+              ),
+            ),
             const SizedBox(height: 12),
+            // Botó i info imatge perfil
             TextButton.icon(
               onPressed: _onChangePortraitImage,
               icon: const Icon(Icons.photo, color: AppTheme.porpraFosc),
@@ -227,21 +372,65 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                 foregroundColor: AppTheme.porpraFosc,
               ),
             ),
-            const SizedBox(height: 24),
-            TextFormField(
-              initialValue: _category,
-              decoration: const InputDecoration(
-                labelText: 'Categoria arbitral',
-                labelStyle: TextStyle(
+            if (_portraitImageUrl != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6, bottom: 2),
+                child: _ImagePreviewWithName(
+                  imageUrl: _portraitImageUrl!,
+                  label: 'Imatge de perfil',
+                ),
+              ),
+
+            Padding(
+              padding: const EdgeInsets.only(top: 2, bottom: 8),
+              child: Text(
+                "Format recomanat: JPG, PNG o WebP. Mida mínima: 400x400px. Fons clar i rostre centrat.",
+                style: TextStyle(
+                  fontSize: 12,
                   color: AppTheme.textBlackLow,
                   fontFamily: 'Inter',
                 ),
-                border: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppTheme.porpraFosc),
+              ),
+            ),
+            const SizedBox(height: 24),
+            TextFormField(
+              initialValue: _category
+                  .replaceFirst(
+                    RegExp(r'^(Categoria\s*-?\s*)?', caseSensitive: false),
+                    '',
+                  )
+                  .replaceFirst(RegExp(r'^RT\s*', caseSensitive: false), '')
+                  .trim(),
+              decoration: InputDecoration(
+                labelText: 'Categoria arbitral',
+                labelStyle: const TextStyle(
+                  color: AppTheme.porpraFosc,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Inter',
+                ),
+                border: const OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: AppTheme.porpraFosc,
+                    width: 1.5,
+                  ),
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
-                focusedBorder: OutlineInputBorder(
+                enabledBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: AppTheme.porpraFosc,
+                    width: 1.5,
+                  ),
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
+                focusedBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: AppTheme.porpraFosc, width: 2),
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
+                disabledBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: AppTheme.porpraFosc,
+                    width: 1.5,
+                  ),
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
               ),
@@ -254,18 +443,36 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
             const SizedBox(height: 16),
             TextFormField(
               initialValue: _startYear.toString(),
-              decoration: const InputDecoration(
-                labelText: 'Any d\'inici',
-                labelStyle: TextStyle(
-                  color: AppTheme.textBlackLow,
+              decoration: InputDecoration(
+                labelText: "Any d'inici",
+                labelStyle: const TextStyle(
+                  color: AppTheme.porpraFosc,
+                  fontWeight: FontWeight.bold,
                   fontFamily: 'Inter',
                 ),
-                border: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppTheme.porpraFosc),
+                border: const OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: AppTheme.porpraFosc,
+                    width: 1.5,
+                  ),
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
-                focusedBorder: OutlineInputBorder(
+                enabledBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: AppTheme.porpraFosc,
+                    width: 1.5,
+                  ),
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
+                focusedBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: AppTheme.porpraFosc, width: 2),
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
+                disabledBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: AppTheme.porpraFosc,
+                    width: 1.5,
+                  ),
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
               ),
@@ -339,24 +546,27 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     );
 
     if (isMobile) {
-      return FractionallySizedBox(
-        heightFactor: 0.95,
-        child: Material(
-          color: Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          child: SafeArea(child: dialogContent),
+      return Dialog(
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 64),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: 380,
+            minWidth: 0,
+            minHeight: 0,
+          ),
+          child: SingleChildScrollView(child: dialogContent),
         ),
       );
     } else {
       return Dialog(
         backgroundColor: Colors.white,
-        insetPadding: const EdgeInsets.all(24),
-        child: dialogContent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 320, vertical: 48),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: dialogContent,
+        ),
       );
     }
   }
 }
-
-// Exemple de càlcul d'anys arbitrats i guardar-los a Firestore:
-// final anysArbitrats = DateTime.now().year - startYear;
-// await FirebaseFirestore.instance.collection('users').doc(userId).update({'anysArbitrats': anysArbitrats});

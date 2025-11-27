@@ -28,13 +28,65 @@ class EditProfileDialog extends StatefulWidget {
 class _EditProfileDialogState extends State<EditProfileDialog> {
   late String _category;
   late int _startYear;
+  bool _loadingInitial = true;
   final _formKey = GlobalKey<FormState>();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Connecta Firebase Storage a l'emulador només en mode debug
+    assert(() {
+      try {
+        FirebaseStorage.instance.useStorageEmulator('localhost', 9199);
+      } catch (_) {
+        // Ja pot estar connectat, ignora errors
+      }
+      return true;
+    }());
+  }
 
   @override
   void initState() {
     super.initState();
-    _category = widget.initialCategory;
-    _startYear = widget.initialStartYear;
+    _initProfileFields();
+  }
+
+  Future<void> _initProfileFields() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      setState(() {
+        _category = widget.initialCategory;
+        _startYear = widget.initialStartYear;
+        _loadingInitial = false;
+      });
+      return;
+    }
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+    final data = userDoc.data();
+    // Deriva refereeCategory si no existeix
+    String derivedCategory = widget.initialCategory;
+    if ((data == null || data['refereeCategory'] == null)) {
+      // Ex: "C1 Barcelona" → "Categoria C1 - RT Barcelona"
+      final regExp = RegExp(r'([A-Z0-9]+)\s+(.+)', caseSensitive: false);
+      final match = regExp.firstMatch(widget.initialCategory);
+      if (match != null) {
+        final code = match.group(1);
+        final region = match.group(2);
+        derivedCategory = 'Categoria $code - RT $region';
+      }
+    } else if (data['refereeCategory'] != null) {
+      derivedCategory = data['refereeCategory'] as String;
+    }
+    setState(() {
+      _category = derivedCategory;
+      _startYear = (data != null && data['startYear'] != null)
+          ? (data['startYear'] as int)
+          : widget.initialStartYear;
+      _loadingInitial = false;
+    });
   }
 
   Future<String?> _handleImageChange({
@@ -42,52 +94,43 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     required bool isHeader,
   }) async {
     final picker = ImagePicker();
+    final navigator = Navigator.of(context);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 80,
       maxWidth: 1200,
     );
-    if (pickedFile == null) return null;
-
-    final dialogContext = context;
-    showDialog(
-      context: dialogContext,
-      barrierDismissible: false,
-      builder: (ctx) => const Center(child: CircularProgressIndicator()),
-    );
+    if (!mounted || pickedFile == null) {
+      if (mounted) navigator.pop();
+      return null;
+    }
     try {
       final file = pickedFile;
       final ext = 'webp';
       final path = isHeader
-        ? 'profile_images/$userId/header.$ext'
-        : 'profile_images/$userId/portrait.$ext';
+          ? 'profile_images/$userId/header.$ext'
+          : 'profile_images/$userId/portrait.$ext';
       final storageRef = FirebaseStorage.instance.ref().child(path);
       await storageRef.putData(await file.readAsBytes());
       final url = await storageRef.getDownloadURL();
       // Actualitza la URL a Firestore
-      final userDoc = FirebaseFirestore.instance.collection('users').doc(userId);
+      final userDoc = FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId);
       await userDoc.update({
         isHeader ? 'headerImageUrl' : 'portraitImageUrl': url,
       });
-      if (mounted) Navigator.of(dialogContext).pop();
-      if (mounted) {
-        ScaffoldMessenger.of(dialogContext).showSnackBar(
-          SnackBar(content: Text(isHeader
-            ? 'Imatge de capçalera actualitzada!'
-            : 'Imatge de perfil actualitzada!')),
-        );
-      }
+      if (!mounted) return null;
+      navigator.pop(isHeader ? 'header_success' : 'portrait_success');
       return url;
     } catch (e) {
-      if (mounted) Navigator.of(dialogContext).pop();
-      if (mounted) {
-        ScaffoldMessenger.of(dialogContext).showSnackBar(
-          SnackBar(
-            content: Text('Error pujant la imatge: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return null;
+      navigator.pop('error');
       return null;
     }
   }
@@ -96,18 +139,23 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     await _handleImageChange(userId: user.uid, isHeader: true);
+    // El feedback es mostrarà des del widget pare
   }
 
   Future<void> _onChangePortraitImage() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     await _handleImageChange(userId: user.uid, isHeader: false);
+    // El feedback es mostrarà des del widget pare
   }
 
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
     final currentYear = DateTime.now().year;
+    if (_loadingInitial) {
+      return const Center(child: CircularProgressIndicator());
+    }
     final dialogContent = Padding(
       padding: const EdgeInsets.all(24),
       child: Form(
@@ -172,7 +220,10 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
               initialValue: _category,
               decoration: const InputDecoration(
                 labelText: 'Categoria arbitral',
-                labelStyle: TextStyle(color: AppTheme.textBlackLow, fontFamily: 'Inter'),
+                labelStyle: TextStyle(
+                  color: AppTheme.textBlackLow,
+                  fontFamily: 'Inter',
+                ),
                 border: OutlineInputBorder(
                   borderSide: BorderSide(color: AppTheme.porpraFosc),
                   borderRadius: BorderRadius.all(Radius.circular(12)),
@@ -182,15 +233,21 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
               ),
-              style: const TextStyle(color: AppTheme.porpraFosc, fontFamily: 'Inter'),
+              style: const TextStyle(
+                color: AppTheme.porpraFosc,
+                fontFamily: 'Inter',
+              ),
               onChanged: (v) => setState(() => _category = v),
             ),
             const SizedBox(height: 16),
             TextFormField(
-              initialValue: widget.initialStartYear.toString(),
+              initialValue: _startYear.toString(),
               decoration: const InputDecoration(
                 labelText: 'Any d\'inici',
-                labelStyle: TextStyle(color: AppTheme.textBlackLow, fontFamily: 'Inter'),
+                labelStyle: TextStyle(
+                  color: AppTheme.textBlackLow,
+                  fontFamily: 'Inter',
+                ),
                 border: OutlineInputBorder(
                   borderSide: BorderSide(color: AppTheme.porpraFosc),
                   borderRadius: BorderRadius.all(Radius.circular(12)),
@@ -201,7 +258,10 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                 ),
               ),
               keyboardType: TextInputType.number,
-              style: const TextStyle(color: AppTheme.porpraFosc, fontFamily: 'Inter'),
+              style: const TextStyle(
+                color: AppTheme.porpraFosc,
+                fontFamily: 'Inter',
+              ),
               validator: (v) {
                 final parsed = int.tryParse(v ?? '');
                 if (parsed == null) return 'Introdueix un any vàlid';
@@ -218,10 +278,31 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
             const Divider(height: 1, thickness: 1, color: Color(0x11000000)),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (_formKey.currentState?.validate() ?? true) {
-                  widget.onSave(_category, _startYear);
-                  Navigator.of(context).pop();
+                  final navigator = Navigator.of(context);
+                  try {
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user == null) {
+                      throw Exception('No s\'ha trobat l\'usuari.');
+                    }
+                    final userId = user.uid;
+                    final anysArbitrats = DateTime.now().year - _startYear;
+                    await FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(userId)
+                        .set({
+                          'refereeCategory':
+                              _category, // Només aquest camp editable
+                          'startYear': _startYear,
+                          'anysArbitrats': anysArbitrats,
+                        }, SetOptions(merge: true));
+                    if (!mounted) return;
+                    navigator.pop('profile_success'); // Retorna resultat al pare
+                  } catch (e) {
+                    if (!mounted) return;
+                    navigator.pop('error');
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -231,7 +312,10 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                textStyle: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Inter'),
+                textStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Inter',
+                ),
               ),
               child: const Text('Guardar canvis'),
             ),

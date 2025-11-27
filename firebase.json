@@ -1,25 +1,4 @@
 {
-  "flutter": {
-    "platforms": {
-      "android": {
-        "default": {
-          "projectId": "el-visionat",
-          "appId": "1:110254435620:android:51a114850c418a5dc997b1",
-          "fileOutput": "android/app/google-services.json"
-        }
-      },
-      "dart": {
-        "lib/firebase_options.dart": {
-          "projectId": "el-visionat",
-          "configurations": {
-            "android": "1:110254435620:android:51a114850c418a5dc997b1",
-            "ios": "1:110254435620:ios:d2d0a6a82ad64e60c997b1",
-            "web": "1:110254435620:web:99151e79522375a9c997b1"
-          }
-        }
-      }
-    }
-  },
   "functions": {
     "source": "functions",
     "ignore": [
@@ -37,6 +16,9 @@
   "firestore": {
     "rules": "firestore.rules"
   },
+  "storage": {
+    "rules": "storage.rules"
+  },
   "emulators": {
     "auth": {
       "host": "127.0.0.1",
@@ -49,6 +31,10 @@
     "firestore": {
       "host": "127.0.0.1",
       "port": 8088
+    },
+    "storage": {
+      "host": "127.0.0.1",
+      "port": 9199
     },
     "ui": {
       "enabled": true,

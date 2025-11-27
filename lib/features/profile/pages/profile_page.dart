@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:el_visionat/core/widgets/global_header.dart';
 import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
-import 'package:el_visionat/features/visionat/providers/weekly_match_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:el_visionat/features/profile/widgets/edit_profile_dialog.dart';
 import '../widgets/profile_header_widget.dart';
 import '../widgets/profile_info_widget.dart';
 import '../widgets/profile_footprint_widget.dart';
@@ -199,21 +200,19 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildPersonalInfo() {
-    return Consumer<WeeklyMatchProvider>(
-      builder: (context, matchProvider, _) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _fetchProfileInfo(),
+      builder: (context, snapshot) {
+        final data = snapshot.data;
         return ProfileInfoWidget(
-          // portraitImageUrl: null, // Utilitzarà imatge local per defecte
-          refereeName: matchProvider.isLoading
-              ? 'Carregant àrbitre...'
-              : matchProvider.hasError
-              ? 'Anna Borràs Font' // Fallback
-              : matchProvider.refereeName,
-          refereeCategory: matchProvider.isLoading
-              ? '...'
-              : matchProvider.hasError
-              ? 'Categoria A2 - RT Girona' // Fallback del prototip
-              : matchProvider.refereeCategory,
-          refereeExperience: '10 anys arbitrats', // Del prototip Figma
+          // portraitImageUrl: null, // Imatge: es farà en un pas futur
+          refereeName: ' ', // Nom: es farà en un pas futur
+          refereeCategory: data == null || data['refereeCategory'] == null
+              ? 'Defineix la teva categoria'
+              : data['refereeCategory'] as String,
+          refereeExperience: (data == null || data['anysArbitrats'] == null)
+              ? '-'
+              : '${data['anysArbitrats']} anys arbitrats',
           onChangePortrait: () => _handleChangePortrait(),
           enableImageEdit: true,
         );
@@ -241,18 +240,62 @@ class _ProfilePageState extends State<ProfilePage> {
   // Implementació placeholder per les funcions del menú kebab
 
   /// Gestiona l'edició del perfil d'usuari
-  void _handleEditProfile() {
+  Future<Map<String, dynamic>?> _fetchProfileInfo() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+    if (!doc.exists) return null;
+    return doc.data();
+  }
+
+  void _handleEditProfile() async {
     debugPrint('🔧 ProfilePage: Editant perfil d\'usuari');
-    // TODO: Navegar a pàgina d'edició de perfil
-    // TODO: Obrir bottomsheet amb formulari
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          '🔧 Funcionalitat d\'edició del perfil en desenvolupament',
-        ),
-        duration: Duration(seconds: 2),
+    final result = await showDialog(
+      context: context,
+      builder: (context) => EditProfileDialog(
+        initialCategory: 'Categoria A2 - RT Girona',
+        initialStartYear: 2015,
+        onSave: (category, startYear) {
+          debugPrint(
+            'Mock save: categoria=\x1B[33m$category\x1B[0m, startYear=\x1B[33m$startYear\x1B[0m',
+          ); // TODO: eliminar quan activem funcionalitat real
+        },
+        onChangeHeaderImage: () {
+          debugPrint(
+            'Mock change header image',
+          ); // TODO: eliminar quan activem funcionalitat real
+        },
+        onChangePortraitImage: () {
+          debugPrint(
+            'Mock change portrait image',
+          ); // TODO: eliminar quan activem funcionalitat real
+        },
       ),
     );
+    if (!mounted) return;
+    if (result == 'header_success' ||
+        result == 'portrait_success' ||
+        result == 'profile_success') {
+      setState(() {}); // Refresca la UI després de canvis
+      String msg;
+      if (result == 'header_success') {
+        msg = 'Imatge de capçalera actualitzada!';
+      } else if (result == 'portrait_success') {
+        msg = 'Imatge de perfil actualitzada!';
+      } else {
+        msg = 'Perfil actualitzat correctament!';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } else if (result == 'error') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('S\'ha produït un error. Torna-ho a intentar.'),
+        ),
+      );
+    }
   }
 
   /// Gestiona la configuració de visibilitat del perfil

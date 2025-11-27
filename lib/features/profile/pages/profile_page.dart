@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:el_visionat/features/profile/widgets/edit_profile_dialog.dart';
 import '../widgets/profile_header_widget.dart';
+import '../models/profile_model.dart';
 import '../widgets/profile_info_widget.dart';
 import '../widgets/profile_footprint_widget.dart';
 import '../widgets/personal_notes_table_widget.dart';
@@ -88,24 +89,23 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildDesktopLayout() {
     return FutureBuilder<Map<String, dynamic>?>(
-      key: ValueKey(_profileRefreshKey), // ✅ Sincronitza amb personal info
+      key: ValueKey(_profileRefreshKey),
       future: _fetchProfileInfo(),
       builder: (context, snapshot) {
         final data = snapshot.data;
+        final profile = ProfileModel.fromMap(data);
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Columna esquerra: Imatge fixa del banner (NO editable)
             Flexible(
-              flex: 4, // Encara menys espai per la imatge
+              flex: 4,
               child: Container(
                 width: double.infinity,
                 height: double.infinity,
                 decoration: const BoxDecoration(),
-                child: const ProfileBannerWidget(), // ✅ Banner amb imatge fixa
+                child: const ProfileBannerWidget(),
               ),
             ),
-            // Columna dreta: widgets amb scroll vertical i més espai
             Flexible(
               flex: 5,
               child: LayoutBuilder(
@@ -115,28 +115,23 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          // Header i info personal sobreposada
                           SizedBox(
                             height: 450,
                             child: Stack(
                               clipBehavior: Clip.none,
                               children: [
                                 ProfileHeaderWidget(
-                                  imageUrl:
-                                      data?['headerImageUrl']
-                                          as String?, // ✅ Passa URL dinàmica
+                                  imageUrl: data?['headerImageUrl'] as String?,
                                   onEditProfile: () => _handleEditProfile(),
-                                  onChangeVisibility: () =>
-                                      _handleChangeVisibility(),
-                                  onCompareProfileEvolution: () =>
-                                      _handleCompareEvolution(),
+                                  onChangeVisibility: () => _handleChangeVisibility(),
+                                  onCompareProfileEvolution: () => _handleCompareEvolution(),
                                 ),
                                 Positioned(
                                   right: 0,
-                                  bottom: -60, // Ara més avall per solapar més
+                                  bottom: -60,
                                   child: SizedBox(
                                     width: 420,
-                                    child: _buildPersonalInfo(),
+                                    child: _buildPersonalInfo(profile),
                                   ),
                                 ),
                               ],
@@ -180,27 +175,25 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildMobileLayout() {
     return FutureBuilder<Map<String, dynamic>?>(
-      key: ValueKey(_profileRefreshKey), // ✅ Sincronitza amb personal info
+      key: ValueKey(_profileRefreshKey),
       future: _fetchProfileInfo(),
       builder: (context, snapshot) {
         final data = snapshot.data;
+        final profile = ProfileModel.fromMap(data);
         return Column(
           children: [
-            // 🔥 PROFILE HEADER - Segueix prototip Figma (pantalla completa)
             ProfileHeaderWidget(
-              imageUrl:
-                  data?['headerImageUrl'] as String?, // ✅ Passa URL dinàmica
+              imageUrl: data?['headerImageUrl'] as String?,
               onEditProfile: () => _handleEditProfile(),
               onChangeVisibility: () => _handleChangeVisibility(),
               onCompareProfileEvolution: () => _handleCompareEvolution(),
             ),
             const SizedBox(height: 8),
-            // Contingut amb padding lateral
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 children: [
-                  _buildPersonalInfo(),
+                  _buildPersonalInfo(profile),
                   const SizedBox(height: 24),
                   _buildEmpremtaVisionat(),
                   const SizedBox(height: 24),
@@ -209,7 +202,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   _buildObjectiusTemporada(),
                   const SizedBox(height: 24),
                   _buildBadges(),
-                  const SizedBox(height: 32), // Marge inferior extra
+                  const SizedBox(height: 32),
                 ],
               ),
             ),
@@ -219,30 +212,11 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildPersonalInfo() {
-    return FutureBuilder<Map<String, dynamic>?>(
-      key: ValueKey(_profileRefreshKey), // ✅ Força re-fetch quan canvia
-      future: _fetchProfileInfo(),
-      builder: (context, snapshot) {
-        final data = snapshot.data;
-        return ProfileInfoWidget(
-          portraitImageUrl:
-              data?['portraitImageUrl']
-                  as String?, // ✅ Passa la URL del portrait
-          refereeName:
-              data?['displayName'] as String? ??
-              data?['email'] as String? ??
-              'Àrbitre', // ✅ Passa el nom real
-          refereeCategory: data == null || data['refereeCategory'] == null
-              ? 'Defineix la teva categoria'
-              : data['refereeCategory'] as String,
-          refereeExperience: (data == null || data['anysArbitrats'] == null)
-              ? '-'
-              : '${data['anysArbitrats']} anys arbitrats',
-          onChangePortrait: () => _handleChangePortrait(),
-          enableImageEdit: true,
-        );
-      },
+  Widget _buildPersonalInfo(ProfileModel profile) {
+    return ProfileInfoWidget(
+      profile: profile,
+      onChangePortrait: () => _handleChangePortrait(),
+      enableImageEdit: true,
     );
   }
 

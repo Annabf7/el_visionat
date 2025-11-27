@@ -67,6 +67,7 @@ class ProfileInfoWidget extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth > 900;
     final avatarSize = isDesktop ? 120.0 : 92.0;
+    final greenDotSize = isDesktop ? 22.0 : 16.0;
     return Stack(
       children: [
         Container(
@@ -89,11 +90,11 @@ class ProfileInfoWidget extends StatelessWidget {
           child: ClipOval(child: _buildAvatarImage()),
         ),
         Positioned(
-          top: 2,
-          right: 2,
+          bottom: 6,
+          right: 6,
           child: Container(
-            width: 16,
-            height: 16,
+            width: greenDotSize,
+            height: greenDotSize,
             decoration: BoxDecoration(
               color: Colors.green,
               shape: BoxShape.circle,

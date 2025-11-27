@@ -10,6 +10,7 @@ class MatchDetailsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: const BoxConstraints(minHeight: 260),
       decoration: BoxDecoration(
         color: AppTheme.porpraFosc, // Canvi: fons més fosc per contrast
         borderRadius: BorderRadius.circular(16),

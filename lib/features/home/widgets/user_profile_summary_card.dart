@@ -13,7 +13,7 @@ class UserProfileSummaryCard extends StatelessWidget {
     final matchProvider = context.watch<WeeklyMatchProvider>();
 
     return Container(
-      padding: const EdgeInsets.all(28.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       decoration: BoxDecoration(
         color: AppTheme.mostassa,
         borderRadius: BorderRadius.circular(20),
@@ -33,7 +33,7 @@ class UserProfileSummaryCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -49,16 +49,16 @@ class UserProfileSummaryCard extends StatelessWidget {
                 ),
                 child: Icon(
                   Icons.person_outline,
-                  size: 20,
+                  size: 18,
                   color: AppTheme.textBlackLow.withValues(alpha: 0.85),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Text(
                 'PERFIL DE L\'ÀRBITRE',
                 style: TextStyle(
                   fontFamily: 'Geist',
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: AppTheme.textBlackLow.withValues(alpha: 0.8),
                   letterSpacing: 1.2,
@@ -66,13 +66,13 @@ class UserProfileSummaryCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
           // Modern avatar with status indicator
           Center(
             child: Stack(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(4),
+                  padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
@@ -94,13 +94,13 @@ class UserProfileSummaryCard extends StatelessWidget {
                     ],
                   ),
                   child: CircleAvatar(
-                    radius: 38,
+                    radius: 28,
                     backgroundColor: AppTheme.grisPistacho.withValues(
                       alpha: 0.2,
                     ),
                     child: Icon(
                       Icons.sports,
-                      size: 32,
+                      size: 22,
                       color: AppTheme.textBlackLow.withValues(alpha: 0.8),
                     ),
                   ),
@@ -110,8 +110,8 @@ class UserProfileSummaryCard extends StatelessWidget {
                   bottom: 2,
                   right: 2,
                   child: Container(
-                    width: 16,
-                    height: 16,
+                    width: 12,
+                    height: 12,
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
                         colors: [AppTheme.porpraFosc, AppTheme.grisPistacho],
@@ -131,7 +131,7 @@ class UserProfileSummaryCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
           // Modern referee info with loading states
           if (matchProvider.isLoading)
             Center(

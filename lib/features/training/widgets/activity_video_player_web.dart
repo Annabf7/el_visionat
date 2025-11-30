@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 // import 'package:youtube_player_iframe/youtube_player_iframe.dart';
-import 'dart:html' as html;
+import 'package:web/web.dart' as web;
 
 class ActivityVideoPlayerWeb extends StatelessWidget {
   final String videoId;
@@ -51,7 +51,7 @@ class ActivityVideoPlayerWeb extends StatelessWidget {
 
   void _launchYoutube(String videoId) {
     final url = 'https://www.youtube.com/watch?v=$videoId';
-    // Use html.window.open for web compatibility
-    html.window.open(url, '_blank');
+    // Use modern web API for web compatibility
+    web.window.open(url, '_blank');
   }
 }

@@ -24,6 +24,7 @@ import {onRegistrationStatusUpdate} from "./auth/on_registration_status_update";
 // works correctly. Import callable and export it under the expected name.
 import {validateActivationTokenCallable} from "./auth/validate_activation_token";
 import {resendActivationToken} from "./auth/resend_activation_token";
+import {sendPasswordResetEmail} from "./auth/send_password_reset_email";
 import {warmFunctions} from "./utils/warm_functions";
 import {getYouTubeVideos} from "./youtube/getYouTubeVideos";
 
@@ -37,6 +38,7 @@ exports.sendRegistrationNotificationHttp = sendRegistrationNotificationHttp;
 exports.onRegistrationStatusUpdate = onRegistrationStatusUpdate;
 exports.validateActivationToken = validateActivationTokenCallable;
 exports.resendActivationToken = resendActivationToken;
+exports.sendPasswordResetEmail = sendPasswordResetEmail;
 exports.warmFunctions = warmFunctions;
 exports.getYouTubeVideos = getYouTubeVideos;
 

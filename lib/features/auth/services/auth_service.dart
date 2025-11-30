@@ -72,9 +72,12 @@ class AuthService {
 
   /// PAS 1: Verifica la llicència contra el registre.
   Future<Map<String, dynamic>> lookupLicense(String licenseId) async {
-    final callable = functions.httpsCallable('lookupLicense', options: HttpsCallableOptions(
-      timeout: const Duration(seconds: 60), // Timeout més alt per cold start
-    ));
+    final callable = functions.httpsCallable(
+      'lookupLicense',
+      options: HttpsCallableOptions(
+        timeout: const Duration(seconds: 60), // Timeout més alt per cold start
+      ),
+    );
     try {
       // In debug, do a quick TCP check to the Functions emulator to provide
       // an earlier, clearer diagnostic if the emulator isn't reachable.
@@ -119,9 +122,12 @@ class AuthService {
     // race conditions. If the doc already exists, we throw a standard
     // Exception('emailAlreadyInUse') which the caller (AuthProvider) will
     // surface to the UI as a readable message.
-    final callable = functions.httpsCallable('requestRegistration', options: HttpsCallableOptions(
-      timeout: const Duration(seconds: 60), // Timeout més alt per cold start
-    ));
+    final callable = functions.httpsCallable(
+      'requestRegistration',
+      options: HttpsCallableOptions(
+        timeout: const Duration(seconds: 60), // Timeout més alt per cold start
+      ),
+    );
     final emailLower = email.trim().toLowerCase();
     final emailDoc = firestore.collection('emails').doc(emailLower);
 
@@ -283,6 +289,30 @@ class AuthService {
 
   /// Stream per escoltar els canvis d'estat d'autenticació (usuari connectat/desconnectat).
   Stream<User?> get authStateChanges => auth.authStateChanges();
+
+  /// Envia un correu de restabliment de contrasenya a través de la Cloud Function sendPasswordResetEmail.
+  Future<void> sendPasswordResetEmail(String email) async {
+    final callable = functions.httpsCallable('sendPasswordResetEmail');
+    try {
+      await callable.call<Map<String, dynamic>>({
+        'email': email.trim().toLowerCase(),
+      });
+      return;
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint(
+        'Functions Exception on sendPasswordResetEmail: ${e.code} - ${e.message}',
+      );
+      throw Exception(
+        e.message ??
+            "No s’ha pogut enviar el correu de restabliment de contrasenya.",
+      );
+    } catch (e) {
+      debugPrint('Generic Exception in sendPasswordResetEmail: $e');
+      throw Exception(
+        "Error inesperat en enviar el correu de restabliment de contrasenya.",
+      );
+    }
+  }
 }
 
 // -----------------------------------------------------------------------------

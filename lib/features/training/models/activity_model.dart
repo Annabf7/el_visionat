@@ -1,8 +1,6 @@
 /// Model per a activitats autoavaluatives
 ///
 /// Representa una activitat amb preguntes i (opcionalment) vídeo de YouTube.
-library;
-
 import 'question_model.dart';
 
 class ActivityModel {

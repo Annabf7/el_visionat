@@ -596,8 +596,12 @@ class _LoginPageDesktopState extends State<_LoginPageDesktop> {
                       backgroundColor: AppTheme.mostassa, // Mostassa del tema
                       foregroundColor:
                           AppTheme.porpraFosc, // Porpra fosc per contrast
-                      disabledBackgroundColor: AppTheme.grisPistacho.withValues(alpha: 0.8), // Fons quan desactivat
-                      disabledForegroundColor: AppTheme.textBlackLow.withValues(alpha: 0.7), // Text visible quan desactivat
+                      disabledBackgroundColor: AppTheme.grisPistacho.withValues(
+                        alpha: 0.8,
+                      ), // Fons quan desactivat
+                      disabledForegroundColor: AppTheme.textBlackLow.withValues(
+                        alpha: 0.7,
+                      ), // Text visible quan desactivat
                       elevation: 3,
                       shadowColor: AppTheme.porpraFosc.withValues(alpha: 0.3),
                       shape: RoundedRectangleBorder(
@@ -774,6 +778,108 @@ class _LoginViewState extends State<_LoginView> {
         const SnackBar(content: Text('Error de xarxa. Torna-ho a intentar.')),
       );
     }
+  }
+
+  // Shows a dialog to reset password via email
+  Future<bool> _showForgotPasswordDialog() async {
+    final dialogEmailController = TextEditingController();
+    final dialogFormKey = GlobalKey<FormState>();
+    bool isLoading = false;
+    String? errorText;
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setState) {
+            return AlertDialog(
+              title: const Text('Recuperar contrasenya'),
+              content: Form(
+                key: dialogFormKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Introdueix el teu correu electrònic i t\'enviarem un enllaç per restablir la contrasenya.',
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: dialogEmailController,
+                      decoration: InputDecoration(
+                        labelText: 'Correu electrònic',
+                        errorText: errorText,
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Introdueix un correu';
+                        }
+                        if (!value.contains('@')) {
+                          return 'Correu no vàlid';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isLoading
+                      ? null
+                      : () {
+                          Navigator.of(dialogContext).pop(false);
+                        },
+                  child: const Text('Cancel·lar'),
+                ),
+                ElevatedButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          if (!(dialogFormKey.currentState?.validate() ??
+                              false)) {
+                            return;
+                          }
+                          setState(() {
+                            isLoading = true;
+                            errorText = null;
+                          });
+
+                          // Capture navigator before async gap
+                          final navigator = Navigator.of(dialogContext);
+
+                          try {
+                            final authProvider = context.read<AuthProvider>();
+                            await authProvider.sendPasswordReset(
+                              dialogEmailController.text.trim(),
+                            );
+
+                            // Safe to use captured navigator
+                            navigator.pop(true);
+                          } catch (e) {
+                            setState(() {
+                              errorText =
+                                  'Error: ${e.toString().replaceFirst('Exception: ', '')}';
+                              isLoading = false;
+                            });
+                          }
+                        },
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Enviar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    return result ?? false;
   }
 
   // Shows a modal dialog to request the activation token and validate it
@@ -1034,7 +1140,7 @@ class _LoginViewState extends State<_LoginView> {
                 },
                 onFieldSubmitted: (_) => _submit(), // Permet enviar amb Enter
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 2),
               if (showTokenField && authProvider.pendingEmail != null)
                 Align(
                   alignment: Alignment.centerRight,
@@ -1048,15 +1154,67 @@ class _LoginViewState extends State<_LoginView> {
                 ),
               const SizedBox(height: 8),
               if (!showTokenField)
-                Align(
-                  // Alineem el botó de "oblidar contrasenya"
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      /* TODO: Implementar recuperació contrasenya */
-                    },
-                    child: const Text('He oblidat la meva contrasenya'),
-                  ),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isMobile = constraints.maxWidth < 500;
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        top: isMobile ? 4 : 1,
+                        right: isMobile ? 0 : 2,
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color.fromARGB(
+                              255,
+                              161,
+                              160,
+                              160,
+                            ),
+                          ),
+                          onPressed: () async {
+                            debugPrint('🔵 Forgot password button pressed');
+
+                            // Capture ScaffoldMessenger before async gap (professional pattern)
+                            final scaffoldMessenger = ScaffoldMessenger.of(
+                              context,
+                            );
+
+                            try {
+                              final result = await _showForgotPasswordDialog();
+
+                              debugPrint('🔵 Dialog result: $result');
+
+                              if (result && mounted) {
+                                debugPrint('🔵 Showing success SnackBar');
+                                scaffoldMessenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'S\'ha enviat un correu per restablir la contrasenya.',
+                                    ),
+                                    backgroundColor: Colors.green,
+                                    duration: Duration(seconds: 4),
+                                  ),
+                                );
+                              }
+                            } catch (error) {
+                              debugPrint('🔴 Error: $error');
+                              if (mounted) {
+                                scaffoldMessenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text('Error: ${error.toString()}'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          child: const Text('He oblidat la meva contrasenya'),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               const SizedBox(height: 16),
               // Mostrem l'indicador només si estem carregant AQUEST formulari
@@ -1357,9 +1515,7 @@ class _RegisterStep2EmailState extends State<_RegisterStep2Email> {
                 controller: _emailController,
                 decoration: InputDecoration(
                   labelText: 'Introdueix el correu electrònic',
-                  labelStyle: TextStyle(
-                    color: AppTheme.grisPistacho,
-                  ),
+                  labelStyle: TextStyle(color: AppTheme.grisPistacho),
                 ),
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) => (value == null || !value.contains('@'))

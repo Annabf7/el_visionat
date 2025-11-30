@@ -315,6 +315,18 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Envia un correu de restabliment de contrasenya.
+  Future<void> sendPasswordReset(String email) async {
+    _setLoading(true);
+    _clearError();
+    try {
+      await authService.sendPasswordResetEmail(email);
+      _setLoading(false);
+    } on Exception catch (e) {
+      _setError(e.toString().replaceFirst('Exception: ', ''), notify: true);
+    }
+  }
+
   @override
   void dispose() {
     try {

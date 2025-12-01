@@ -188,7 +188,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            const SizedBox(height: 500), // Placeholder extra per scroll
+            const SizedBox(height: 32), // Padding final professional
           ],
         ),
       ),
@@ -260,7 +260,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            const SizedBox(height: 500), // Placeholder extra per scroll
+            const SizedBox(height: 32), // Padding final professional
           ],
         ),
       ),

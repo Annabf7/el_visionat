@@ -5,7 +5,7 @@ import {sendWelcomeEmail} from "../email/send_welcome_email";
 const db = getFirestore();
 
 export const onRegistrationStatusUpdate = onDocumentUpdated(
-  {document: "registration_requests/{id}", secrets: ["RESEND_API_KEY"]},
+  {document: "registration_requests/{id}", region: "europe-west1", secrets: ["RESEND_API_KEY"]},
   async (event) => {
     // event.data is a Change<QueryDocumentSnapshot>
     const change = event.data;

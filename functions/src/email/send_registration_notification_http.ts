@@ -3,7 +3,7 @@ import {onRequest} from "firebase-functions/v2/https";
 import {Resend} from "resend";
 
 export const sendRegistrationNotificationHttp = onRequest(
-  {secrets: ["RESEND_API_KEY"]},
+  {region: "europe-west1", secrets: ["RESEND_API_KEY"]},
   async (req, res) => {
     console.log("[sendRegistrationNotificationHttp] Invoked");
 

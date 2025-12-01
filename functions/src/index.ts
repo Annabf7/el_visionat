@@ -20,9 +20,9 @@ import {checkRegistrationStatus} from "./auth/check_registration_status";
 import {onVoteWrite} from "./votes/on_vote_write";
 import {sendRegistrationNotificationHttp} from "./email/send_registration_notification_http";
 import {onRegistrationStatusUpdate} from "./auth/on_registration_status_update";
-// Prefer the callable wrapper so client httpsCallable('validateActivationToken')
-// works correctly. Import callable and export it under the expected name.
-import {validateActivationTokenCallable} from "./auth/validate_activation_token";
+// Import the V2 callable wrapper so client httpsCallable('validateActivationToken')
+// works correctly with europe-west1 region.
+import {validateActivationTokenCallableV2} from "./auth/validate_activation_token";
 import {resendActivationToken} from "./auth/resend_activation_token";
 import {sendPasswordResetEmail} from "./auth/send_password_reset_email";
 import {warmFunctions} from "./utils/warm_functions";
@@ -36,7 +36,7 @@ exports.checkRegistrationStatus = checkRegistrationStatus;
 exports.onVoteWrite = onVoteWrite;
 exports.sendRegistrationNotificationHttp = sendRegistrationNotificationHttp;
 exports.onRegistrationStatusUpdate = onRegistrationStatusUpdate;
-exports.validateActivationToken = validateActivationTokenCallable;
+exports.validateActivationToken = validateActivationTokenCallableV2;
 exports.resendActivationToken = resendActivationToken;
 exports.sendPasswordResetEmail = sendPasswordResetEmail;
 exports.warmFunctions = warmFunctions;

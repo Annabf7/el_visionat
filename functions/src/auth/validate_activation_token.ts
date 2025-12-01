@@ -1,4 +1,4 @@
-import {onRequest, HttpsError} from "firebase-functions/v2/https";
+import {onRequest, onCall, HttpsError} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import {getFirestore, FieldValue} from "firebase-admin/firestore";
 // For callable compatibility with the client SDK (httpsCallable), export a
@@ -78,7 +78,7 @@ interface ValidateBody {
   email?: string;
 }
 
-export const validateActivationToken = onRequest(async (req, res) => {
+export const validateActivationToken = onRequest({region: "europe-west1"}, async (req, res) => {
   try {
     if (req.method !== "POST") {
       res.status(405).json({success: false, message: "Method Not Allowed"});
@@ -129,7 +129,46 @@ export const validateActivationToken = onRequest(async (req, res) => {
   }
 });
 
-// --- Callable wrapper (for firebase client httpsCallable) ---
+// --- V2 Callable wrapper (preferred for new clients) ---
+export const validateActivationTokenCallableV2 = onCall({region: "europe-west1"}, async (request) => {
+  try {
+    const body = request.data as ValidateBody | any;
+
+    try {
+      console.log("[validateActivationTokenCallableV2] incoming payload:", JSON.stringify(body));
+    } catch (logErr) {
+      console.log("[validateActivationTokenCallableV2] incoming payload (inspect):", inspect(body, {depth: null}));
+    }
+
+    const normalized = (body && typeof body === "object" && (body.data || body.payload)) ?
+      (body.data ?? body.payload) :
+      body;
+
+    const tokenRaw = (normalized?.token ?? normalized?.activationToken ?? "");
+    const token = (typeof tokenRaw === "string" ? tokenRaw : String(tokenRaw)).trim();
+    const emailRaw = (normalized?.email ?? "");
+    const email = (typeof emailRaw === "string" ? emailRaw : String(emailRaw)).trim().toLowerCase();
+
+    if (!token || !email) {
+      console.warn("[validateActivationTokenCallableV2] Invalid request, missing token or email");
+      throw new HttpsError("invalid-argument", "Invalid request");
+    }
+
+    if (VERBOSE_LOG) console.log(`[validateActivationTokenCallableV2] Received token validation request for email: ${email}`);
+
+    await validateActivationTokenCore(email, token);
+
+    return {success: true, message: "Token valid. User may proceed."};
+  } catch (err) {
+    console.error("[validateActivationTokenCallableV2] Error", err);
+    if (err instanceof HttpsError) {
+      throw err;
+    }
+    throw new HttpsError("internal", "Server error");
+  }
+});
+
+// --- V1 Callable wrapper (for backward compatibility) ---
 // This wrapper reuses the same logic as the HTTP handler but exposes a
 // callable function which the Flutter `httpsCallable('validateActivationToken')`
 // call can successfully reach. The callable expects an object { email, token }.

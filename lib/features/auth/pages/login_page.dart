@@ -214,7 +214,9 @@ class _LoginPageMobileState extends State<_LoginPageMobile>
                             );
 
                             try {
-                              final functions = FirebaseFunctions.instance;
+                              final functions = FirebaseFunctions.instanceFor(
+                                region: 'europe-west1',
+                              );
                               final callable = functions.httpsCallable(
                                 'validateActivationToken',
                               );
@@ -549,7 +551,9 @@ class _LoginPageDesktopState extends State<_LoginPageDesktop> {
                             );
 
                             try {
-                              final functions = FirebaseFunctions.instance;
+                              final functions = FirebaseFunctions.instanceFor(
+                                region: 'europe-west1',
+                              );
                               final callable = functions.httpsCallable(
                                 'validateActivationToken',
                               );
@@ -687,7 +691,9 @@ class _LoginViewState extends State<_LoginView> {
         final scaffoldMessenger = ScaffoldMessenger.of(context);
 
         try {
-          final functions = FirebaseFunctions.instance;
+          final functions = FirebaseFunctions.instanceFor(
+            region: 'europe-west1',
+          );
           final callable = functions.httpsCallable('validateActivationToken');
           final res = await callable.call(<String, dynamic>{
             'email': email,
@@ -761,7 +767,7 @@ class _LoginViewState extends State<_LoginView> {
   Future<void> _resendActivationTokenFor(String email) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
-      final functions = FirebaseFunctions.instance;
+      final functions = FirebaseFunctions.instanceFor(region: 'europe-west1');
       final callable = functions.httpsCallable('resendActivationToken');
       final res = await callable.call(<String, dynamic>{'email': email});
       final data = res.data as Map<dynamic, dynamic>?;
@@ -952,7 +958,9 @@ class _LoginViewState extends State<_LoginView> {
                           );
 
                           try {
-                            final functions = FirebaseFunctions.instance;
+                            final functions = FirebaseFunctions.instanceFor(
+                              region: 'europe-west1',
+                            );
                             final callable = functions.httpsCallable(
                               'validateActivationToken',
                             );

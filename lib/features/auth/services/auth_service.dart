@@ -292,22 +292,42 @@ class AuthService {
 
   /// Envia un correu de restabliment de contrasenya a través de la Cloud Function sendPasswordResetEmail.
   Future<void> sendPasswordResetEmail(String email) async {
+    debugPrint(
+      '🔵 [sendPasswordResetEmail] START - Attempting to send password reset email',
+    );
+    debugPrint('🔵 [sendPasswordResetEmail] Email: $email');
+    debugPrint(
+      '🔵 [sendPasswordResetEmail] Functions instance: ${functions.toString()}',
+    );
+
     final callable = functions.httpsCallable('sendPasswordResetEmail');
+    debugPrint('🔵 [sendPasswordResetEmail] Callable created successfully');
+
     try {
-      await callable.call<Map<String, dynamic>>({
+      debugPrint('🔵 [sendPasswordResetEmail] Calling Cloud Function...');
+      final result = await callable.call<Map<String, dynamic>>({
         'email': email.trim().toLowerCase(),
       });
+      debugPrint(
+        '🟢 [sendPasswordResetEmail] SUCCESS - Function returned: ${result.data}',
+      );
       return;
     } on FirebaseFunctionsException catch (e) {
       debugPrint(
-        'Functions Exception on sendPasswordResetEmail: ${e.code} - ${e.message}',
+        '🔴 [sendPasswordResetEmail] FirebaseFunctionsException caught!',
       );
+      debugPrint('🔴 [sendPasswordResetEmail] Code: ${e.code}');
+      debugPrint('🔴 [sendPasswordResetEmail] Message: ${e.message}');
+      debugPrint('🔴 [sendPasswordResetEmail] Details: ${e.details}');
+      debugPrint('🔴 [sendPasswordResetEmail] Stack trace: ${e.stackTrace}');
       throw Exception(
         e.message ??
-            "No s’ha pogut enviar el correu de restabliment de contrasenya.",
+            "No s'ha pogut enviar el correu de restabliment de contrasenya.",
       );
-    } catch (e) {
-      debugPrint('Generic Exception in sendPasswordResetEmail: $e');
+    } catch (e, stackTrace) {
+      debugPrint('🔴 [sendPasswordResetEmail] Generic Exception caught!');
+      debugPrint('🔴 [sendPasswordResetEmail] Exception: $e');
+      debugPrint('🔴 [sendPasswordResetEmail] Stack trace: $stackTrace');
       throw Exception(
         "Error inesperat en enviar el correu de restabliment de contrasenya.",
       );

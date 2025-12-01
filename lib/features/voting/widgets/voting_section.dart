@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:video_player/video_player.dart';
 // Authentication is handled centrally by RequireAuth / AuthProvider.
 
 import '../providers/vote_provider.dart';
@@ -80,6 +81,115 @@ String formatDate(String iso) {
   return DateFormat('dd/MM/yyyy • HH:mm', 'ca_ES').format(dt);
 }
 
+/// Simple video widget for Voting Section
+class VotingVideoClip extends StatefulWidget {
+  const VotingVideoClip({super.key});
+
+  @override
+  State<VotingVideoClip> createState() => _VotingVideoClipState();
+}
+
+class _VotingVideoClipState extends State<VotingVideoClip> {
+  VideoPlayerController? _controller;
+  bool _isInitialized = false;
+  bool _hasError = false;
+
+  static const String _videoUrl =
+      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/home_page%2Flayout_votingHome.mp4?alt=media&token=4da7388e-9e6b-420a-96a7-b56ca4ccd74c';
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeVideo();
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initializeVideo() async {
+    try {
+      _controller = VideoPlayerController.networkUrl(Uri.parse(_videoUrl));
+      await _controller!.initialize();
+      await _controller!.setLooping(true);
+      await _controller!.setVolume(0.0);
+      await _controller!.play();
+
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+          _hasError = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error initializing video: $e');
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _isInitialized = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_hasError) {
+      return Container(
+        height: 200,
+        decoration: BoxDecoration(
+          color: AppTheme.grisBody.withAlpha(128),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Center(
+          child: Icon(Icons.error_outline, color: AppTheme.grisPistacho),
+        ),
+      );
+    }
+
+    if (!_isInitialized || _controller == null) {
+      return Container(
+        height: 200,
+        decoration: BoxDecoration(
+          color: AppTheme.grisBody.withAlpha(128),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(color: AppTheme.grisPistacho),
+        ),
+      );
+    }
+
+    // Crop verticalment i afegeix overlay gris translúcid
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Stack(
+        children: [
+          ClipRect(
+            child: Align(
+              alignment: Alignment.center,
+              heightFactor: 0.5, // mostra només el 50% central del vídeo
+              child: AspectRatio(
+                aspectRatio: _controller!.value.aspectRatio,
+                child: VideoPlayer(_controller!),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              color: AppTheme.grisBody.withAlpha(
+                (0.4 * 255).round(),
+              ), // gris translúcid
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class VotingSection extends StatefulWidget {
   const VotingSection({super.key});
 
@@ -126,6 +236,10 @@ class _VotingSectionState extends State<VotingSection> {
           const JornadaHeader(jornada: 14),
           const SizedBox(height: 12),
 
+          // Video clip
+          const VotingVideoClip(),
+          const SizedBox(height: 12),
+
           FutureBuilder<List<MatchSeed>>(
             future: _matchesFuture ??= loadMatchesFromAssets(),
             builder: (context, snap) {
@@ -155,7 +269,7 @@ class _VotingSectionState extends State<VotingSection> {
               if (_selected.isEmpty) {
                 final c = List<MatchSeed>.from(all);
                 c.shuffle(Random());
-                _selected.addAll(c.take(min(3, c.length)));
+                _selected.addAll(c.take(min(5, c.length)));
               }
 
               if (!_didPrecache) {
@@ -204,23 +318,56 @@ class _VotingSectionState extends State<VotingSection> {
                         const SizedBox(height: 12),
                         Align(
                           alignment: Alignment.center,
-                          child: ElevatedButton(
-                            onPressed: () =>
-                                Navigator.pushNamed(context, '/all-matches'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.grisPistacho,
-                              foregroundColor: AppTheme.porpraFosc,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 28,
-                                vertical: 12,
-                              ),
-                              shape: RoundedRectangleBorder(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16.0),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withAlpha(51),
                                 borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.grey[700]!,
+                                  width: 1,
+                                ),
                               ),
-                            ),
-                            child: Text(
-                              'Veure tots',
-                              style: GoogleFonts.montserrat(),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  onTap: () => Navigator.pushNamed(
+                                    context,
+                                    '/all-matches',
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 32,
+                                      vertical: 18,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.list_alt,
+                                          color: Colors.grey[300],
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          'Veure tots',
+                                          style: GoogleFonts.montserrat(
+                                            textStyle: const TextStyle(
+                                              color: Colors.grey,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -347,6 +494,7 @@ class _VotingSectionState extends State<VotingSection> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
+                          const SizedBox(height: 7), // espai superior
                           logoWidget(name, logo),
                           if (showName) ...[
                             const SizedBox(height: 8),

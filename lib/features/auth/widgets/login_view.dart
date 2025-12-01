@@ -118,7 +118,9 @@ class _LoginViewState extends State<LoginView> {
                           );
 
                           try {
-                            final functions = FirebaseFunctions.instance;
+                            final functions = FirebaseFunctions.instanceFor(
+                              region: 'europe-west1',
+                            );
                             final callable = functions.httpsCallable(
                               'validateActivationToken',
                             );

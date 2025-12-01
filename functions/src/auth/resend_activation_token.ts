@@ -16,7 +16,7 @@ function generateToken(length = 8) {
 }
 
 // Use onCall v2 so we can declare the secret (RESEND_API_KEY) in the function
-export const resendActivationToken = onCall({secrets: ["RESEND_API_KEY"]}, async (request) => {
+export const resendActivationToken = onCall({region: "europe-west1", secrets: ["RESEND_API_KEY"]}, async (request) => {
   try {
     const body = request.data as any;
     try {

@@ -8,6 +8,7 @@ import {onCall} from "firebase-functions/v2/https";
  * Es pot cridar al començament de l'aplicació per evitar el cold start.
  */
 export const warmFunctions = onCall({
+  region: "europe-west1",
   timeoutSeconds: 10,
   memory: "128MiB",
 }, async (request) => {

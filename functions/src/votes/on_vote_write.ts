@@ -35,7 +35,12 @@ const db = getFirestore();
  * Firestore trigger: keeps vote_counts in sync whenever a vote document is created, updated or deleted.
  * One vote per (user, jornada). Each change adjusts counters for the affected matches.
  */
-export const onVoteWrite = onDocumentWritten("votes/{voteId}", async (event) => {
+export const onVoteWrite = onDocumentWritten(
+  {
+    document: "votes/{voteId}",
+    region: "europe-west1",
+  },
+  async (event) => {
   const before = event.data?.before?.data() as Record<string, any> | undefined;
   const after = event.data?.after?.data() as Record<string, any> | undefined;
 

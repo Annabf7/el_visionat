@@ -28,7 +28,7 @@ interface CheckStatusData {
  * - 'invalid-argument': Si falta l'email o no és vàlid.
  * - 'internal': Per a errors inesperats.
  */
-export const checkRegistrationStatus = onCall({timeoutSeconds: 30}, async (request) => {
+export const checkRegistrationStatus = onCall({region: "europe-west1", timeoutSeconds: 30}, async (request) => {
   const {email} = request.data as CheckStatusData;
 
   // 1. Validació bàsica d'entrada

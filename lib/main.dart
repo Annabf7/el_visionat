@@ -22,7 +22,7 @@ import 'package:intl/intl.dart';
 /// Escalfa les Cloud Functions en mode debug per evitar cold start
 Future<void> _warmUpFunctions() async {
   try {
-    final functions = FirebaseFunctions.instance;
+    final functions = FirebaseFunctions.instanceFor(region: 'europe-west1');
     final callable = functions.httpsCallable('warmFunctions');
     await callable.call();
     debugPrint('✅ Functions emulator warmed up successfully');
@@ -37,17 +37,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Instanciem FirebaseFunctions de manera condicional (Solució a problemes d'emulació web)
-  final FirebaseFunctions functionsInstance;
-  if (kDebugMode) {
-    // En mode debug (emulators), no especifiquem regió
-    functionsInstance = FirebaseFunctions.instance;
-    debugPrint("Using default FirebaseFunctions instance for emulators.");
-  } else {
-    // En producció, especifiquem la regió correcta
-    functionsInstance = FirebaseFunctions.instanceFor(region: 'europe-west1');
-    debugPrint("Using FirebaseFunctions instance for region 'europe-west1'.");
-  }
+  // Instanciem FirebaseFunctions sempre amb la regió correcte
+  // IMPORTANT: Sempre usar europe-west1 per compatibilitat amb les Cloud Functions desplegades
+  final FirebaseFunctions functionsInstance = FirebaseFunctions.instanceFor(
+    region: 'europe-west1',
+  );
+  debugPrint("🔵 Using FirebaseFunctions instance for region 'europe-west1'.");
 
   // Instanciem AuthService amb la instància de Functions correcta
   final authService = AuthService(
@@ -66,7 +61,9 @@ void main() async {
   if (kDebugMode && kIsWeb) {
     const emulatorHost = '127.0.0.1';
     FirebaseFirestore.instance.useFirestoreEmulator(emulatorHost, 8088);
-    FirebaseFunctions.instance.useFunctionsEmulator(emulatorHost, 5001);
+    FirebaseFunctions.instanceFor(
+      region: 'europe-west1',
+    ).useFunctionsEmulator(emulatorHost, 5001);
     FirebaseAuth.instance.useAuthEmulator(emulatorHost, 9198);
     debugPrint('Web debug: connected to emulators at $emulatorHost');
   }

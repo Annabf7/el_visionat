@@ -11,6 +11,7 @@ const db = admin.firestore();
  * Busca una llicència al registre i retorna les dades si és vàlida i pendent.
  */
 export const lookupLicense = onCall({
+  region: "europe-west1",
   timeoutSeconds: 60,
   memory: "256MiB",
   maxInstances: 10,

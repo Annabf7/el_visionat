@@ -47,6 +47,7 @@ const MAX_RESULTS = 5;
  */
 export const getYouTubeVideos = onRequest(
   {
+    region: "europe-west1",
     secrets: ["YOUTUBE_API_KEY"],
     timeoutSeconds: 30,
     memory: "256MiB",

@@ -78,7 +78,10 @@ class _QuestionCard extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12.0),
                 child: SizedBox(
                   height: 180,
-                  child: ActivityVideoPlayer(videoId: question.youtubeVideoId!),
+                  child: ActivityVideoPlayer(
+                    key: Key('video_${question.youtubeVideoId!}'),
+                    videoId: question.youtubeVideoId!,
+                  ),
                 ),
               ),
             Text(

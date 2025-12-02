@@ -27,6 +27,7 @@ class ActivityVideoPlayer extends StatelessWidget {
     if (videoId.isEmpty) return const SizedBox.shrink();
 
     // El conditional import automàticament selecciona la implementació correcta
+    // El conditional import automàticament selecciona la implementació correcta
     return ActivityVideoPlayerWeb(videoId: videoId, autoPlay: autoPlay);
   }
 }

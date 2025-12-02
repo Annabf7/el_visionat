@@ -15,6 +15,7 @@ import 'voting_card.dart';
 import 'jornada_header.dart';
 
 import 'package:el_visionat/core/theme/app_theme.dart';
+import '../../classificacio/standings_list_mobile.dart';
 
 /// Minimal match model for the seed JSON.
 class MatchSeed {
@@ -813,6 +814,7 @@ class AllMatchesPage extends StatefulWidget {
 class _AllMatchesPageState extends State<AllMatchesPage> {
   Future<List<MatchSeed>>? _matchesFuture;
   final int jornada = 14;
+  final List<TeamStanding> standings = mockStandings;
 
   @override
   void initState() {
@@ -837,28 +839,23 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
           final jornadaMatches = all
               .where((m) => m.jornada == jornada)
               .toList();
-          final displayed = jornadaMatches;
-          final allMatches = displayed; // keep names friendly below
+          final allMatches = jornadaMatches;
           if (allMatches.isEmpty) {
             return Center(child: Text('No hi ha enfrontaments'));
           }
-          // (handled above)
 
-          // Provide a VoteProvider scoped to this page.
           return ChangeNotifierProvider(
             create: (ctx) {
               final auth = ctx.read<AuthProvider>();
               final vp = VoteProvider(authProvider: auth);
-              // start listeners
               vp.loadVoteForJornada(jornada);
               vp.listenVotingOpen(jornada);
               return vp;
             },
             child: Consumer<VoteProvider>(
               builder: (context, vp, _) {
-                // Header + list of jornada matches. The header shows jornada and
-                // voting status (open/closed) at the top of the page as requested.
-                return ListView(
+                final isMobile = MediaQuery.of(context).size.width < 600;
+                final votingList = ListView(
                   padding: const EdgeInsets.all(12),
                   children: [
                     Container(
@@ -908,11 +905,9 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    // Matches for this jornada
                     for (var i = 0; i < allMatches.length; i++)
                       (() {
                         final m = allMatches[i];
-                        // precache images for smoother UI
                         if (m.homeLogo.isNotEmpty) {
                           precacheImage(
                             AssetImage('assets/images/teams/${m.homeLogo}'),
@@ -925,11 +920,9 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
                             context,
                           ).catchError((_) {});
                         }
-
                         final matchId = m.homeLogo.isNotEmpty
                             ? m.homeLogo
                             : '${m.homeName}_${m.awayName}';
-
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8.0),
                           child: StreamBuilder<int>(
@@ -981,6 +974,30 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
                       })(),
                   ],
                 );
+                if (isMobile) {
+                  return ListView(
+                    padding: const EdgeInsets.all(0),
+                    children: [
+                      votingList,
+                      const SizedBox(height: 24),
+                      StandingsListMobile(standings: standings),
+                    ],
+                  );
+                } else {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: votingList),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(12),
+                          child: StandingsListMobile(standings: standings),
+                        ),
+                      ),
+                    ],
+                  );
+                }
               },
             ),
           );

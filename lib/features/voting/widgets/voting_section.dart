@@ -843,11 +843,14 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
           if (allMatches.isEmpty) {
             return Center(child: Text('No hi ha enfrontaments'));
           }
+          // (handled above)
 
+          // Provide a VoteProvider scoped to this page.
           return ChangeNotifierProvider(
             create: (ctx) {
               final auth = ctx.read<AuthProvider>();
               final vp = VoteProvider(authProvider: auth);
+              // start listeners
               vp.loadVoteForJornada(jornada);
               vp.listenVotingOpen(jornada);
               return vp;
@@ -905,9 +908,11 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
+                    // Matches for this jornada
                     for (var i = 0; i < allMatches.length; i++)
                       (() {
                         final m = allMatches[i];
+                        // precache images for smoother UI
                         if (m.homeLogo.isNotEmpty) {
                           precacheImage(
                             AssetImage('assets/images/teams/${m.homeLogo}'),
@@ -920,9 +925,11 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
                             context,
                           ).catchError((_) {});
                         }
+
                         final matchId = m.homeLogo.isNotEmpty
                             ? m.homeLogo
                             : '${m.homeName}_${m.awayName}';
+
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8.0),
                           child: StreamBuilder<int>(
@@ -974,6 +981,7 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
                       })(),
                   ],
                 );
+
                 if (isMobile) {
                   return ListView(
                     padding: const EdgeInsets.all(0),

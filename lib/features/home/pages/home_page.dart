@@ -136,16 +136,14 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Secció de Votacions (esquerra)
-                const Expanded(
-                  flex: 1,
-                  child: VotingSection(),
-                ),
+                const Expanded(flex: 1, child: VotingSection()),
                 const SizedBox(width: 16),
                 // Activitats de formació (dreta)
                 Expanded(
                   flex: 1,
                   child: ChangeNotifierProvider(
-                    create: (_) => ActivityControllerProvider(activities: mockActivities),
+                    create: (_) =>
+                        ActivityControllerProvider(activities: mockActivities),
                     child: Card(
                       elevation: 3,
                       shape: RoundedRectangleBorder(

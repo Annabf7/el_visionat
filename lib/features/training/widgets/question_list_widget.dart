@@ -32,6 +32,19 @@ class QuestionListWidget extends StatelessWidget {
     } catch (_) {
       mainVideoId = null;
     }
+    // Comprova si totes les preguntes han estat respostes
+    final controller = Provider.of<ActivityControllerProvider>(context);
+    final total = questions.length;
+    final answered = List.generate(
+      total,
+      (i) => controller.getAnswerStatus(activityId, i),
+    ).whereType<bool>().length;
+    final correct = List.generate(
+      total,
+      (i) => controller.getAnswerStatus(activityId, i),
+    ).where((v) => v == true).length;
+    final allAnswered = answered == total;
+
     return Column(
       children: [
         for (int qIndex = 0; qIndex < questions.length; qIndex++) ...[
@@ -43,6 +56,18 @@ class QuestionListWidget extends StatelessWidget {
             mainVideoId: mainVideoId,
           ),
         ],
+        if (allAnswered)
+          Padding(
+            padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
+            child: Text(
+              'Has encertat $correct de $total preguntes!',
+              style: TextStyle(
+                color: AppTheme.mostassa,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -86,7 +111,9 @@ class _QuestionCard extends StatelessWidget {
               ),
             Text(
               'Q${qIndex + 1}: ${question.enunciat}',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: AppTheme.grisPistacho),
             ),
             const SizedBox(height: 12),
             ...List.generate(question.opcions.length, (oIndex) {
@@ -108,7 +135,7 @@ class _QuestionCard extends StatelessWidget {
                   isSelected = selectedIndex == oIndex;
                 }
               }
-              Color borderColor = AppTheme.mostassa;
+              Color borderColor = AppTheme.grisPistacho;
               if (isAnswered && isSelected) {
                 borderColor = answerStatus == true
                     ? Colors.green[700]!
@@ -144,14 +171,14 @@ class _QuestionCard extends StatelessWidget {
                       question.opcions[oIndex],
                       style: const TextStyle(
                         fontWeight: FontWeight.normal,
-                        color: AppTheme.mostassa,
+                        color: AppTheme.grisPistacho,
                       ),
                     ),
                   ),
                 ),
               );
             }),
-            if (answerStatus != null)
+            if (answerStatus != null) ...[
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
                 child: Text(
@@ -165,6 +192,15 @@ class _QuestionCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (question.comment != null && question.comment!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    question.comment!,
+                    style: TextStyle(color: AppTheme.mostassa, fontSize: 15),
+                  ),
+                ),
+            ],
           ],
         ),
       ),

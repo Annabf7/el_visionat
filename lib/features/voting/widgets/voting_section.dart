@@ -15,6 +15,7 @@ import 'voting_card.dart';
 import 'jornada_header.dart';
 
 import 'package:el_visionat/core/theme/app_theme.dart';
+import 'package:el_visionat/features/classificacio/standings_list_mobile.dart';
 
 /// Minimal match model for the seed JSON.
 class MatchSeed {
@@ -837,12 +838,166 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
           final jornadaMatches = all
               .where((m) => m.jornada == jornada)
               .toList();
-          final displayed = jornadaMatches;
-          final allMatches = displayed; // keep names friendly below
+          final allMatches = jornadaMatches;
           if (allMatches.isEmpty) {
             return Center(child: Text('No hi ha enfrontaments'));
           }
-          // (handled above)
+
+          final isWide = MediaQuery.of(context).size.width > 700;
+
+          Widget matchesList(VoteProvider vp) => ListView(
+            padding: const EdgeInsets.all(12),
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.porpraFosc,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Jornada $jornada',
+                      style: GoogleFonts.montserrat(
+                        textStyle: const TextStyle(
+                          color: AppTheme.grisPistacho,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.circle,
+                          size: 10,
+                          color: vp.isClosed(jornada)
+                              ? Colors.red
+                              : Colors.green,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          vp.isClosed(jornada)
+                              ? 'Votació tancada'
+                              : 'Votació oberta',
+                          style: GoogleFonts.montserrat(
+                            textStyle: const TextStyle(
+                              color: AppTheme.grisPistacho,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Matches for this jornada
+              for (var i = 0; i < allMatches.length; i++)
+                (() {
+                  final m = allMatches[i];
+                  // precache images for smoother UI
+                  if (m.homeLogo.isNotEmpty) {
+                    precacheImage(
+                      AssetImage('assets/images/teams/${m.homeLogo}'),
+                      context,
+                    ).catchError((_) {});
+                  }
+                  if (m.awayLogo.isNotEmpty) {
+                    precacheImage(
+                      AssetImage('assets/images/teams/${m.awayLogo}'),
+                      context,
+                    ).catchError((_) {});
+                  }
+
+                  final matchId = m.homeLogo.isNotEmpty
+                      ? m.homeLogo
+                      : '${m.homeName}_${m.awayName}';
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: StreamBuilder<int>(
+                      stream: vp.getVoteCountStream(matchId, jornada),
+                      builder: (context, countSnap) {
+                        final count = countSnap.data ?? 0;
+                        final isVoted = vp.votedMatchId(jornada) == matchId;
+                        return VotingCard(
+                          homeName: m.homeName,
+                          homeLogo: m.homeLogo,
+                          awayName: m.awayName,
+                          awayLogo: m.awayLogo,
+                          dateTimeIso: formatDate(m.dateTime),
+                          matchId: matchId,
+                          jornada: jornada,
+                          voteCount: count,
+                          isVoted: isVoted,
+                          isDisabled: vp.isClosed(jornada),
+                          isLoading: vp.isCasting(jornada),
+                          onVote: () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            try {
+                              await vp.castVote(
+                                jornada: jornada,
+                                matchId: matchId,
+                              );
+                              if (!mounted) return;
+                              messenger.showSnackBar(
+                                const SnackBar(content: Text('Vot registrat')),
+                              );
+                            } catch (e) {
+                              if (!mounted) return;
+                              messenger.showSnackBar(
+                                SnackBar(content: Text('Error votant: $e')),
+                              );
+                            }
+                          },
+                        );
+                      },
+                    ),
+                  );
+                })(),
+            ],
+          );
+
+          Widget standingsContent = Card(
+            elevation: 3,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.leaderboard_outlined,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Classificació',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Consulta la classificació actual de la lliga.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 20),
+                  StandingsListMobile(standings: mockStandings),
+                ],
+              ),
+            ),
+          );
 
           // Provide a VoteProvider scoped to this page.
           return ChangeNotifierProvider(
@@ -856,131 +1011,25 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
             },
             child: Consumer<VoteProvider>(
               builder: (context, vp, _) {
-                // Header + list of jornada matches. The header shows jornada and
-                // voting status (open/closed) at the top of the page as requested.
-                return ListView(
-                  padding: const EdgeInsets.all(12),
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.porpraFosc,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Jornada $jornada',
-                            style: GoogleFonts.montserrat(
-                              textStyle: const TextStyle(
-                                color: AppTheme.grisPistacho,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.circle,
-                                size: 10,
-                                color: vp.isClosed(jornada)
-                                    ? Colors.red
-                                    : Colors.green,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                vp.isClosed(jornada)
-                                    ? 'Votació tancada'
-                                    : 'Votació oberta',
-                                style: GoogleFonts.montserrat(
-                                  textStyle: const TextStyle(
-                                    color: AppTheme.grisPistacho,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    // Matches for this jornada
-                    for (var i = 0; i < allMatches.length; i++)
-                      (() {
-                        final m = allMatches[i];
-                        // precache images for smoother UI
-                        if (m.homeLogo.isNotEmpty) {
-                          precacheImage(
-                            AssetImage('assets/images/teams/${m.homeLogo}'),
-                            context,
-                          ).catchError((_) {});
-                        }
-                        if (m.awayLogo.isNotEmpty) {
-                          precacheImage(
-                            AssetImage('assets/images/teams/${m.awayLogo}'),
-                            context,
-                          ).catchError((_) {});
-                        }
-
-                        final matchId = m.homeLogo.isNotEmpty
-                            ? m.homeLogo
-                            : '${m.homeName}_${m.awayName}';
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: StreamBuilder<int>(
-                            stream: vp.getVoteCountStream(matchId, jornada),
-                            builder: (context, countSnap) {
-                              final count = countSnap.data ?? 0;
-                              final isVoted =
-                                  vp.votedMatchId(jornada) == matchId;
-                              return VotingCard(
-                                homeName: m.homeName,
-                                homeLogo: m.homeLogo,
-                                awayName: m.awayName,
-                                awayLogo: m.awayLogo,
-                                dateTimeIso: formatDate(m.dateTime),
-                                matchId: matchId,
-                                jornada: jornada,
-                                voteCount: count,
-                                isVoted: isVoted,
-                                isDisabled: vp.isClosed(jornada),
-                                isLoading: vp.isCasting(jornada),
-                                onVote: () async {
-                                  final messenger = ScaffoldMessenger.of(
-                                    context,
-                                  );
-                                  try {
-                                    await vp.castVote(
-                                      jornada: jornada,
-                                      matchId: matchId,
-                                    );
-                                    if (!mounted) return;
-                                    messenger.showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Vot registrat'),
-                                      ),
-                                    );
-                                  } catch (e) {
-                                    if (!mounted) return;
-                                    messenger.showSnackBar(
-                                      SnackBar(
-                                        content: Text('Error votant: $e'),
-                                      ),
-                                    );
-                                  }
-                                },
-                              );
-                            },
-                          ),
-                        );
-                      })(),
-                  ],
-                );
+                if (isWide) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: matchesList(vp)),
+                      const SizedBox(width: 24),
+                      Expanded(child: standingsContent),
+                    ],
+                  );
+                } else {
+                  return ListView(
+                    padding: const EdgeInsets.all(12),
+                    children: [
+                      matchesList(vp),
+                      const SizedBox(height: 16),
+                      standingsContent,
+                    ],
+                  );
+                }
               },
             ),
           );

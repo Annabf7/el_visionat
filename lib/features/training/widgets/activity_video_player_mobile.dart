@@ -4,8 +4,7 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 /// Mobile implementation of ActivityVideoPlayer
 /// Uses youtube_player_flutter which works on Android/iOS
 ///
-/// Note: This class is named ActivityVideoPlayerWeb for compatibility
-/// with conditional imports, even though it's the mobile implementation
+/// Implementació nativa/mòbil d'ActivityVideoPlayer
 class ActivityVideoPlayerWeb extends StatefulWidget {
   final String videoId;
   final bool autoPlay;

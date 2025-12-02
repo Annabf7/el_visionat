@@ -46,56 +46,41 @@ class VotingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       clipBehavior: Clip.antiAlias,
-      elevation: 6,
+      elevation: 3,
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppTheme.porpraFosc.withAlpha(250), // strong base
-              AppTheme.lilaMitja.withAlpha(120), // more presence
+              AppTheme.porpraFosc.withAlpha(250),
+              AppTheme.lilaMitja.withAlpha(120),
               AppTheme.grisBody.withAlpha(220),
             ],
             stops: const [0.0, 0.55, 1.0],
             tileMode: TileMode.clamp,
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha(89),
-              offset: const Offset(0, 6),
-              blurRadius: 14,
+              offset: const Offset(0, 3),
+              blurRadius: 8,
             ),
           ],
         ),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             LayoutBuilder(
               builder: (context, constraints) {
                 final w = constraints.maxWidth;
-                // Responsive logo sizes tuned for small phones (API 35) and larger
-                double logoSize = 72; // base for very small phones
-                if (w >= 800) {
-                  logoSize = 120;
-                } else if (w >= 420) {
-                  logoSize = 96;
-                } else if (w >= 360) {
-                  logoSize = 80;
-                }
+                const double logoSize = 72;
                 final compact = w < 420;
-                // Responsive gap between the two logos. Compute from available width
-                // so the spacing increases a bit on wider (but still compact) screens.
-                // We clamp to a sensible range to avoid extreme gaps on odd widths.
-                final double logoGap = ((w * 0.32).clamp(
-                  126.0,
-                  160.0,
-                )).toDouble();
 
                 Widget logoWidget(String name, String logo) {
                   final asset = logo.isNotEmpty
@@ -119,7 +104,10 @@ class VotingCard extends StatelessWidget {
                           child: Text(
                             _initials(name),
                             style: GoogleFonts.montserrat(
-                              textStyle: const TextStyle(color: Colors.white),
+                              textStyle: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
                         ),
@@ -132,7 +120,10 @@ class VotingCard extends StatelessWidget {
                     child: Text(
                       _initials(name),
                       style: GoogleFonts.montserrat(
-                        textStyle: const TextStyle(color: Colors.white),
+                        textStyle: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                   );
@@ -144,26 +135,33 @@ class VotingCard extends StatelessWidget {
                   bool right = false,
                   bool showName = true,
                 }) {
-                  return Row(
+                  return Column(
                     mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: right
-                        ? MainAxisAlignment.end
-                        : MainAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      logoWidget(name, logo),
-                      if (showName) ...[
-                        const SizedBox(width: 10),
-                        Flexible(
-                          child: Text(
-                            name,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 2,
-                            style: GoogleFonts.montserrat(
-                              textStyle: const TextStyle(color: Colors.white),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          name,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.montserrat(
+                            textStyle: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                      ],
+                      ),
+                      const SizedBox(height: 6),
+                      SizedBox(
+                        width: logoSize,
+                        height: logoSize,
+                        child: logoWidget(name, logo),
+                      ),
                     ],
                   );
                 }
@@ -176,33 +174,34 @@ class VotingCard extends StatelessWidget {
                 if (compact) {
                   return Column(
                     children: [
-                      // Logos with centered 'vs' overlay — keeps 'vs' centered even with large spacing
-                      Stack(
-                        alignment: Alignment.center,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              logoWidget(homeName, homeLogo),
-                              SizedBox(width: logoGap),
-                              logoWidget(awayName, awayLogo),
-                            ],
+                          Expanded(
+                            child: Center(child: teamBlock(homeName, homeLogo)),
                           ),
-                          Center(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8.0,
+                            ),
                             child: Text(
                               'vs',
                               style: GoogleFonts.montserrat(
                                 textStyle: const TextStyle(
                                   color: Colors.white70,
                                   fontWeight: FontWeight.w700,
+                                  fontSize: 14,
                                 ),
                               ),
                             ),
                           ),
+                          Expanded(
+                            child: Center(child: teamBlock(awayName, awayLogo)),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      // Date and time stacked vertically for better readability on small screens
                       Center(
                         child: Column(
                           children: [
@@ -210,7 +209,7 @@ class VotingCard extends StatelessWidget {
                               parts[0],
                               style: TextStyle(
                                 color: Colors.grey[300],
-                                fontSize: 12,
+                                fontSize: 9,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -220,7 +219,7 @@ class VotingCard extends StatelessWidget {
                                 parts[1],
                                 style: TextStyle(
                                   color: Colors.grey[400],
-                                  fontSize: 12,
+                                  fontSize: 8,
                                 ),
                               ),
                             ],
@@ -234,25 +233,27 @@ class VotingCard extends StatelessWidget {
                 return Column(
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Expanded(child: teamBlock(homeName, homeLogo)),
+                        Expanded(
+                          child: Center(child: teamBlock(homeName, homeLogo)),
+                        ),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          padding: const EdgeInsets.symmetric(horizontal: 12.0),
                           child: Text(
                             'vs',
                             style: GoogleFonts.montserrat(
                               textStyle: const TextStyle(
                                 color: Colors.white70,
                                 fontWeight: FontWeight.w700,
+                                fontSize: 16,
                               ),
                             ),
                           ),
                         ),
                         Expanded(
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: teamBlock(awayName, awayLogo, right: true),
-                          ),
+                          child: Center(child: teamBlock(awayName, awayLogo)),
                         ),
                       ],
                     ),
@@ -264,17 +265,17 @@ class VotingCard extends StatelessWidget {
                             parts[0],
                             style: TextStyle(
                               color: Colors.grey[300],
-                              fontSize: 13,
+                              fontSize: 10,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           if (parts.length > 1) ...[
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 2),
                             Text(
                               parts[1],
                               style: TextStyle(
                                 color: Colors.grey[400],
-                                fontSize: 12,
+                                fontSize: 9,
                               ),
                             ),
                           ],
@@ -287,46 +288,77 @@ class VotingCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
 
-            Align(
-              alignment: Alignment.center,
-              child: FilledButton.icon(
-                onPressed: (isDisabled || isLoading) ? null : onVote,
-                icon: isLoading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Icon(isVoted ? Icons.check : Icons.how_to_vote, size: 18),
-                label: Text(
-                  isVoted ? 'Votat' : 'Votar',
-                  style: GoogleFonts.montserrat(
-                    textStyle: const TextStyle(fontSize: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: 28,
+                  child: FilledButton.icon(
+                    onPressed: (isDisabled || isLoading) ? null : onVote,
+                    icon: isLoading
+                        ? const SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            isVoted ? Icons.check : Icons.how_to_vote,
+                            size: 12,
+                          ),
+                    label: Text(
+                      isVoted ? 'Votat' : 'Votar',
+                      style: GoogleFonts.montserrat(
+                        textStyle: const TextStyle(fontSize: 10),
+                      ),
+                    ),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: isVoted
+                          ? AppTheme.porpraFosc
+                          : AppTheme.grisPistacho,
+                      foregroundColor: isVoted
+                          ? Colors.white
+                          : const Color.fromRGBO(41, 40, 40, 1),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      minimumSize: const Size(0, 28),
+                    ),
                   ),
                 ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: isVoted
-                      ? AppTheme.porpraFosc
-                      : AppTheme.grisPistacho,
-                  foregroundColor: isVoted
-                      ? Colors.white
-                      : const Color.fromRGBO(41, 40, 40, 1),
-                ),
-              ),
+                if (voteCount != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    height: 28,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withAlpha(51),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[700]!, width: 1),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.people_outline,
+                          size: 11,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          voteCount == 1 ? '1 vot' : '$voteCount vots',
+                          style: GoogleFonts.montserrat(
+                            textStyle: TextStyle(
+                              color: Colors.grey[300],
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
             ),
-            const SizedBox(height: 8),
-            // Bottom-right vote count (singular/plural)
-            if (voteCount != null) ...[
-              Align(
-                alignment: Alignment.bottomRight,
-                child: Text(
-                  voteCount == 1 ? '1 vot' : '$voteCount vots',
-                  style: GoogleFonts.montserrat(
-                    textStyle: TextStyle(color: Colors.grey[400], fontSize: 12),
-                  ),
-                ),
-              ),
-            ],
+            const SizedBox(height: 4),
           ],
         ),
       ),

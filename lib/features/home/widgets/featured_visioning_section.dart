@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/home_provider.dart';
+import './_featured_video.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 
 class FeaturedVisioningSection extends StatelessWidget {
@@ -37,35 +38,12 @@ class FeaturedVisioningSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 32),
-          // Placeholder for the circles
-          Row(
-            children: [
-              Flexible(
-                flex: 195,
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppTheme.lilaMitja.withAlpha((255 * 0.35).round()),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Flexible(
-                flex: 155,
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppTheme.lilaMitja.withAlpha((255 * 0.35).round()),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: FeaturedVideo(),
+            ),
           ),
         ],
       ),

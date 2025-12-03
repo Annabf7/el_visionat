@@ -804,6 +804,143 @@ class _VotingSectionState extends State<VotingSection> {
   }
 }
 
+// Animated title widget for standings
+class _AnimatedStandingsTitle extends StatefulWidget {
+  final int jornada;
+
+  const _AnimatedStandingsTitle({required this.jornada});
+
+  @override
+  State<_AnimatedStandingsTitle> createState() =>
+      _AnimatedStandingsTitleState();
+}
+
+class _AnimatedStandingsTitleState extends State<_AnimatedStandingsTitle>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      ),
+    );
+
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, -0.5), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.0, 0.8, curve: Curves.elasticOut),
+          ),
+        );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.2, 1.0, curve: Curves.easeOutBack),
+      ),
+    );
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return FadeTransition(
+          opacity: _fadeAnimation,
+          child: SlideTransition(
+            position: _slideAnimation,
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppTheme.porpraFosc,
+                      AppTheme.lilaMitja.withAlpha(200),
+                      AppTheme.porpraFosc,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.grisPistacho.withAlpha(50),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.emoji_events,
+                      color: AppTheme.grisPistacho,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'CLASSIFICACIÓ',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.grisPistacho,
+                            letterSpacing: 2.0,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Jornada ${widget.jornada}',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.grisPistacho.withAlpha(200),
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class AllMatchesPage extends StatefulWidget {
   const AllMatchesPage({super.key});
 
@@ -858,8 +995,8 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
             child: Consumer<VoteProvider>(
               builder: (context, vp, _) {
                 final isMobile = MediaQuery.of(context).size.width < 600;
-                final votingList = ListView(
-                  padding: const EdgeInsets.all(12),
+                final votingList = Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -930,8 +1067,10 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
                             ? m.homeLogo
                             : '${m.homeName}_${m.awayName}';
 
+                        // Si és l'última card, afegeix més padding bottom
+                        final isLast = i == allMatches.length - 1;
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
+                          padding: EdgeInsets.only(bottom: isLast ? 32.0 : 8.0),
                           child: StreamBuilder<int>(
                             stream: vp.getVoteCountStream(matchId, jornada),
                             builder: (context, countSnap) {
@@ -983,27 +1122,51 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
                 );
 
                 if (isMobile) {
-                  return ListView(
-                    padding: const EdgeInsets.all(0),
-                    children: [
-                      votingList,
-                      const SizedBox(height: 24),
-                      StandingsListMobile(standings: standings),
-                    ],
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        votingList,
+                        const SizedBox(height: 8),
+                        _AnimatedStandingsTitle(jornada: jornada),
+                        const SizedBox(height: 8),
+                        StandingsListMobile(standings: standings),
+                      ],
+                    ),
                   );
                 } else {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: votingList),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(12),
-                          child: StandingsListMobile(standings: standings),
+                  // Desktop: afegeix marges adaptatius
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  final horizontalPadding = screenWidth > 1200
+                      ? (screenWidth * 0.1)
+                      : (screenWidth > 900 ? 40.0 : 20.0);
+
+                  return Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: SingleChildScrollView(child: votingList),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              children: [
+                                _AnimatedStandingsTitle(jornada: jornada),
+                                const SizedBox(height: 16),
+                                StandingsListMobile(standings: standings),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   );
                 }
               },

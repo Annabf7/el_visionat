@@ -42,29 +42,43 @@ class _FeaturedVideoState extends State<FeaturedVideo> {
     }
     final provider = context.watch<HomeProvider>();
     if (isDesktop) {
-      return Stack(
-        children: [
-          Positioned.fill(child: VideoPlayer(_controller)),
-          Positioned.fill(
-            child: Container(
-              alignment: Alignment.center,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    provider.featuredVisioningTitle,
-                    style: const TextStyle(
-                      fontFamily: 'Geist',
-                      fontSize: 36,
-                      color: AppTheme.grisPistacho,
-                    ),
-                    textAlign: TextAlign.center,
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          return SizedBox(
+            width: constraints.maxWidth,
+            height: constraints.maxHeight,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: _controller.value.size.width,
+                    height: _controller.value.size.height,
+                    child: VideoPlayer(_controller),
                   ),
-                ],
-              ),
+                ),
+                Container(
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        provider.featuredVisioningTitle,
+                        style: const TextStyle(
+                          fontFamily: 'Geist',
+                          fontSize: 36,
+                          color: AppTheme.grisPistacho,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+          );
+        },
       );
     } else {
       // Mòbil: mostra el vídeo amb aspect ratio i reprodueix automàticament

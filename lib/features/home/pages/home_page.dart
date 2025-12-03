@@ -96,39 +96,54 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Fila de Visionat Destacat i Perfil/Detalls
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Featured Visioning Section (esquerra, més ample)
-                const Expanded(flex: 3, child: FeaturedVisioningSection()),
-                const SizedBox(width: 16),
-                // Perfil i Detalls (dreta, molt més estret)
-                Expanded(
-                  flex: 1,
-                  child: Column(
+            // Fila de Visionat Destacat i Perfil/Detalls - Ocupa tota l'alçada disponible
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // Calculem l'alçada disponible (alçada de la pantalla - header - padding)
+                final screenHeight = MediaQuery.of(context).size.height;
+                final availableHeight =
+                    screenHeight - 80 - 32; // 80 = header aprox, 32 = padding
+
+                return SizedBox(
+                  height: availableHeight,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        constraints: const BoxConstraints(maxWidth: 400),
-                        padding: const EdgeInsets.all(0),
-                        child: const UserProfileSummaryCard(),
+                      // Featured Visioning Section (esquerra, més ample)
+                      const Expanded(
+                        flex: 3,
+                        child: FeaturedVisioningSection(),
                       ),
-                      const SizedBox(height: 16),
-                      Container(
-                        constraints: const BoxConstraints(maxWidth: 400),
-                        padding: const EdgeInsets.all(0),
-                        child: MatchDetailsCard(
-                          details: MatchDetails(
-                            refereeName: 'Joan Garcia',
-                            league: 'Lliga Catalana',
-                            matchday: 14,
-                          ),
+                      const SizedBox(width: 16),
+                      // Perfil i Detalls (dreta, molt més estret)
+                      Expanded(
+                        flex: 1,
+                        child: Column(
+                          children: [
+                            Container(
+                              constraints: const BoxConstraints(maxWidth: 400),
+                              padding: const EdgeInsets.all(0),
+                              child: const UserProfileSummaryCard(),
+                            ),
+                            const SizedBox(height: 16),
+                            Container(
+                              constraints: const BoxConstraints(maxWidth: 400),
+                              padding: const EdgeInsets.all(0),
+                              child: MatchDetailsCard(
+                                details: MatchDetails(
+                                  refereeName: 'Joan Garcia',
+                                  league: 'Lliga Catalana',
+                                  matchday: 14,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
+                );
+              },
             ),
             const SizedBox(height: 16),
             // Fila: Votacions i Activitats de formació, 50% - 50%

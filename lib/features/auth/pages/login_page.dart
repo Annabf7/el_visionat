@@ -406,19 +406,24 @@ class _LoginPageDesktopState extends State<_LoginPageDesktop> {
   Widget build(BuildContext context) {
     // Use AuthProvider to determine authentication state (centralized logic).
     final authProvider = context.watch<AuthProvider>();
-    final firebaseUser = authProvider.isAuthenticated;
-    // Si l'usuari ha iniciat sessió (no és null), només mostrem la vista de perfil.
-    // La vista _LoginView ara gestiona internament si mostrar el perfil o el formulari de login.
-    if (firebaseUser) {
-      return const Center(child: _LoginView());
+    final isAuthenticated = authProvider.isAuthenticated;
+
+    // If the user is authenticated and somehow ended up on this page,
+    // redirect them to home and show only a loading indicator.
+    if (isAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // Si l'usuari NO ha iniciat sessió, mostrem el disseny de dues columnes
-    // per permetre iniciar sessió o registrar-se.
+    // If the user is NOT authenticated, show the two-column layout
+    // allowing them to login or register.
     return const Row(
       children: [
         Expanded(child: Center(child: _LoginView())),
-        VerticalDivider(width: 1, thickness: 1), // Fem el divisor visible
+        VerticalDivider(width: 1, thickness: 1),
         Expanded(child: Center(child: _RegisterView())),
       ],
     );
@@ -1029,73 +1034,17 @@ class _LoginViewState extends State<_LoginView> {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    // **NOU: Si l'usuari està connectat, mostrem la vista de perfil/logout.**
+    // If the user is authenticated and somehow ended up on this page,
+    // redirect them to home and show only a loading indicator (no profile UI).
     if (isAuthenticated) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.all(32.0),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'El meu Perfil',
-                style: textTheme.headlineMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              if (authProvider.currentUserPhotoUrl != null &&
-                  authProvider.currentUserPhotoUrl!.isNotEmpty) ...[
-                CircleAvatar(
-                  radius: 40,
-                  backgroundImage: NetworkImage(
-                    authProvider.currentUserPhotoUrl!,
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ] else ...[
-                const CircleAvatar(
-                  radius: 40,
-                  child: Icon(Icons.person, size: 40),
-                ),
-                const SizedBox(height: 16),
-              ],
-              Text(
-                authProvider.currentUserDisplayName ?? 'Usuari',
-                style: textTheme.headlineSmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                authProvider.currentUserEmail ?? '',
-                style: textTheme.bodyLarge,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.logout),
-                label: const Text('Tancar Sessió'),
-                onPressed: () async {
-                  final navigator = Navigator.of(context);
-                  // Cridem al mètode signOut del provider i naveguem explícitament
-                  // a la pàgina de login per assegurar un comportament consistent.
-                  await authProvider.signOut();
-                  if (!context.mounted) return;
-                  navigator.pushNamedAndRemoveUntil('/login', (route) => false);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme.errorContainer,
-                  foregroundColor: colorScheme.onErrorContainer,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
+      });
+      return const Center(child: CircularProgressIndicator());
     }
 
-    // **VISTA ANTIGA: Si l'usuari NO està connectat, mostrem el formulari de login.**
+    // If the user is NOT authenticated, show the login form.
     final bool showError =
         authProvider.errorMessage != null &&
         authProvider.currentStep == RegistrationStep.initial;

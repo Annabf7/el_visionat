@@ -151,7 +151,9 @@ class AuthProvider with ChangeNotifier {
       );
       _pendingEmail = email;
       _currentStep = RegistrationStep.requestSent;
-      _isWaitingForToken = true; // Activem l'estat d'espera del token
+      // NOTE: No activem _isWaitingForToken aquí perquè l'aprovació és manual
+      // i pot trigar uns minuts. L'usuari només veurà el diàleg del token
+      // quan intenti fer login i el sistema detecti que està aprovat.
       _setLoading(false);
       notifyListeners();
     } on Exception catch (e) {

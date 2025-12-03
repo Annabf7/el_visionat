@@ -47,25 +47,9 @@ class _LoginPageMobileState extends State<_LoginPageMobile>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_handleTabSelection);
-    widget.authProvider.addListener(_onAuthProviderChange);
-
-    // Comprova si estem esperant un token i mostra el diàleg automàticament
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && widget.authProvider.isWaitingForToken) {
-        _showAutoTokenDialog();
-      }
-    });
-  }
-
-  void _onAuthProviderChange() {
-    // Si canvia l'estat d'espera del token, mostra el diàleg
-    if (mounted && widget.authProvider.isWaitingForToken) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _showAutoTokenDialog();
-        }
-      });
-    }
+    // NOTE: No mostrem el diàleg del token automàticament perquè l'aprovació
+    // és manual i pot trigar uns minuts. L'usuari veurà el diàleg només quan
+    // intenti fer login i el sistema detecti que està aprovat.
   }
 
   void _handleTabSelection() {
@@ -82,233 +66,8 @@ class _LoginPageMobileState extends State<_LoginPageMobile>
     }
   }
 
-  Future<void> _showAutoTokenDialog() async {
-    final authProvider = widget.authProvider;
-    final licenseId = authProvider.pendingLicenseId;
-    final email = authProvider.pendingEmail;
-
-    if (licenseId == null || email == null) {
-      // Si no tenim les dades necessàries, netegem l'estat
-      authProvider.clearTokenWaitingState();
-      return;
-    }
-
-    String token = '';
-    bool isLoading = false;
-    String? errorText;
-
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return PopScope(
-              canPop: false, // Bloqueja el back
-              child: AlertDialog(
-                backgroundColor: AppTheme.grisPistacho.withValues(
-                  alpha: 0.95,
-                ), // Gris pistachi del tema més clar
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                title: Text(
-                  'Introdueix el codi d\'activació',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
-                  ),
-                ),
-                content: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.6,
-                  ),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'S\'ha enviat un codi d\'activació a $email. Revisa el teu correu i introdueix el codi rebut.',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[700],
-                            height: 1.4,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        TextField(
-                          keyboardType: TextInputType.number,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 2,
-                            color: Colors.grey[800],
-                          ),
-                          decoration: InputDecoration(
-                            labelText: 'Codi d\'activació',
-                            labelStyle: TextStyle(
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                            ),
-                            errorText: errorText,
-                            errorStyle: const TextStyle(
-                              color: Colors.red,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[400]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: AppTheme.porpraFosc,
-                                width: 2,
-                              ),
-                            ),
-                            filled: true,
-                            fillColor: AppTheme.grisPistacho.withValues(
-                              alpha: 0.60,
-                            ),
-                          ),
-                          onChanged: (v) => setState(() => token = v.trim()),
-                          autofocus: true,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: isLoading
-                        ? null
-                        : () {
-                            // Netejem l'estat i tanquem el diàleg
-                            authProvider.clearTokenWaitingState();
-                            Navigator.of(context).pop();
-                          },
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.grey[600],
-                      textStyle: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                    ),
-                    child: const Text('Cancel·lar'),
-                  ),
-                  ElevatedButton(
-                    onPressed: (isLoading || token.isEmpty)
-                        ? null
-                        : () async {
-                            setState(() {
-                              isLoading = true;
-                              errorText = null;
-                            });
-
-                            final dialogNavigator = Navigator.of(context);
-                            final rootNavigator = Navigator.of(
-                              context,
-                              rootNavigator: true,
-                            );
-
-                            try {
-                              final functions = FirebaseFunctions.instanceFor(
-                                region: 'europe-west1',
-                              );
-                              final callable = functions.httpsCallable(
-                                'validateActivationToken',
-                              );
-                              final res = await callable.call(<String, dynamic>{
-                                'email': email,
-                                'token': token,
-                              });
-
-                              final data = res.data as Map<dynamic, dynamic>?;
-                              final success =
-                                  data != null &&
-                                  (data['success'] == true ||
-                                      data['ok'] == true);
-
-                              if (success) {
-                                // Token vàlid - netejem l'estat i naveguem
-                                authProvider.clearTokenWaitingState();
-                                dialogNavigator.pop();
-                                if (!mounted) return;
-                                rootNavigator.pushReplacementNamed(
-                                  '/create-password',
-                                  arguments: CreatePasswordPageArguments(
-                                    licenseId: licenseId,
-                                    email: email,
-                                  ),
-                                );
-                              } else {
-                                setState(() {
-                                  errorText =
-                                      (data != null && data['message'] != null)
-                                      ? data['message'].toString()
-                                      : 'Codi invàlid. Torna-ho a provar.';
-                                  isLoading = false;
-                                });
-                              }
-                            } catch (e) {
-                              setState(() {
-                                errorText =
-                                    'Error de connexió. Torna-ho a provar.';
-                                isLoading = false;
-                              });
-                            }
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.mostassa, // Mostassa del tema
-                      foregroundColor:
-                          AppTheme.porpraFosc, // Porpra fosc per contrast
-                      disabledBackgroundColor: AppTheme.grisPistacho.withValues(
-                        alpha: 0.8,
-                      ), // Fons quan desactivat
-                      disabledForegroundColor: AppTheme.textBlackLow.withValues(
-                        alpha: 0.7,
-                      ), // Text visible quan desactivat
-                      elevation: 3,
-                      shadowColor: AppTheme.porpraFosc.withValues(alpha: 0.3),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: const BorderSide(
-                          color: AppTheme.porpraFosc, // Vora porpra fosc
-                          width: 1.5,
-                        ),
-                      ),
-                      textStyle: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    child: isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppTheme.porpraFosc,
-                              ), // Porpra fosc
-                            ),
-                          )
-                        : const Text('Validar'),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   @override
   void dispose() {
-    widget.authProvider.removeListener(_onAuthProviderChange);
     _tabController.removeListener(_handleTabSelection);
     _tabController.dispose();
     super.dispose();
@@ -370,37 +129,9 @@ class _LoginPageDesktop extends StatefulWidget {
 }
 
 class _LoginPageDesktopState extends State<_LoginPageDesktop> {
-  @override
-  void initState() {
-    super.initState();
-
-    // Comprova si estem esperant un token i mostra el diàleg automàticament
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final authProvider = context.read<AuthProvider>();
-      authProvider.addListener(_onAuthProviderChange);
-      if (mounted && authProvider.isWaitingForToken) {
-        _showAutoTokenDialog(authProvider);
-      }
-    });
-  }
-
-  void _onAuthProviderChange() {
-    final authProvider = context.read<AuthProvider>();
-    if (mounted && authProvider.isWaitingForToken) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _showAutoTokenDialog(authProvider);
-        }
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    final authProvider = context.read<AuthProvider>();
-    authProvider.removeListener(_onAuthProviderChange);
-    super.dispose();
-  }
+  // NOTE: No mostrem el diàleg del token automàticament perquè l'aprovació
+  // és manual i pot trigar uns minuts. L'usuari veurà el diàleg només quan
+  // intenti fer login i el sistema detecti que està aprovat.
 
   @override
   Widget build(BuildContext context) {
@@ -426,224 +157,6 @@ class _LoginPageDesktopState extends State<_LoginPageDesktop> {
         VerticalDivider(width: 1, thickness: 1),
         Expanded(child: Center(child: _RegisterView())),
       ],
-    );
-  }
-
-  Future<void> _showAutoTokenDialog(AuthProvider authProvider) async {
-    final licenseId = authProvider.pendingLicenseId;
-    final email = authProvider.pendingEmail;
-
-    if (licenseId == null || email == null) {
-      authProvider.clearTokenWaitingState();
-      return;
-    }
-
-    String token = '';
-    bool isLoading = false;
-    String? errorText;
-
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return PopScope(
-              canPop: false,
-              child: AlertDialog(
-                backgroundColor: AppTheme.grisPistacho.withValues(
-                  alpha: 0.95,
-                ), // Gris pistacxo més clar
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                title: Text(
-                  'Introdueix el codi d\'activació',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
-                  ),
-                ),
-                content: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.6,
-                  ),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'S\'ha enviat un codi d\'activació a $email. Revisa el teu correu i introdueix el codi rebut.',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[700],
-                            height: 1.4,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        TextField(
-                          keyboardType: TextInputType.number,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 2,
-                            color: Colors.grey[800],
-                          ),
-                          decoration: InputDecoration(
-                            labelText: 'Codi d\'activació',
-                            labelStyle: TextStyle(
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                            ),
-                            errorText: errorText,
-                            errorStyle: const TextStyle(
-                              color: Colors.red,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[400]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: AppTheme.mostassa,
-                                width: 2,
-                              ),
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey[50],
-                          ),
-                          onChanged: (v) => setState(() => token = v.trim()),
-                          autofocus: true,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: isLoading
-                        ? null
-                        : () {
-                            authProvider.clearTokenWaitingState();
-                            Navigator.of(context).pop();
-                          },
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.grey[600],
-                      textStyle: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                    ),
-                    child: const Text('Cancel·lar'),
-                  ),
-                  ElevatedButton(
-                    onPressed: (isLoading || token.isEmpty)
-                        ? null
-                        : () async {
-                            setState(() {
-                              isLoading = true;
-                              errorText = null;
-                            });
-
-                            final dialogNavigator = Navigator.of(context);
-                            final rootNavigator = Navigator.of(
-                              context,
-                              rootNavigator: true,
-                            );
-
-                            try {
-                              final functions = FirebaseFunctions.instanceFor(
-                                region: 'europe-west1',
-                              );
-                              final callable = functions.httpsCallable(
-                                'validateActivationToken',
-                              );
-                              final res = await callable.call(<String, dynamic>{
-                                'email': email,
-                                'token': token,
-                              });
-
-                              final data = res.data as Map<dynamic, dynamic>?;
-                              final success =
-                                  data != null &&
-                                  (data['success'] == true ||
-                                      data['ok'] == true);
-
-                              if (success) {
-                                authProvider.clearTokenWaitingState();
-                                dialogNavigator.pop();
-                                if (!mounted) return;
-                                rootNavigator.pushReplacementNamed(
-                                  '/create-password',
-                                  arguments: CreatePasswordPageArguments(
-                                    licenseId: licenseId,
-                                    email: email,
-                                  ),
-                                );
-                              } else {
-                                setState(() {
-                                  errorText =
-                                      (data != null && data['message'] != null)
-                                      ? data['message'].toString()
-                                      : 'Codi invàlid. Torna-ho a provar.';
-                                  isLoading = false;
-                                });
-                              }
-                            } catch (e) {
-                              setState(() {
-                                errorText =
-                                    'Error de connexió. Torna-ho a provar.';
-                                isLoading = false;
-                              });
-                            }
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.mostassa, // Mostassa del tema
-                      foregroundColor:
-                          AppTheme.porpraFosc, // Porpra fosc per contrast
-                      disabledBackgroundColor: AppTheme.grisPistacho.withValues(
-                        alpha: 0.8,
-                      ), // Fons quan desactivat
-                      disabledForegroundColor: AppTheme.textBlackLow.withValues(
-                        alpha: 0.7,
-                      ), // Text visible quan desactivat
-                      elevation: 3,
-                      shadowColor: AppTheme.porpraFosc.withValues(alpha: 0.3),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: const BorderSide(
-                          color: AppTheme.porpraFosc, // Vora porpra fosc
-                          width: 1.5,
-                        ),
-                      ),
-                      textStyle: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    child: isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppTheme.porpraFosc,
-                              ), // Porpra fosc
-                            ),
-                          )
-                        : const Text('Validar'),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
     );
   }
 }
@@ -1558,7 +1071,7 @@ class _RegisterStep3RequestSent extends StatelessWidget {
         authProvider.pendingEmail ??
         'el teu correu'; // Email guardat al provider
 
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(32.0),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400),
@@ -1579,14 +1092,49 @@ class _RegisterStep3RequestSent extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Gràcies, ${authProvider.verifiedLicenseData?['nom'] ?? 'usuari'}! Hem rebut la teva sol·licitud per registrar el compte amb $email.',
-              style: textTheme.bodyLarge,
+              'Gràcies, ${authProvider.verifiedLicenseData?['nom'] ?? 'usuari'}!',
+              style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppTheme.mostassa.withValues(alpha: 0.5),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.schedule, size: 32, color: AppTheme.mostassa),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Estem comprovant el teu correu electrònic',
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.mostassa,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'La verificació pot trigar uns minuts. Si el correu $email és correcte i coincideix amb el directori de la FCBQ, rebràs un codi per finalitzar el registre.',
+                    style: textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
             Text(
-              'Rebràs un correu electrònic un cop la teva sol·licitud hagi estat revisada i aprovada. Llavors podràs accedir a l\'aplicació per crear la teva contrasenya.',
-              style: textTheme.bodyMedium,
+              'Un cop aprovada la sol·licitud, rebràs un correu amb el codi d\'activació per crear la teva contrasenya.',
+              style: textTheme.bodySmall?.copyWith(
+                fontStyle: FontStyle.italic,
+                color: colorScheme.onSurfaceVariant,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),

@@ -340,8 +340,8 @@ class _VotingSectionState extends State<VotingSection> {
                                   ),
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 32,
-                                      vertical: 18,
+                                      horizontal: 16,
+                                      vertical: 10,
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -351,16 +351,16 @@ class _VotingSectionState extends State<VotingSection> {
                                         Icon(
                                           Icons.list_alt,
                                           color: Colors.grey[300],
-                                          size: 20,
+                                          size: 16,
                                         ),
-                                        const SizedBox(width: 10),
+                                        const SizedBox(width: 8),
                                         Text(
                                           'Veure tots',
                                           style: GoogleFonts.montserrat(
                                             textStyle: const TextStyle(
                                               color: Colors.grey,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 15,
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 13,
                                             ),
                                           ),
                                         ),

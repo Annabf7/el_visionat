@@ -124,8 +124,10 @@ class _VotingVideoClipState extends State<VotingVideoClip> {
           _hasError = false;
         });
       }
+
+      debugPrint('VotingVideoClip: initialized and playing in loop');
     } catch (e) {
-      debugPrint('Error initializing video: $e');
+      debugPrint('Error initializing voting video: $e');
       if (mounted) {
         setState(() {
           _hasError = true;
@@ -137,6 +139,10 @@ class _VotingVideoClipState extends State<VotingVideoClip> {
 
   @override
   Widget build(BuildContext context) {
+    return _buildVideoContent();
+  }
+
+  Widget _buildVideoContent() {
     if (_hasError) {
       return Container(
         height: 200,

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
-import 'package:provider/provider.dart';
-import '../providers/home_provider.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 
 class FeaturedVideo extends StatefulWidget {
@@ -37,7 +35,6 @@ class _FeaturedVideoState extends State<FeaturedVideo> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 800;
-    final provider = context.watch<HomeProvider>();
     if (isDesktop) {
       if (!_controller.value.isInitialized) {
         return const Center(child: CircularProgressIndicator());
@@ -58,21 +55,17 @@ class _FeaturedVideoState extends State<FeaturedVideo> {
                     child: VideoPlayer(_controller),
                   ),
                 ),
-                Container(
-                  alignment: Alignment.center,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        provider.featuredVisioningTitle,
-                        style: const TextStyle(
-                          fontFamily: 'Geist',
-                          fontSize: 36,
-                          color: AppTheme.grisPistacho,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                Center(
+                  child: const Text(
+                    'El visionat que et fa crèixer',
+                    style: TextStyle(
+                      fontFamily: 'Geist',
+                      fontSize: 32,
+                      color: AppTheme.grisPistacho,
+                      fontWeight: FontWeight.normal,
+                      letterSpacing: 1.2,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ],
@@ -81,11 +74,33 @@ class _FeaturedVideoState extends State<FeaturedVideo> {
         },
       );
     } else {
-      // Mòbil: mostra la imatge ocupant tot l'espai, deformant si cal
+      // Mòbil: mostra la imatge amb el text
       return SizedBox.expand(
-        child: Image.asset(
-          'assets/images/home_page/referee_home_page.jpeg',
-          fit: BoxFit.cover,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              'assets/images/home_page/referee_home_page.jpeg',
+              fit: BoxFit.cover,
+            ),
+            Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 84.0),
+                child: Text(
+                  'El visionat que et fa crèixer',
+                  style: const TextStyle(
+                    fontFamily: 'Geist',
+                    fontSize: 22,
+                    color: AppTheme.grisPistacho,
+                    fontWeight: FontWeight.normal,
+                    letterSpacing: 1.2,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }

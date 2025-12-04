@@ -17,8 +17,11 @@ class FeaturedVisioningSection extends StatelessWidget {
         ),
       );
     } else {
-      // En mòbil: manté l'aspect ratio 16:9
-      return AspectRatio(aspectRatio: 16 / 9, child: FeaturedVideo());
+      // En mòbil: mostra la imatge amb proporció vertical professional
+      return AspectRatio(
+        aspectRatio: 744 / 1320,
+        child: FeaturedVideo(),
+      );
     }
   }
 }

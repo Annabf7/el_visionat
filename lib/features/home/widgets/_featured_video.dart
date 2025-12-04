@@ -37,11 +37,11 @@ class _FeaturedVideoState extends State<FeaturedVideo> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 800;
-    if (!_controller.value.isInitialized) {
-      return const Center(child: CircularProgressIndicator());
-    }
     final provider = context.watch<HomeProvider>();
     if (isDesktop) {
+      if (!_controller.value.isInitialized) {
+        return const Center(child: CircularProgressIndicator());
+      }
       return LayoutBuilder(
         builder: (context, constraints) {
           return SizedBox(
@@ -81,16 +81,12 @@ class _FeaturedVideoState extends State<FeaturedVideo> {
         },
       );
     } else {
-      // Mòbil: mostra el vídeo amb aspect ratio i reprodueix automàticament
-      if (!_controller.value.isInitialized) {
-        return const Center(child: CircularProgressIndicator());
-      }
-      if (!_controller.value.isPlaying) {
-        _controller.play();
-      }
-      return AspectRatio(
-        aspectRatio: _controller.value.aspectRatio,
-        child: VideoPlayer(_controller),
+      // Mòbil: mostra la imatge ocupant tot l'espai, deformant si cal
+      return SizedBox.expand(
+        child: Image.asset(
+          'assets/images/home_page/referee_home_page.jpeg',
+          fit: BoxFit.cover,
+        ),
       );
     }
   }

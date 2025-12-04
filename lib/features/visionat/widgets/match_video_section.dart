@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
+import 'package:el_visionat/core/widgets/visibility_detector_mixin.dart';
 
 /// Widget per mostrar un thumbnail animat del partit que redirigeix al vídeo real
 class MatchThumbnailVideo extends StatefulWidget {
@@ -22,89 +22,62 @@ class MatchThumbnailVideo extends StatefulWidget {
 }
 
 class _MatchThumbnailVideoState extends State<MatchThumbnailVideo>
-    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
+    with WidgetsBindingObserver, VisibilityAndLifecycleDetectorMixin {
   VideoPlayerController? _controller;
   bool _isInitialized = false;
   bool _hasError = false;
-  bool _isVisible = true;
-  bool _isDisposed = false;
-
-  @override
-  bool get wantKeepAlive => false; // No mantenir viu quan surt de vista
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    
+
     // Inicialització diferida per evitar càrrega immediata si no és visible
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !_isDisposed) {
-        _checkVisibility();
-        // Només inicialitzar si és visible o després d'un petit retard
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted && !_isDisposed && (_isVisible || !_isInitialized)) {
-            _initializeVideoPlayer();
-          }
-        });
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted && !isDisposed) {
+        _initializeVideoPlayer();
       }
     });
   }
 
   @override
   void dispose() {
-    _isDisposed = true;
-    WidgetsBinding.instance.removeObserver(this);
-    _disposeController();
+    _controller?.pause();
+    _controller?.dispose();
+    _controller = null;
     super.dispose();
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    
-    if (_isDisposed) return;
-    
-    switch (state) {
-      case AppLifecycleState.paused:
-      case AppLifecycleState.detached:
-      case AppLifecycleState.inactive:
-        _pauseVideo();
-        break;
-      case AppLifecycleState.resumed:
-        if (_isVisible && _isInitialized && !_hasError) {
-          _resumeVideo();
-        }
-        break;
-      case AppLifecycleState.hidden:
-        _pauseVideo();
-        break;
+  void onVisibilityChanged(bool isVisible) {
+    if (!_isInitialized || _controller == null) return;
+
+    if (isVisible) {
+      _controller?.play();
+      debugPrint('MatchThumbnailVideo: resumed playback');
+    } else {
+      _controller?.pause();
+      debugPrint('MatchThumbnailVideo: paused to save resources');
     }
   }
 
-  void _disposeController() {
-    if (_controller != null) {
-      _controller!.pause();
-      _controller!.dispose();
-      _controller = null;
-    }
-  }
-
-  void _pauseVideo() {
-    if (!_isDisposed && _controller != null && _controller!.value.isInitialized) {
-      _controller!.pause();
-    }
-  }
-
-  void _resumeVideo() {
-    if (!_isDisposed && _controller != null && _controller!.value.isInitialized && _isVisible) {
+  @override
+  void onAppResumed() {
+    if (_isInitialized &&
+        isWidgetVisible &&
+        _controller != null &&
+        !_hasError) {
       _controller!.play();
     }
   }
 
+  @override
+  void onAppPaused() {
+    _controller?.pause();
+  }
+
   Future<void> _initializeVideoPlayer() async {
-    if (_isDisposed) return;
-    
+    if (isDisposed) return;
+
     try {
       // Verificar que la URL és vàlida
       if (widget.thumbnailClipUrl.isEmpty) {
@@ -117,13 +90,13 @@ class _MatchThumbnailVideoState extends State<MatchThumbnailVideo>
 
       await _controller!.initialize();
 
-      if (mounted && !_isDisposed) {
+      if (mounted && !isDisposed) {
         // Configure for animated thumbnail: loop, muted
         await _controller!.setLooping(true);
         await _controller!.setVolume(0.0);
-        
+
         // Només reproduir si el widget és visible
-        if (_isVisible) {
+        if (isWidgetVisible) {
           await _controller!.play();
         }
 
@@ -133,14 +106,15 @@ class _MatchThumbnailVideoState extends State<MatchThumbnailVideo>
         });
       }
     } catch (e) {
-      debugPrint('Error inicialitzant video player: $e');
-      if (mounted && !_isDisposed) {
+      debugPrint('Error inicialitzant match video player: $e');
+      if (mounted && !isDisposed) {
         setState(() {
           _hasError = true;
           _isInitialized = false;
         });
         // Netejar controller defectuós
-        _disposeController();
+        _controller?.dispose();
+        _controller = null;
       }
     }
   }
@@ -172,7 +146,9 @@ class _MatchThumbnailVideoState extends State<MatchThumbnailVideo>
 
   Widget _buildVideoPlayer() {
     // Verificacions de seguretat addicionals
-    if (_controller == null || !_controller!.value.isInitialized || _isDisposed) {
+    if (_controller == null ||
+        !_controller!.value.isInitialized ||
+        isDisposed) {
       return _buildLoadingState();
     }
 
@@ -214,28 +190,6 @@ class _MatchThumbnailVideoState extends State<MatchThumbnailVideo>
               ),
             ),
           ),
-
-          // Indicador de estat de reproducció (debug - es pot eliminar en producció)
-          if (!_isVisible)
-            Positioned(
-              top: 8,
-              right: 8,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.8),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  'PAUSAT',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -322,17 +276,8 @@ class _MatchThumbnailVideoState extends State<MatchThumbnailVideo>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Necessari per AutomaticKeepAliveClientMixin
-    
-    return NotificationListener<ScrollNotification>(
-      onNotification: (scrollNotification) {
-        // Detectar canvis de scroll per gestionar visibilitat
-        SchedulerBinding.instance.addPostFrameCallback((_) {
-          _checkVisibility();
-        });
-        return false; // Permetre que la notificació continuï propagant-se
-      },
-      child: LayoutBuilder(
+    return buildWithVisibilityDetection(
+      LayoutBuilder(
         builder: (context, constraints) {
           // Responsive height calculation
           final double containerHeight;
@@ -349,50 +294,20 @@ class _MatchThumbnailVideoState extends State<MatchThumbnailVideo>
             width: double.infinity,
             decoration: BoxDecoration(
               color: Colors.grey[900],
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
+              ),
             ),
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
+              ),
               child: _buildVideoContent(),
             ),
           );
         },
       ),
     );
-  }
-
-  void _checkVisibility() {
-    if (_isDisposed || !mounted) return;
-    
-    try {
-      final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
-      if (renderBox == null || !renderBox.attached) return;
-      
-      final position = renderBox.localToGlobal(Offset.zero);
-      final size = renderBox.size;
-      final screenHeight = MediaQuery.of(context).size.height;
-      
-      // Calcular si el widget és visible a la pantalla
-      final isCurrentlyVisible = position.dy < screenHeight && 
-                                position.dy + size.height > 0;
-      
-      if (_isVisible != isCurrentlyVisible) {
-        _isVisible = isCurrentlyVisible;
-        debugPrint('Video visibility changed: $_isVisible');
-        
-        if (_isVisible) {
-          // Widget ara visible - resumir reproducció si està inicialitzat
-          if (_isInitialized && !_hasError) {
-            _resumeVideo();
-          }
-        } else {
-          // Widget no visible - pausar per economitzar recursos
-          _pauseVideo();
-        }
-      }
-    } catch (e) {
-      debugPrint('Error checking visibility: $e');
-    }
   }
 }
 

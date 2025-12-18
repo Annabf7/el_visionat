@@ -11,6 +11,7 @@ import {
   StandingEntry,
   TeamInfo,
   MatchStatus,
+  RefereeInfo,
   ScraperConfig,
   DEFAULT_SCRAPER_CONFIG,
 } from "./types";
@@ -155,6 +156,12 @@ export function parseMatches(
       match.streamingUrl = streamingLink.attr("href");
     }
 
+    // Busquem URL de l'acta oficial
+    const actaLink = homeContainer.find("a[href*='/acta/']").first();
+    if (actaLink.length) {
+      match.actaUrl = actaLink.attr("href");
+    }
+
     matches.push(match);
   }
 
@@ -236,6 +243,202 @@ export function parseStandings(html: string): StandingEntry[] {
 
   console.log(`[parseStandings] Parseats ${standings.length} equips a la classificació`);
   return standings;
+}
+
+/**
+ * Parseja l'acta d'un partit per extreure la informació dels àrbitres
+ *
+ * L'acta conté una taula amb els oficials del partit:
+ * - Àrbitre/a Principal
+ * - Àrbitre/a Auxiliar
+ * - Anotador/a
+ * - Cronometrador/a
+ * - Operador/a RLL
+ */
+export function parseActa(html: string, actaUrl?: string): RefereeInfo {
+  const $ = cheerio.load(html);
+  const info: RefereeInfo = {};
+
+  if (actaUrl) {
+    info.actaUrl = actaUrl;
+  }
+
+  // Busquem la informació del partit (equips i resultat)
+  // Format típic: "CB ARTÉS 80 - 72 FC MARTINENC BÀSQUET A"
+  const headerText = $("h1, h2, .title, .match-header").first().text().trim();
+  const matchPattern = /(.+?)\s+(\d+)\s*-\s*(\d+)\s+(.+)/;
+  const matchResult = headerText.match(matchPattern);
+
+  if (matchResult) {
+    info.homeTeam = matchResult[1].trim();
+    info.homeScore = parseInt(matchResult[2], 10);
+    info.awayScore = parseInt(matchResult[3], 10);
+    info.awayTeam = matchResult[4].trim();
+  }
+
+  // Busquem la data del partit
+  const datePattern = /(\d{2}-\d{2}-\d{4})/;
+  const pageText = $("body").text();
+  const dateMatch = pageText.match(datePattern);
+  if (dateMatch) {
+    info.matchDate = dateMatch[1];
+  }
+
+  // Busquem els oficials del partit
+  // L'estructura típica és una llista o taula amb els rols i noms
+  const officials: Record<string, string> = {
+    "principal": "",
+    "auxiliar": "",
+    "anotador": "",
+    "cronometrador": "",
+    "operadorRll": "",
+    "caller1": "",
+  };
+
+  // Primer intentem extreure de les cel·les de taula (més precís)
+  $("td, th").each((_, cell) => {
+    const cellText = $(cell).text().trim();
+    const nextCell = $(cell).next("td, th").text().trim();
+
+    if (cellText.includes("Àrbitre") && cellText.includes("Principal") && nextCell) {
+      officials.principal = nextCell;
+    } else if (cellText.includes("Àrbitre") && cellText.includes("Auxiliar") && nextCell) {
+      officials.auxiliar = nextCell;
+    } else if (cellText.includes("Anotador") && nextCell) {
+      officials.anotador = nextCell;
+    } else if (cellText.includes("Cronometrador") && nextCell) {
+      officials.cronometrador = nextCell;
+    } else if (cellText.includes("Operador") && cellText.includes("RLL") && nextCell) {
+      officials.operadorRll = nextCell;
+    } else if (cellText.includes("Caller") && cellText.includes("1") && nextCell) {
+      officials.caller1 = nextCell;
+    }
+  });
+
+  // L'estructura de l'acta FCBQ és: "Rol:\n\n NOM COMPLET \nSegüentRol:"
+  // Usem regex que capturen el text entre el rol i el següent rol o final de secció
+  // pageText ja declarat abans
+
+  // Patrons per capturar cada oficial - busquem el text després dels dos punts fins al proper camp
+  const extractName = (text: string, rolePattern: RegExp, stopPatterns: string[]): string => {
+    const match = text.match(rolePattern);
+    if (!match) return "";
+
+    // Trobem on comença el nom (després del rol)
+    const startIdx = match.index! + match[0].length;
+    let endIdx = text.length;
+
+    // Busquem el primer stopPattern que aparegui
+    for (const stop of stopPatterns) {
+      const stopIdx = text.indexOf(stop, startIdx);
+      if (stopIdx !== -1 && stopIdx < endIdx) {
+        endIdx = stopIdx;
+      }
+    }
+
+    // Extraiem i netejem el nom
+    const rawName = text.substring(startIdx, endIdx).trim();
+    // Eliminem espais múltiples i netegem
+    let cleanName = rawName.replace(/\s+/g, " ").trim();
+    // Si el nom conté paraules típiques de codi JS, el tallem
+    const jsIndicators = ["function", "var ", "const ", "document", "$(", "window"];
+    for (const indicator of jsIndicators) {
+      const idx = cleanName.indexOf(indicator);
+      if (idx !== -1) {
+        cleanName = cleanName.substring(0, idx).trim();
+      }
+    }
+    return cleanName;
+  };
+
+  const stopMarkers = [
+    "Àrbitre/a Principal",
+    "Àrbitre/a Auxiliar",
+    "Anotador/a",
+    "Operador/a RLL",
+    "Cronometrador/a",
+    "Caller 1",
+    "Caller 2", // Per si n'hi ha més d'un
+    "Colors SAMARRETA", // Marca el final de la secció d'oficials
+    "function ", // Indicador de codi JavaScript
+    "document.", // Indicador de codi JavaScript
+    "Rambla Guipúscoa", // Adreça de la FCBQ al footer
+  ];
+
+  if (!officials.principal) {
+    officials.principal = extractName(pageText, /Àrbitre\/a Principal[:\s]*/i,
+      stopMarkers.filter((s) => s !== "Àrbitre/a Principal"));
+  }
+  if (!officials.auxiliar) {
+    officials.auxiliar = extractName(pageText, /Àrbitre\/a Auxiliar[:\s]*/i,
+      stopMarkers.filter((s) => s !== "Àrbitre/a Auxiliar"));
+  }
+  if (!officials.anotador) {
+    officials.anotador = extractName(pageText, /Anotador\/a[:\s]*/i,
+      stopMarkers.filter((s) => s !== "Anotador/a"));
+  }
+  if (!officials.operadorRll) {
+    officials.operadorRll = extractName(pageText, /Operador\/a RLL[:\s]*/i,
+      stopMarkers.filter((s) => s !== "Operador/a RLL"));
+  }
+  if (!officials.cronometrador) {
+    officials.cronometrador = extractName(pageText, /Cronometrador\/a[:\s]*/i,
+      stopMarkers.filter((s) => s !== "Cronometrador/a"));
+  }
+  if (!officials.caller1) {
+    officials.caller1 = extractName(pageText, /Caller 1[:\s]*/i,
+      stopMarkers.filter((s) => s !== "Caller 1"));
+  }
+
+  // Assignem els valors trobats
+  if (officials.principal) info.principal = officials.principal;
+  if (officials.auxiliar) info.auxiliar = officials.auxiliar;
+  if (officials.anotador) info.anotador = officials.anotador;
+  if (officials.cronometrador) info.cronometrador = officials.cronometrador;
+  if (officials.operadorRll) info.operadorRll = officials.operadorRll;
+  if (officials.caller1) info.caller1 = officials.caller1;
+
+  console.log(`[parseActa] Àrbitre principal: ${info.principal || "no trobat"}`);
+  console.log(`[parseActa] Àrbitre auxiliar: ${info.auxiliar || "no trobat"}`);
+
+  return info;
+}
+
+/**
+ * Fa fetch de l'acta d'un partit i extreu la informació dels àrbitres
+ */
+export async function fetchActaInfo(actaUrl: string): Promise<RefereeInfo> {
+  console.log(`[FCBQ Scraper] Fetching acta: ${actaUrl}`);
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const response = await fetch(actaUrl, {
+      method: "GET",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; ElVisionat/1.0)",
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "ca,es;q=0.9",
+      },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const html = await response.text();
+    return parseActa(html, actaUrl);
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Timeout després de 15000ms");
+    }
+    throw error;
+  }
 }
 
 /**

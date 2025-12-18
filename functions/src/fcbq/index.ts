@@ -10,6 +10,7 @@ export {
   syncWeeklyVoting,
   triggerSyncWeeklyVoting,
   getActiveVotingJornada,
+  closeSuggestions,
 } from "./sync_weekly_voting";
 
 // Utilitats de scraping

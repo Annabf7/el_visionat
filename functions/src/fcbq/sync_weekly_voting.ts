@@ -16,9 +16,9 @@
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-import {scrapeJornada} from "./scraper";
+import {scrapeJornada, fetchActaInfo} from "./scraper";
 import {mapFcbqTeam, TeamMappingResult} from "./team_mapper";
-import {MatchData, StandingEntry, DEFAULT_SCRAPER_CONFIG} from "./types";
+import {MatchData, StandingEntry, RefereeInfo, DEFAULT_SCRAPER_CONFIG} from "./types";
 
 const db = admin.firestore();
 
@@ -70,6 +70,21 @@ export interface VotingMetaDocument {
   weekendEnd: string;
   publishedAt: string;
   matchCount: number;
+}
+
+/**
+ * Document que representa el focus setmanal: partit guanyador + àrbitres
+ * Es guarda a weekly_focus/current i weekly_focus/jornada_{n}
+ */
+export interface WeeklyFocusDocument {
+  jornada: number;
+  winningMatch: VotingMatch;
+  totalVotes: number;
+  refereeInfo: RefereeInfo | null;
+  votingClosedAt: string;
+  suggestionsOpen: boolean;
+  suggestionsCloseAt: string; // Dimecres 15:00
+  status: "minutatge" | "entrevista_pendent" | "completat";
 }
 
 // ============================================================================
@@ -417,6 +432,130 @@ function selectBestJornada(
 }
 
 // ============================================================================
+// Processar guanyador de votació
+// ============================================================================
+
+/**
+ * Calcula el proper dimecres a les 15:00 des d'una data donada
+ */
+function getNextWednesday15h(from: Date): Date {
+  const result = new Date(from);
+  const dayOfWeek = result.getDay();
+  // Dimecres és 3
+  const daysUntilWednesday = (3 - dayOfWeek + 7) % 7 || 7;
+  result.setDate(result.getDate() + daysUntilWednesday);
+  result.setHours(15, 0, 0, 0);
+  return result;
+}
+
+/**
+ * Processa la jornada anterior quan es tanca:
+ * 1. Calcula el partit més votat
+ * 2. Extreu la info dels àrbitres de l'acta
+ * 3. Guarda tot a weekly_focus/current
+ */
+async function processVotingWinner(previousJornada: number): Promise<void> {
+  console.log(`[processVotingWinner] 🏆 Processant guanyador de jornada ${previousJornada}...`);
+
+  // 1. Obtenir tots els vots de la jornada
+  const votesSnapshot = await db.collection("vote_counts")
+    .where("jornada", "==", previousJornada)
+    .orderBy("count", "desc")
+    .limit(10)
+    .get();
+
+  if (votesSnapshot.empty) {
+    console.log(`[processVotingWinner] ⚠️ No hi ha vots per la jornada ${previousJornada}`);
+    return;
+  }
+
+  // El primer és el guanyador
+  const winnerDoc = votesSnapshot.docs[0];
+  const winnerData = winnerDoc.data();
+  const winningMatchId = winnerData.matchId;
+  const totalVotes = winnerData.count;
+
+  console.log(`[processVotingWinner] 🥇 Partit guanyador: ${winningMatchId} amb ${totalVotes} vots`);
+
+  // 2. Obtenir les dades completes del partit guanyador
+  const jornadaDoc = await db.collection("voting_jornades").doc(previousJornada.toString()).get();
+
+  if (!jornadaDoc.exists) {
+    console.log(`[processVotingWinner] ⚠️ No es troba voting_jornades/${previousJornada}`);
+    return;
+  }
+
+  const jornadaData = jornadaDoc.data() as VotingJornadaDocument;
+  const winningMatch = jornadaData.matches.find((m) => m.matchId === winningMatchId);
+
+  if (!winningMatch) {
+    console.log(`[processVotingWinner] ⚠️ No es troba el partit ${winningMatchId} a la jornada`);
+    return;
+  }
+
+  // 3. Extreure info dels àrbitres si hi ha URL de l'acta
+  let refereeInfo: RefereeInfo | null = null;
+
+  // Busquem l'acta URL del partit original (necessitem l'MatchData original)
+  // L'acta URL s'extreu durant el scraping, però no la guardem al VotingMatch
+  // Fem un scraping ràpid per obtenir-la
+  try {
+    const scrapedData = await scrapeJornada(previousJornada);
+    const originalMatch = scrapedData.matches.find((m) => {
+      // Comparem per equips (el matchId es genera diferent)
+      const homeMatch = m.home.name.toLowerCase().includes(winningMatch.home.teamNameRaw.toLowerCase().split(" ")[0]) ||
+                        winningMatch.home.teamNameRaw.toLowerCase().includes(m.home.name.toLowerCase().split(" ")[0]);
+      const awayMatch = m.away.name.toLowerCase().includes(winningMatch.away.teamNameRaw.toLowerCase().split(" ")[0]) ||
+                        winningMatch.away.teamNameRaw.toLowerCase().includes(m.away.name.toLowerCase().split(" ")[0]);
+      return homeMatch && awayMatch;
+    });
+
+    if (originalMatch?.actaUrl) {
+      console.log(`[processVotingWinner] 📋 Obtenint àrbitres de: ${originalMatch.actaUrl}`);
+      refereeInfo = await fetchActaInfo(originalMatch.actaUrl);
+      console.log(`[processVotingWinner] ✅ Àrbitre principal: ${refereeInfo.principal || "no trobat"}`);
+    } else {
+      console.log("[processVotingWinner] ⚠️ No s'ha trobat l'URL de l'acta pel partit guanyador");
+    }
+  } catch (error) {
+    console.error("[processVotingWinner] ❌ Error obtenint àrbitres:", error);
+  }
+
+  // 4. Calcular quan es tanquen els suggeriments (dimecres 15:00)
+  const now = new Date();
+  const suggestionsCloseAt = getNextWednesday15h(now);
+
+  // 5. Crear el document weekly_focus
+  const focusDoc: WeeklyFocusDocument = {
+    jornada: previousJornada,
+    winningMatch,
+    totalVotes,
+    refereeInfo,
+    votingClosedAt: now.toISOString(),
+    suggestionsOpen: true,
+    suggestionsCloseAt: suggestionsCloseAt.toISOString(),
+    status: "minutatge",
+  };
+
+  // 6. Guardar a Firestore
+  const batch = db.batch();
+
+  // Guardar com a current
+  batch.set(db.collection("weekly_focus").doc("current"), focusDoc);
+
+  // Guardar còpia històrica
+  batch.set(db.collection("weekly_focus").doc(`jornada_${previousJornada}`), focusDoc);
+
+  await batch.commit();
+
+  console.log(
+    "[processVotingWinner] ✅ Guardat weekly_focus: " +
+    `${winningMatch.home.teamNameDisplay} vs ${winningMatch.away.teamNameDisplay} ` +
+    `(${totalVotes} vots). Suggeriments oberts fins ${suggestionsCloseAt.toLocaleString("ca-ES")}`
+  );
+}
+
+// ============================================================================
 // Guardar a Firestore
 // ============================================================================
 
@@ -466,7 +605,7 @@ async function saveVotingData(
 
   const batch = db.batch();
 
-  // 2. Tancar la votació de la jornada anterior (si n'hi ha)
+  // 2. Tancar la votació de la jornada anterior (si n'hi ha) i processar guanyador
   if (previousJornada && previousJornada !== jornada) {
     const prevVotingMetaRef = db.collection("voting_meta").doc(`jornada_${previousJornada}`);
     batch.set(prevVotingMetaRef, {
@@ -475,6 +614,14 @@ async function saveVotingData(
       closedReason: `Nova jornada ${jornada} publicada`,
     }, {merge: true});
     console.log(`[saveVotingData] 🔒 Tancant votació de jornada ${previousJornada}`);
+
+    // Processar el guanyador de la jornada anterior (fora del batch)
+    try {
+      await processVotingWinner(previousJornada);
+    } catch (error) {
+      console.error("[saveVotingData] ❌ Error processant guanyador:", error);
+      // Continuem igualment amb la nova jornada
+    }
   }
 
   // 3. Obrir la votació de la nova jornada
@@ -612,6 +759,65 @@ export const getActiveVotingJornada = onCall(
     } catch (error) {
       console.error("[getActiveVotingJornada] Error:", error);
       throw new HttpsError("internal", `Error obtenint jornada: ${error instanceof Error ? error.message : "desconegut"}`);
+    }
+  }
+);
+
+// ============================================================================
+// Tancar suggeriments - Dimecres 15:00
+// ============================================================================
+
+export const closeSuggestions = onSchedule(
+  {
+    schedule: "0 15 * * 3", // Cada dimecres a les 15:00
+    timeZone: "Europe/Madrid",
+    region: "europe-west1",
+    memory: "256MiB",
+    timeoutSeconds: 60,
+  },
+  async () => {
+    console.log("[closeSuggestions] 🔒 Tancant suggeriments...");
+
+    try {
+      const focusRef = db.collection("weekly_focus").doc("current");
+      const focusDoc = await focusRef.get();
+
+      if (!focusDoc.exists) {
+        console.log("[closeSuggestions] ℹ️ No hi ha weekly_focus/current");
+        return;
+      }
+
+      const focusData = focusDoc.data() as WeeklyFocusDocument;
+
+      if (!focusData.suggestionsOpen) {
+        console.log("[closeSuggestions] ℹ️ Suggeriments ja tancats");
+        return;
+      }
+
+      const now = new Date().toISOString();
+
+      // Tancar suggeriments
+      await focusRef.update({
+        suggestionsOpen: false,
+        suggestionsClosedAt: now,
+        status: "entrevista_pendent",
+      });
+
+      // També actualitzem la còpia històrica
+      const historicRef = db.collection("weekly_focus").doc(`jornada_${focusData.jornada}`);
+      await historicRef.update({
+        suggestionsOpen: false,
+        suggestionsClosedAt: now,
+        status: "entrevista_pendent",
+      });
+
+      console.log(
+        `[closeSuggestions] ✅ Suggeriments tancats per jornada ${focusData.jornada}. ` +
+        "Status: entrevista_pendent"
+      );
+    } catch (error) {
+      console.error("[closeSuggestions] ❌ Error:", error);
+      throw error;
     }
   }
 );

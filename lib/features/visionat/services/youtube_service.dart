@@ -35,7 +35,7 @@ class YouTubeServiceException implements Exception {
 /// l'autenticació amb l'API de YouTube i retorna els 5 vídeos més recents.
 class YouTubeService {
   static const String _baseUrl =
-      'https://us-central1-el-visionat.cloudfunctions.net';
+      'https://europe-west1-el-visionat.cloudfunctions.net';
   static const String _endpoint = '/getYouTubeVideos';
 
   final http.Client _httpClient;

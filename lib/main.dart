@@ -7,6 +7,7 @@ import 'package:el_visionat/features/voting/index.dart';
 import 'package:el_visionat/features/teams/index.dart';
 import 'package:el_visionat/features/profile/index.dart';
 import 'package:el_visionat/core/index.dart';
+import 'package:el_visionat/core/services/team_mapping_service.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -83,6 +84,9 @@ void main() async {
   final isarService = IsarService();
   // Assegurem que la BBDD està oberta abans d'arrencar l'app
   await isarService.openDB();
+
+  // Inicialitzem el TeamMappingService per resoldre logos d'equips
+  await TeamMappingService.instance.initialize();
 
   // Instanciem el servei de dades d'equips passant Isar i Firestore
   final teamDataService = TeamDataService(

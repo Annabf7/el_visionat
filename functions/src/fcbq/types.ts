@@ -35,6 +35,26 @@ export interface MatchData {
   venue?: string;
   matchId?: string; // ID del partit a la FCBQ
   streamingUrl?: string;
+  actaUrl?: string; // URL de l'acta oficial del partit
+}
+
+/**
+ * Informació dels àrbitres i oficials d'un partit (extret de l'acta)
+ */
+export interface RefereeInfo {
+  principal?: string; // Àrbitre/a Principal
+  auxiliar?: string; // Àrbitre/a Auxiliar
+  anotador?: string; // Anotador/a
+  cronometrador?: string; // Cronometrador/a
+  operadorRll?: string; // Operador/a RLL (replay)
+  caller1?: string; // Caller 1 (ajudant de taula)
+  // Metadades del partit per context
+  matchDate?: string;
+  homeTeam?: string;
+  awayTeam?: string;
+  homeScore?: number;
+  awayScore?: number;
+  actaUrl?: string;
 }
 
 /**

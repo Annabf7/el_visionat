@@ -36,6 +36,7 @@ import {
   syncWeeklyVoting,
   triggerSyncWeeklyVoting,
   getActiveVotingJornada,
+  closeSuggestions,
 } from "./fcbq";
 
 // Export functions with the exact names expected by the client
@@ -61,6 +62,7 @@ exports.clearJornadaCache = clearJornadaCache;
 exports.syncWeeklyVoting = syncWeeklyVoting;
 exports.triggerSyncWeeklyVoting = triggerSyncWeeklyVoting;
 exports.getActiveVotingJornada = getActiveVotingJornada;
+exports.closeSuggestions = closeSuggestions;
 
 // --- ALTRES FUNCIONS (si n'hi ha en el futur) ---
 // Aquí podríem afegir altres tipus de funcions (ex: triggers de Firestore, etc.)

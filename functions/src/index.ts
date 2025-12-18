@@ -28,6 +28,16 @@ import {sendPasswordResetEmail} from "./auth/send_password_reset_email";
 import {warmFunctions} from "./utils/warm_functions";
 import {getYouTubeVideos} from "./youtube/getYouTubeVideos";
 
+// FCBQ Integration - Scraping de dades de la Federació
+import {
+  fetchJornada,
+  fetchMultipleJornades,
+  clearJornadaCache,
+  syncWeeklyVoting,
+  triggerSyncWeeklyVoting,
+  getActiveVotingJornada,
+} from "./fcbq";
+
 // Export functions with the exact names expected by the client
 exports.lookupLicense = lookupLicense;
 exports.requestRegistration = requestRegistration;
@@ -41,6 +51,16 @@ exports.resendActivationToken = resendActivationToken;
 exports.sendPasswordResetEmail = sendPasswordResetEmail;
 exports.warmFunctions = warmFunctions;
 exports.getYouTubeVideos = getYouTubeVideos;
+
+// FCBQ Integration exports
+exports.fetchJornada = fetchJornada;
+exports.fetchMultipleJornades = fetchMultipleJornades;
+exports.clearJornadaCache = clearJornadaCache;
+
+// FCBQ Voting Sync exports
+exports.syncWeeklyVoting = syncWeeklyVoting;
+exports.triggerSyncWeeklyVoting = triggerSyncWeeklyVoting;
+exports.getActiveVotingJornada = getActiveVotingJornada;
 
 // --- ALTRES FUNCIONS (si n'hi ha en el futur) ---
 // Aquí podríem afegir altres tipus de funcions (ex: triggers de Firestore, etc.)

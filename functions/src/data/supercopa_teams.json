@@ -6,11 +6,7 @@
     "gender": "Masculina",
     "colorHex": "#20639B",
     "logoAssetPath": "assets/images/teams/cb-artes.webp",
-    "aliases": [
-      "CB ARTES",
-      "C.B. ARTÉS",
-      "C.B. ARTES"
-    ]
+    "aliases": ["CB ARTES", "C.B. ARTÉS", "C.B. ARTES"]
   },
   {
     "id": "intersport",
@@ -19,11 +15,7 @@
     "gender": "Masculina",
     "colorHex": "#FF8C00",
     "logoAssetPath": "assets/images/teams/intersport-olaria-sama-vilanova-sam.webp",
-    "aliases": [
-      "INTERSPORT OLARIA",
-      "OLARIA SAMA VILANOVA",
-      "INTERSPORT OLARIA - SAMA VILANOVA SAM"
-    ]
+    "aliases": ["INTERSPORT OLARIA", "OLARIA SAMA VILANOVA", "INTERSPORT OLARIA - SAMA VILANOVA SAM"]
   },
   {
     "id": "minguella",
@@ -32,11 +24,7 @@
     "gender": "Masculina",
     "colorHex": "#008000",
     "logoAssetPath": "assets/images/teams/ae-minguella-a-pure-cuisine.webp",
-    "aliases": [
-      "AE MINGUELLA A",
-      "AE MINGUELLA",
-      "MINGUELLA PURE CUISINE"
-    ]
+    "aliases": ["AE MINGUELLA A", "AE MINGUELLA", "MINGUELLA PURE CUISINE"]
   },
   {
     "id": "ubulloret",
@@ -45,11 +33,7 @@
     "gender": "Masculina",
     "colorHex": "#1E90FF",
     "logoAssetPath": "assets/images/teams/cbu-lloret-samba-hotels.webp",
-    "aliases": [
-      "CBU LLORET",
-      "CB LLORET",
-      "LLORET SAMBA HOTELS"
-    ]
+    "aliases": ["CBU LLORET", "CB LLORET", "LLORET SAMBA HOTELS"]
   },
   {
     "id": "salassantnicolau",
@@ -58,11 +42,7 @@
     "gender": "Masculina",
     "colorHex": "#800080",
     "logoAssetPath": "assets/images/teams/salas-ce-sant-nicolau.webp",
-    "aliases": [
-      "SALAS SANT NICOLAU",
-      "CE SANT NICOLAU",
-      "SANT NICOLAU"
-    ]
+    "aliases": ["SALAS SANT NICOLAU", "CE SANT NICOLAU", "SANT NICOLAU"]
   },
   {
     "id": "uemontgat",
@@ -71,12 +51,7 @@
     "gender": "Masculina",
     "colorHex": "#A0522D",
     "logoAssetPath": "assets/images/teams/ue-montgat.webp",
-    "aliases": [
-      "UE MONTGAT",
-      "U.E. MONTGAT",
-      "UE. MONTGAT",
-      "UNIO ESPORTIVA MONTGAT"
-    ]
+    "aliases": ["UE MONTGAT", "U.E. MONTGAT", "UE. MONTGAT", "UNIO ESPORTIVA MONTGAT"]
   },
   {
     "id": "jacsants",
@@ -85,11 +60,7 @@
     "gender": "Masculina",
     "colorHex": "#DAA520",
     "logoAssetPath": "assets/images/teams/jac-sants-barcelona.webp",
-    "aliases": [
-      "JAC SANTS",
-      "J.A.C. SANTS",
-      "JAC SANTS BCN"
-    ]
+    "aliases": ["JAC SANTS", "J.A.C. SANTS", "JAC SANTS BCN"]
   },
   {
     "id": "ramonsoler",
@@ -98,11 +69,7 @@
     "gender": "Masculina",
     "colorHex": "#708090",
     "logoAssetPath": "assets/images/teams/ramon-soler-cb-salt.webp",
-    "aliases": [
-      "CB SALT",
-      "RAMON SOLER SALT",
-      "C.B. SALT"
-    ]
+    "aliases": ["CB SALT", "RAMON SOLER SALT", "C.B. SALT"]
   },
   {
     "id": "cbvic2",
@@ -111,12 +78,7 @@
     "gender": "Masculina",
     "colorHex": "#BDB76B",
     "logoAssetPath": "assets/images/teams/cbvic-2-universitat-de-vic.webp",
-    "aliases": [
-      "CBVIC 2",
-      "CB VIC 2",
-      "CB VIC",
-      "UNIVERSITAT DE VIC"
-    ]
+    "aliases": ["CBVIC 2", "CB VIC 2", "CB VIC", "UNIVERSITAT DE VIC"]
   },
   {
     "id": "maristes",
@@ -125,11 +87,7 @@
     "gender": "Masculina",
     "colorHex": "#CD5C5C",
     "logoAssetPath": "assets/images/teams/maristes-ademar-a.webp",
-    "aliases": [
-      "MARISTES ADEMAR",
-      "MARISTES",
-      "ADEMAR A"
-    ]
+    "aliases": ["MARISTES ADEMAR", "MARISTES", "ADEMAR A"]
   },
   {
     "id": "fcmartinenc",
@@ -138,12 +96,7 @@
     "gender": "Masculina",
     "colorHex": "#FF6347",
     "logoAssetPath": "assets/images/teams/fc-martinenc-basquet-a.webp",
-    "aliases": [
-      "FC MARTINENC",
-      "MARTINENC BASQUET A",
-      "FC MARTINENC BASQUET",
-      "F.C. MARTINENC"
-    ]
+    "aliases": ["FC MARTINENC", "MARTINENC BASQUET A", "FC MARTINENC BASQUET", "F.C. MARTINENC"]
   },
   {
     "id": "cbipsi",
@@ -152,11 +105,7 @@
     "gender": "Masculina",
     "colorHex": "#4682B4",
     "logoAssetPath": "assets/images/teams/cb-ipsi-a.webp",
-    "aliases": [
-      "CB IPSI",
-      "C.B. IPSI A",
-      "IPSI A"
-    ]
+    "aliases": ["CB IPSI", "C.B. IPSI A", "IPSI A"]
   },
   {
     "id": "santfeliuenc",
@@ -165,11 +114,7 @@
     "gender": "Masculina",
     "colorHex": "#20B2AA",
     "logoAssetPath": "assets/images/teams/club-basquet-santfeliuenc.webp",
-    "aliases": [
-      "CB SANTFELIUENC",
-      "SANTFELIUENC",
-      "C.B. SANTFELIUENC"
-    ]
+    "aliases": ["CB SANTFELIUENC", "SANTFELIUENC", "C.B. SANTFELIUENC"]
   },
   {
     "id": "cbmartorell",
@@ -178,37 +123,25 @@
     "gender": "Masculina",
     "colorHex": "#8B4513",
     "logoAssetPath": "assets/images/teams/cb-martorell-a.webp",
-    "aliases": [
-      "CB MARTORELL",
-      "C.B. MARTORELL A",
-      "MARTORELL A"
-    ]
+    "aliases": ["CB MARTORELL", "C.B. MARTORELL A", "MARTORELL A"]
   },
   {
     "id": "sdespanyol",
     "name": "SD ESPANYOL",
     "acronym": "SDE",
     "gender": "Masculina",
-    "colorHex": "#000000",
+    "colorHex": "#000080",
     "logoAssetPath": "assets/images/teams/sd-espanyol.webp",
-    "aliases": [
-      "S.D. ESPANYOL",
-      "ESPANYOL",
-      "SOCIEDAD DEPORTIVA ESPANYOL"
-    ]
+    "aliases": ["S.D. ESPANYOL", "ESPANYOL", "SOCIEDAD DEPORTIVA ESPANYOL"]
   },
   {
-    "id": "cbalpicata",
+    "id": "cbalpicat",
     "name": "CB ALPICAT A",
     "acronym": "ALP",
     "gender": "Masculina",
     "colorHex": "#800000",
     "logoAssetPath": "assets/images/teams/cb-alpicat-a.webp",
-    "aliases": [
-      "CB ALPICAT",
-      "C.B. ALPICAT A",
-      "ALPICAT A"
-    ]
+    "aliases": ["CB ALPICAT", "C.B. ALPICAT A", "ALPICAT A"]
   },
   {
     "id": "castelldefels",
@@ -217,11 +150,7 @@
     "gender": "Femenina",
     "colorHex": "#4682B4",
     "logoAssetPath": null,
-    "aliases": [
-      "CASTELLDEFELS A",
-      "MUSEU DEL COMIC CASTELLDEFELS",
-      "CB CASTELLDEFELS"
-    ]
+    "aliases": ["CASTELLDEFELS A", "MUSEU DEL COMIC CASTELLDEFELS", "CB CASTELLDEFELS"]
   },
   {
     "id": "wecolors",
@@ -230,11 +159,7 @@
     "gender": "Femenina",
     "colorHex": "#FFD700",
     "logoAssetPath": null,
-    "aliases": [
-      "WECOLORS PREMIA",
-      "AB PREMIA",
-      "WECOLORS AB PREMIA"
-    ]
+    "aliases": ["WECOLORS PREMIA", "AB PREMIA", "WECOLORS AB PREMIA"]
   },
   {
     "id": "cbfcerdanyola",
@@ -243,11 +168,7 @@
     "gender": "Femenina",
     "colorHex": "#008000",
     "logoAssetPath": null,
-    "aliases": [
-      "CBF CERDANYOLA A",
-      "CBF CERDANYOLA",
-      "PROMOVIATGES CERDANYOLA"
-    ]
+    "aliases": ["CBF CERDANYOLA A", "CBF CERDANYOLA", "PROMOVIATGES CERDANYOLA"]
   },
   {
     "id": "cbgranollersf",
@@ -256,11 +177,7 @@
     "gender": "Femenina",
     "colorHex": "#FF4500",
     "logoAssetPath": null,
-    "aliases": [
-      "CB GRANOLLERS",
-      "GRANOLLERS 1",
-      "C.B. GRANOLLERS 1"
-    ]
+    "aliases": ["CB GRANOLLERS", "GRANOLLERS 1", "C.B. GRANOLLERS 1"]
   },
   {
     "id": "ceebtordera",
@@ -269,11 +186,7 @@
     "gender": "Femenina",
     "colorHex": "#800080",
     "logoAssetPath": null,
-    "aliases": [
-      "CEEB TORDERDA",
-      "TORDERA",
-      "C.E.E.B. TORDERA"
-    ]
+    "aliases": ["CEEB TORDERDA", "TORDERA", "C.E.E.B. TORDERA"]
   },
   {
     "id": "grupbarna",
@@ -282,11 +195,7 @@
     "gender": "Femenina",
     "colorHex": "#00CED1",
     "logoAssetPath": null,
-    "aliases": [
-      "CB GRUP BARNA A",
-      "GRUP BARNA A",
-      "GRUP BARNA"
-    ]
+    "aliases": ["CB GRUP BARNA A", "GRUP BARNA A", "GRUP BARNA"]
   },
   {
     "id": "campingbianya",
@@ -295,11 +204,7 @@
     "gender": "Femenina",
     "colorHex": "#A0522D",
     "logoAssetPath": null,
-    "aliases": [
-      "CAMPING BIANYA ROSER A",
-      "BIANYA ROSER A",
-      "CAMPING BIANYA"
-    ]
+    "aliases": ["CAMPING BIANYA ROSER A", "BIANYA ROSER A", "CAMPING BIANYA"]
   },
   {
     "id": "cbigualada",
@@ -308,10 +213,7 @@
     "gender": "Femenina",
     "colorHex": "#DAA520",
     "logoAssetPath": null,
-    "aliases": [
-      "C.B. IGUALADA",
-      "IGUALADA"
-    ]
+    "aliases": ["C.B. IGUALADA", "IGUALADA"]
   },
   {
     "id": "vedrunagracia",
@@ -320,11 +222,7 @@
     "gender": "Femenina",
     "colorHex": "#708090",
     "logoAssetPath": null,
-    "aliases": [
-      "VEDRUNA GRACIA A",
-      "VEDRUNA GRACIA",
-      "VEDRUNA GRÀCIA"
-    ]
+    "aliases": ["VEDRUNA GRACIA A", "VEDRUNA GRACIA", "VEDRUNA GRÀCIA"]
   },
   {
     "id": "cbsfemb",
@@ -333,10 +231,7 @@
     "gender": "Femenina",
     "colorHex": "#BDB76B",
     "logoAssetPath": null,
-    "aliases": [
-      "CBS FEMENI B",
-      "C.B.S. FEM B"
-    ]
+    "aliases": ["CBS FEMENI B", "C.B.S. FEM B"]
   },
   {
     "id": "sesea",
@@ -345,10 +240,7 @@
     "gender": "Femenina",
     "colorHex": "#CD5C5C",
     "logoAssetPath": null,
-    "aliases": [
-      "S.E.S.E. A",
-      "SESE"
-    ]
+    "aliases": ["S.E.S.E. A", "SESE"]
   },
   {
     "id": "geieg",
@@ -357,11 +249,7 @@
     "gender": "Femenina",
     "colorHex": "#FF6347",
     "logoAssetPath": null,
-    "aliases": [
-      "GEIEG VEDRUNA B",
-      "GEIEG",
-      "VEDRUNA B OTIS"
-    ]
+    "aliases": ["GEIEG VEDRUNA B", "GEIEG", "VEDRUNA B OTIS"]
   },
   {
     "id": "loquillo",
@@ -370,11 +258,7 @@
     "gender": "Femenina",
     "colorHex": "#4682B4",
     "logoAssetPath": null,
-    "aliases": [
-      "LOQUILLO SANT ADRIA",
-      "LOQUILLO FEMENI",
-      "SANT ADRIA FEMENI"
-    ]
+    "aliases": ["LOQUILLO SANT ADRIA", "LOQUILLO FEMENI", "SANT ADRIA FEMENI"]
   },
   {
     "id": "espanyolcejlh",
@@ -383,11 +267,7 @@
     "gender": "Femenina",
     "colorHex": "#20B2AA",
     "logoAssetPath": null,
-    "aliases": [
-      "ESPANYOL CEJLH A",
-      "ESPANYOL CEJL'H",
-      "CEJL'H A"
-    ]
+    "aliases": ["ESPANYOL CEJLH A", "ESPANYOL CEJL'H", "CEJL'H A"]
   },
   {
     "id": "ubllefia",
@@ -396,12 +276,7 @@
     "gender": "Femenina",
     "colorHex": "#8B4513",
     "logoAssetPath": null,
-    "aliases": [
-      "UB LLEFIA",
-      "U.B. LLEFIA",
-      "LLEFIA JJ FINQUES",
-      "UB LLEFIÀ"
-    ]
+    "aliases": ["UB LLEFIA", "U.B. LLEFIA", "LLEFIA JJ FINQUES", "UB LLEFIÀ"]
   },
   {
     "id": "tgnbasquet",
@@ -410,10 +285,6 @@
     "gender": "Femenina",
     "colorHex": "#000000",
     "logoAssetPath": null,
-    "aliases": [
-      "TGN BASQUET A",
-      "TGN BASQUET",
-      "TARRAGONA BASQUET A"
-    ]
+    "aliases": ["TGN BASQUET A", "TGN BASQUET", "TARRAGONA BASQUET A"]
   }
 ]

@@ -41,85 +41,85 @@ export const onVoteWrite = onDocumentWritten(
     region: "europe-west1",
   },
   async (event) => {
-  const before = event.data?.before?.data() as Record<string, any> | undefined;
-  const after = event.data?.after?.data() as Record<string, any> | undefined;
+    const before = event.data?.before?.data() as Record<string, any> | undefined;
+    const after = event.data?.after?.data() as Record<string, any> | undefined;
 
-  // Helper to extract jornada + matchId
-  const parse = (d?: Record<string, any>) => {
-    if (!d) return null;
-    const jornada = typeof d.jornada === "number" ? d.jornada : Number(d.jornada);
-    const matchId = typeof d.matchId === "string" ? d.matchId : null;
-    if (!jornada || !matchId) return null;
-    return {jornada, matchId};
-  };
+    // Helper to extract jornada + matchId
+    const parse = (d?: Record<string, any>) => {
+      if (!d) return null;
+      const jornada = typeof d.jornada === "number" ? d.jornada : Number(d.jornada);
+      const matchId = typeof d.matchId === "string" ? d.matchId : null;
+      if (!jornada || !matchId) return null;
+      return {jornada, matchId};
+    };
 
-  const beforeInfo = parse(before);
-  const afterInfo = parse(after);
+    const beforeInfo = parse(before);
+    const afterInfo = parse(after);
 
-  // If nothing meaningful -> skip
-  if (!beforeInfo && !afterInfo) {
-    console.log("[onVoteWrite] No relevant data, skipping.");
-    return;
-  }
+    // If nothing meaningful -> skip
+    if (!beforeInfo && !afterInfo) {
+      console.log("[onVoteWrite] No relevant data, skipping.");
+      return;
+    }
 
-  // 🧠 Avoid doing anything if the matchId didn't actually change
-  if (
-    beforeInfo &&
+    // 🧠 Avoid doing anything if the matchId didn't actually change
+    if (
+      beforeInfo &&
     afterInfo &&
     beforeInfo.jornada === afterInfo.jornada &&
     beforeInfo.matchId === afterInfo.matchId
-  ) {
-    console.log("[onVoteWrite] matchId unchanged, skipping.");
-    return;
-  }
+    ) {
+      console.log("[onVoteWrite] matchId unchanged, skipping.");
+      return;
+    }
 
-  await db.runTransaction(async (tx) => {
+    await db.runTransaction(async (tx) => {
     // Read all needed docs first (Firestore requires all reads before writes in a transaction)
-    const refsToRead: Array<import("firebase-admin/firestore").DocumentReference> = [];
-    let beforeRef = null;
-    let afterRef = null;
-    if (beforeInfo) {
-      const id = `${beforeInfo.jornada}_${beforeInfo.matchId}`;
-      beforeRef = db.collection("vote_counts").doc(id);
-      refsToRead.push(beforeRef);
-    }
-    if (afterInfo) {
-      const id = `${afterInfo.jornada}_${afterInfo.matchId}`;
-      afterRef = db.collection("vote_counts").doc(id);
-      // avoid duplicate read if same as beforeRef (shouldn't happen because we skip unchanged above)
-      if (!beforeRef || beforeRef.path !== afterRef.path) refsToRead.push(afterRef);
-    }
-
-    const snaps = await Promise.all(refsToRead.map((r) => tx.get(r)));
-
-    // Map snaps back to before/after
-    const snapMap = new Map<string, import("firebase-admin/firestore").DocumentSnapshot>();
-    refsToRead.forEach((r, i) => snapMap.set(r.path, snaps[i]));
-
-    // 1️⃣ Decrement old match if exists
-    if (beforeInfo && beforeRef) {
-      const snap = snapMap.get(beforeRef.path)!;
-      const current = snap.exists ? (snap.data()?.count || 0) : 0;
-      const next = Math.max(0, current - 1);
-      if (snap.exists) {
-        tx.update(beforeRef, {count: next});
-      } else {
-        tx.set(beforeRef, {jornada: beforeInfo.jornada, matchId: beforeInfo.matchId, count: next});
+      const refsToRead: Array<import("firebase-admin/firestore").DocumentReference> = [];
+      let beforeRef = null;
+      let afterRef = null;
+      if (beforeInfo) {
+        const id = `${beforeInfo.jornada}_${beforeInfo.matchId}`;
+        beforeRef = db.collection("vote_counts").doc(id);
+        refsToRead.push(beforeRef);
       }
-      console.log(`[onVoteWrite] decremented ${beforeRef.id} -> ${next}`);
-    }
-
-    // 2️⃣ Increment new match if exists
-    if (afterInfo && afterRef) {
-      const snap = snapMap.get(afterRef.path)!;
-      const current = snap.exists ? (snap.data()?.count || 0) : 0;
-      const next = current + 1;
-      if (snap.exists) {
-        tx.update(afterRef, {count: next});
-      } else {
-        tx.set(afterRef, {jornada: afterInfo.jornada, matchId: afterInfo.matchId, count: next});
+      if (afterInfo) {
+        const id = `${afterInfo.jornada}_${afterInfo.matchId}`;
+        afterRef = db.collection("vote_counts").doc(id);
+        // avoid duplicate read if same as beforeRef (shouldn't happen because we skip unchanged above)
+        if (!beforeRef || beforeRef.path !== afterRef.path) refsToRead.push(afterRef);
       }
-      console.log(`[onVoteWrite] incremented ${afterRef.id} -> ${next}`);
-    }
+
+      const snaps = await Promise.all(refsToRead.map((r) => tx.get(r)));
+
+      // Map snaps back to before/after
+      const snapMap = new Map<string, import("firebase-admin/firestore").DocumentSnapshot>();
+      refsToRead.forEach((r, i) => snapMap.set(r.path, snaps[i]));
+
+      // 1️⃣ Decrement old match if exists
+      if (beforeInfo && beforeRef) {
+        const snap = snapMap.get(beforeRef.path)!;
+        const current = snap.exists ? (snap.data()?.count || 0) : 0;
+        const next = Math.max(0, current - 1);
+        if (snap.exists) {
+          tx.update(beforeRef, {count: next});
+        } else {
+          tx.set(beforeRef, {jornada: beforeInfo.jornada, matchId: beforeInfo.matchId, count: next});
+        }
+        console.log(`[onVoteWrite] decremented ${beforeRef.id} -> ${next}`);
+      }
+
+      // 2️⃣ Increment new match if exists
+      if (afterInfo && afterRef) {
+        const snap = snapMap.get(afterRef.path)!;
+        const current = snap.exists ? (snap.data()?.count || 0) : 0;
+        const next = current + 1;
+        if (snap.exists) {
+          tx.update(afterRef, {count: next});
+        } else {
+          tx.set(afterRef, {jornada: afterInfo.jornada, matchId: afterInfo.matchId, count: next});
+        }
+        console.log(`[onVoteWrite] incremented ${afterRef.id} -> ${next}`);
+      }
+    });
   });
-});

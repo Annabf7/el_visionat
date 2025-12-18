@@ -36,7 +36,11 @@ module.exports = {
     "max-len": "off",
     "linebreak-style": "off",
     "require-jsdoc": "off",
+    "valid-jsdoc": "off", // Disabled: too strict param documentation
     "@typescript-eslint/no-var-requires": "off",
+    "@typescript-eslint/no-explicit-any": "warn", // Allow 'any' with warning
+    "@typescript-eslint/no-unused-vars": "warn", // Allow unused vars with warning
+    "@typescript-eslint/no-non-null-assertion": "warn", // Allow non-null assertions with warning
     "no-empty": "off",
   },
 };

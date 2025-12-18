@@ -1,8 +1,6 @@
-import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -10,11 +8,13 @@ import 'package:video_player/video_player.dart';
 // Authentication is handled centrally by RequireAuth / AuthProvider.
 
 import '../providers/vote_provider.dart';
+import '../services/jornada_service.dart';
 import '../../auth/index.dart';
 import 'voting_card.dart';
 import 'jornada_header.dart';
 
 import 'package:el_visionat/core/theme/app_theme.dart';
+import 'package:el_visionat/core/services/team_mapping_service.dart';
 import '../../classificacio/standings_list_mobile.dart';
 
 /// Minimal match model for the seed JSON.
@@ -44,37 +44,84 @@ class MatchSeed {
   factory MatchSeed.fromJson(Map<String, dynamic> json) {
     final home = json['home'] as Map<String, dynamic>?;
     final away = json['away'] as Map<String, dynamic>?;
+
+    // Extreu noms
+    final homeName = home != null && home['name'] != null
+        ? home['name'] as String
+        : (json['homeName'] as String? ?? '');
+    final awayName = away != null && away['name'] != null
+        ? away['name'] as String
+        : (json['awayName'] as String? ?? '');
+
+    // Extreu logos directes del JSON
+    String homeLogo = home != null && home['logo'] != null
+        ? home['logo'] as String
+        : (json['homeLogo'] as String? ?? '');
+    String awayLogo = away != null && away['logo'] != null
+        ? away['logo'] as String
+        : (json['awayLogo'] as String? ?? '');
+
+    // Si no hi ha logo, intenta resoldre'l via TeamMappingService
+    if (homeLogo.isEmpty && homeName.isNotEmpty) {
+      final result = TeamMappingService.instance.findTeamSync(homeName);
+      homeLogo = result.logoFilename ?? '';
+    }
+    if (awayLogo.isEmpty && awayName.isNotEmpty) {
+      final result = TeamMappingService.instance.findTeamSync(awayName);
+      awayLogo = result.logoFilename ?? '';
+    }
+
     return MatchSeed(
       jornada: json['jornada'] as int,
-      homeName: home != null && home['name'] != null
-          ? home['name'] as String
-          : (json['homeName'] as String? ?? ''),
-      homeLogo: home != null && home['logo'] != null
-          ? home['logo'] as String
-          : (json['homeLogo'] as String? ?? ''),
-      awayName: away != null && away['name'] != null
-          ? away['name'] as String
-          : (json['awayName'] as String? ?? ''),
-      awayLogo: away != null && away['logo'] != null
-          ? away['logo'] as String
-          : (json['awayLogo'] as String? ?? ''),
+      homeName: homeName,
+      homeLogo: homeLogo,
+      awayName: awayName,
+      awayLogo: awayLogo,
       dateTime: json['dateTime'] as String,
-      timezone: json['timezone'] as String,
-      gender: json['gender'] as String,
-      source: json['source'] as String,
+      timezone: json['timezone'] as String? ?? 'Europe/Madrid',
+      gender: json['gender'] as String? ?? 'male',
+      source: json['source'] as String? ?? 'unknown',
     );
   }
 }
 
 // Top-level helpers so multiple widgets can reuse them without duplicating
-Future<List<MatchSeed>> loadMatchesFromAssets() async {
-  final raw = await rootBundle.loadString(
-    'assets/data/jornada_14_matches.json',
-  );
-  final decoded = jsonDecode(raw) as List<dynamic>;
-  return decoded
-      .map((e) => MatchSeed.fromJson(e as Map<String, dynamic>))
-      .toList();
+
+/// Carrega partits dinàmicament des de Firestore
+/// Aquesta és la funció recomanada per obtenir dades de jornades
+/// Llegeix voting_meta/current per determinar la jornada activa
+Future<List<MatchSeed>> loadMatchesForJornada([int? jornada]) async {
+  final service = JornadaService();
+
+  try {
+    debugPrint(
+      '[loadMatchesForJornada] Carregant jornada: ${jornada ?? "activa"}',
+    );
+    if (jornada != null && jornada > 0) {
+      // Si s'especifica jornada vàlida, la carreguem directament
+      final data = await service.fetchJornada(jornada);
+      debugPrint(
+        '[loadMatchesForJornada] Carregats ${data.partits.length} partits de jornada $jornada',
+      );
+      return data.partits;
+    } else {
+      // Si no, obtenim la jornada activa des de Firestore
+      final data = await service.fetchActiveJornada();
+      debugPrint(
+        '[loadMatchesForJornada] Carregats ${data.partits.length} partits de jornada activa ${data.jornada}',
+      );
+      return data.partits;
+    }
+  } catch (e) {
+    debugPrint('[loadMatchesForJornada] Error: $e');
+    return [];
+  }
+}
+
+/// Obté la jornada actual des del cache (0 si no hi ha cache)
+/// Per obtenir el valor real, usa JornadaService().getActiveJornadaNumber()
+int getCurrentJornada() {
+  return JornadaService().getCurrentJornadaSync();
 }
 
 String formatDate(String iso) {
@@ -208,11 +255,28 @@ class _VotingSectionState extends State<VotingSection> {
   Future<List<MatchSeed>>? _matchesFuture;
   final List<MatchSeed> _selected = [];
   bool _didPrecache = false;
+  int _displayJornada = 14; // Jornada a mostrar (s'actualitza amb les dades)
 
   @override
   void initState() {
     super.initState();
-    _matchesFuture = loadMatchesFromAssets();
+    _matchesFuture = _loadMatches();
+  }
+
+  Future<List<MatchSeed>> _loadMatches() async {
+    // Passem null per deixar que el service obtingui la jornada activa de Firestore
+    // Això evita el problema de getCurrentJornada() retornant 0 sense cache
+    final matches = await loadMatchesForJornada(null);
+    // Actualitzem la jornada mostrada segons les dades reals
+    if (matches.isNotEmpty && mounted) {
+      final newJornada = matches.first.jornada;
+      if (_displayJornada != newJornada) {
+        setState(() {
+          _displayJornada = newJornada;
+        });
+      }
+    }
+    return matches;
   }
 
   // Instance helpers removed; use top-level loadMatchesFromAssets and formatDate
@@ -240,7 +304,7 @@ class _VotingSectionState extends State<VotingSection> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Reusable jornada header (shows jornada and voting status)
-          const JornadaHeader(jornada: 14),
+          JornadaHeader(jornada: _displayJornada),
           const SizedBox(height: 12),
 
           // Video clip
@@ -248,7 +312,7 @@ class _VotingSectionState extends State<VotingSection> {
           const SizedBox(height: 12),
 
           FutureBuilder<List<MatchSeed>>(
-            future: _matchesFuture ??= loadMatchesFromAssets(),
+            future: _matchesFuture ??= _loadMatches(),
             builder: (context, snap) {
               if (snap.connectionState != ConnectionState.done) {
                 return const Padding(
@@ -303,12 +367,16 @@ class _VotingSectionState extends State<VotingSection> {
 
               // Provide a VoteProvider scoped to this little section so voting
               // from Home behaves the same as from AllMatchesPage.
+              // Utilitzem la jornada de les dades carregades
+              final dataJornada = all.isNotEmpty
+                  ? all.first.jornada
+                  : _displayJornada;
               return ChangeNotifierProvider(
                 create: (ctx) {
                   final auth = ctx.read<AuthProvider>();
                   final vp = VoteProvider(authProvider: auth);
-                  vp.loadVoteForJornada(14);
-                  vp.listenVotingOpen(14);
+                  vp.loadVoteForJornada(dataJornada);
+                  vp.listenVotingOpen(dataJornada);
                   return vp;
                 },
                 child: Consumer<VoteProvider>(
@@ -955,38 +1023,72 @@ class AllMatchesPage extends StatefulWidget {
 }
 
 class _AllMatchesPageState extends State<AllMatchesPage> {
-  Future<List<MatchSeed>>? _matchesFuture;
-  final int jornada = 14;
-  final List<TeamStanding> standings = mockStandings;
+  Future<JornadaData>? _jornadaFuture;
 
   @override
   void initState() {
     super.initState();
-    _matchesFuture = loadMatchesFromAssets();
+    // Carreguem la jornada activa completa (amb partits i classificació)
+    _jornadaFuture = JornadaService().fetchActiveJornada();
+  }
+
+  /// Converteix StandingEntry a TeamStanding per al widget StandingsListMobile
+  List<TeamStanding> _convertStandings(List<StandingEntry> entries) {
+    return entries.map((e) {
+      // Convertim l'streak string a List<bool>
+      // Format esperat: "WWLWL" o similar
+      final streakList = <bool>[];
+      if (e.streak != null) {
+        for (final char in e.streak!.characters) {
+          if (char.toUpperCase() == 'W' || char.toUpperCase() == 'V') {
+            streakList.add(true);
+          } else if (char.toUpperCase() == 'L' || char.toUpperCase() == 'D') {
+            streakList.add(false);
+          }
+        }
+      }
+      // Limitem a 5 últims resultats
+      final last5 = streakList.length > 5
+          ? streakList.sublist(streakList.length - 5)
+          : streakList;
+
+      return TeamStanding(
+        pos: e.position,
+        name: e.teamName,
+        played: e.played,
+        won: e.won,
+        lost: e.lost,
+        pf: e.pointsFor,
+        pc: e.pointsAgainst,
+        points: e.points,
+        streak: last5,
+      );
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Tots els enfrontaments')),
-      body: FutureBuilder<List<MatchSeed>>(
-        future: _matchesFuture,
+      body: FutureBuilder<JornadaData>(
+        future: _jornadaFuture,
         builder: (context, snap) {
           if (snap.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
           }
           if (snap.hasError) {
+            debugPrint('[AllMatchesPage] Error: ${snap.error}');
             return Center(child: Text('Error carregant enfrontaments'));
           }
-          final all = snap.data ?? <MatchSeed>[];
-          final jornadaMatches = all
-              .where((m) => m.jornada == jornada)
-              .toList();
-          final allMatches = jornadaMatches;
-          if (allMatches.isEmpty) {
+
+          final jornadaData = snap.data;
+          if (jornadaData == null || jornadaData.partits.isEmpty) {
             return Center(child: Text('No hi ha enfrontaments'));
           }
-          // (handled above)
+
+          final jornada = jornadaData.jornada;
+          final allMatches = jornadaData.partits;
+          final standings = _convertStandings(jornadaData.classificacio);
 
           // Provide a VoteProvider scoped to this page.
           return ChangeNotifierProvider(
@@ -1138,6 +1240,7 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
                         _AnimatedStandingsTitle(jornada: jornada),
                         const SizedBox(height: 8),
                         StandingsListMobile(standings: standings),
+                        const SizedBox(height: 24),
                       ],
                     ),
                   );
@@ -1167,6 +1270,7 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
                                 _AnimatedStandingsTitle(jornada: jornada),
                                 const SizedBox(height: 16),
                                 StandingsListMobile(standings: standings),
+                                const SizedBox(height: 32),
                               ],
                             ),
                           ),

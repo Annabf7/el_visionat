@@ -12,6 +12,39 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // 🗳️ Regles per Votació Setmanal
+    // Col·lecció: voting_meta/{docId} - Metadades de votació
+    match /voting_meta/{docId} {
+      // Qualsevol usuari autenticat pot llegir les metadades
+      allow read: if request.auth != null;
+      // Només el backend (Cloud Functions) pot escriure
+      allow write: if false;
+    }
+
+    // Col·lecció: voting_jornades/{jornada} - Dades de cada jornada
+    match /voting_jornades/{jornada} {
+      // Qualsevol usuari autenticat pot llegir les jornades
+      allow read: if request.auth != null;
+      // Només el backend (Cloud Functions) pot escriure
+      allow write: if false;
+    }
+
+    // Col·lecció: vote_counts/{matchId} - Comptadors de vots
+    match /vote_counts/{matchId} {
+      // Qualsevol usuari autenticat pot llegir els vots
+      allow read: if request.auth != null;
+      // Els usuaris autenticats poden incrementar/decrementar vots
+      allow write: if request.auth != null;
+    }
+
+    // Col·lecció: weekly_focus/{docId} - Focus setmanal (guanyador)
+    match /weekly_focus/{docId} {
+      // Qualsevol usuari autenticat pot llegir el focus
+      allow read: if request.auth != null;
+      // Només el backend (Cloud Functions) pot escriure
+      allow write: if false;
+    }
+
     // 🎯 Regles per Highlights de la feature Visionat
     // Col·lecció: highlights/{matchId}/entries/{highlightId}
     match /highlights/{matchId}/entries/{highlightId} {

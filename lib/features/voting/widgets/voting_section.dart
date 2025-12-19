@@ -459,9 +459,10 @@ class _VotingSectionState extends State<VotingSection> {
   }
 
   Widget _cardFor(BuildContext ctx, MatchSeed m, VoteProvider vp) {
-    final matchId = m.homeLogo.isNotEmpty
-        ? m.homeLogo
-        : '${m.homeName}_${m.awayName}';
+    // Format matchId: "jornada-homeLogoSlug-awayLogoSlug" (sense .webp)
+    final homeSlug = m.homeLogo.replaceAll('.webp', '');
+    final awaySlug = m.awayLogo.replaceAll('.webp', '');
+    final matchId = '${m.jornada}-$homeSlug-$awaySlug';
 
     return StreamBuilder<int>(
       stream: vp.getVoteCountStream(matchId, m.jornada),
@@ -768,11 +769,20 @@ class _VotingSectionState extends State<VotingSection> {
                               onPressed: () async {
                                 final messenger = ScaffoldMessenger.of(ctx);
                                 try {
+                                  // Format matchId: "jornada-homeLogoSlug-awayLogoSlug"
+                                  final homeSlug = m.homeLogo.replaceAll(
+                                    '.webp',
+                                    '',
+                                  );
+                                  final awaySlug = m.awayLogo.replaceAll(
+                                    '.webp',
+                                    '',
+                                  );
+                                  final matchId =
+                                      '${m.jornada}-$homeSlug-$awaySlug';
                                   await vp.castVote(
                                     jornada: m.jornada,
-                                    matchId: m.homeLogo.isNotEmpty
-                                        ? m.homeLogo
-                                        : '${m.homeName}_${m.awayName}',
+                                    matchId: matchId,
                                   );
                                   if (!mounted) return;
                                   messenger.showSnackBar(
@@ -1171,9 +1181,10 @@ class _AllMatchesPageState extends State<AllMatchesPage> {
                           ).catchError((_) {});
                         }
 
-                        final matchId = m.homeLogo.isNotEmpty
-                            ? m.homeLogo
-                            : '${m.homeName}_${m.awayName}';
+                        // Format matchId: "jornada-homeLogoSlug-awayLogoSlug" (sense .webp)
+                        final homeSlug = m.homeLogo.replaceAll('.webp', '');
+                        final awaySlug = m.awayLogo.replaceAll('.webp', '');
+                        final matchId = '$jornada-$homeSlug-$awaySlug';
 
                         // Si és l'última card, afegeix més padding bottom
                         final isLast = i == allMatches.length - 1;

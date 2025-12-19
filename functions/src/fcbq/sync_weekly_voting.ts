@@ -647,7 +647,8 @@ async function saveVotingData(
 
 export const syncWeeklyVoting = onSchedule(
   {
-    schedule: "0 8 * * 1", // Cada dilluns a les 8:00
+    // TEMPORAL: Divendres 12:00 per testar (original: "0 8 * * 1" - dilluns 8:00)
+    schedule: "0 12 * * 5", // Cada divendres a les 12:00
     timeZone: "Europe/Madrid",
     region: "europe-west1",
     memory: "512MiB",
@@ -819,5 +820,99 @@ export const closeSuggestions = onSchedule(
       console.error("[closeSuggestions] ❌ Error:", error);
       throw error;
     }
+  }
+);
+
+// ============================================================================
+// Forçar processament del guanyador - Per a testing
+// ============================================================================
+
+export const forceProcessWinner = onCall(
+  {
+    region: "europe-west1",
+    memory: "512MiB",
+    timeoutSeconds: 120,
+  },
+  async (request): Promise<{success: boolean; message: string; data?: unknown}> => {
+    const data = request.data as {jornada: number};
+
+    if (!data.jornada || typeof data.jornada !== "number") {
+      throw new HttpsError("invalid-argument", "Cal especificar jornada (number)");
+    }
+
+    console.log(`[forceProcessWinner] 🏆 Forçant processament de jornada ${data.jornada}...`);
+
+    try {
+      await processVotingWinner(data.jornada);
+
+      // Llegir el resultat
+      const focusDoc = await db.collection("weekly_focus").doc("current").get();
+
+      return {
+        success: true,
+        message: `Processament de jornada ${data.jornada} completat`,
+        data: focusDoc.exists ? focusDoc.data() : null,
+      };
+    } catch (error) {
+      console.error("[forceProcessWinner] ❌ Error:", error);
+      throw new HttpsError("internal", `Error: ${error instanceof Error ? error.message : "desconegut"}`);
+    }
+  }
+);
+
+// ============================================================================
+// Configurar weekly_focus manualment - Per a testing/setup inicial
+// ============================================================================
+
+interface SetupWeeklyFocusData {
+  jornada: number;
+  winningMatch: VotingMatch;
+  totalVotes: number;
+  refereeInfo: RefereeInfo | null;
+  competitionName?: string;
+}
+
+export const setupWeeklyFocus = onCall(
+  {
+    region: "europe-west1",
+    memory: "256MiB",
+    timeoutSeconds: 60,
+  },
+  async (request): Promise<{success: boolean; message: string}> => {
+    const data = request.data as SetupWeeklyFocusData;
+
+    if (!data.jornada || !data.winningMatch) {
+      throw new HttpsError("invalid-argument", "Cal especificar jornada i winningMatch");
+    }
+
+    console.log(`[setupWeeklyFocus] 📝 Configurant weekly_focus per jornada ${data.jornada}...`);
+
+    const now = new Date();
+    const suggestionsCloseAt = getNextWednesday15h(now);
+
+    const focusDoc: WeeklyFocusDocument & {competitionName?: string} = {
+      jornada: data.jornada,
+      competitionName: data.competitionName || "Super Copa Masculina",
+      winningMatch: data.winningMatch,
+      totalVotes: data.totalVotes || 1,
+      refereeInfo: data.refereeInfo,
+      votingClosedAt: now.toISOString(),
+      suggestionsOpen: true,
+      suggestionsCloseAt: suggestionsCloseAt.toISOString(),
+      status: data.refereeInfo ? "completat" : "minutatge",
+    };
+
+    // Guardar a Firestore
+    const batch = db.batch();
+    batch.set(db.collection("weekly_focus").doc("current"), focusDoc);
+    batch.set(db.collection("weekly_focus").doc(`jornada_${data.jornada}`), focusDoc);
+    await batch.commit();
+
+    console.log(`[setupWeeklyFocus] ✅ weekly_focus configurat: jornada ${data.jornada}`);
+
+    return {
+      success: true,
+      message: `Weekly focus configurat per jornada ${data.jornada}`,
+    };
   }
 );

@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/weekly_match_provider.dart';
 
 /// Widget d'administració per veure info del partit de la setmana
-/// 
+///
 /// Mostra l'àrbitre actual i permet recarregar les dades
 class WeeklyMatchAdminWidget extends StatelessWidget {
   const WeeklyMatchAdminWidget({super.key});
@@ -26,8 +26,8 @@ class WeeklyMatchAdminWidget extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
-                if (matchProvider.isLoading) 
+
+                if (matchProvider.isLoading)
                   const Row(
                     children: [
                       SizedBox(
@@ -39,7 +39,7 @@ class WeeklyMatchAdminWidget extends StatelessWidget {
                       Text('Carregant àrbitre...'),
                     ],
                   )
-                else if (matchProvider.hasError) 
+                else if (matchProvider.hasError)
                   Row(
                     children: [
                       const Icon(Icons.error, color: Colors.red, size: 20),
@@ -52,21 +52,24 @@ class WeeklyMatchAdminWidget extends StatelessWidget {
                       ),
                     ],
                   )
-                else if (matchProvider.currentReferee != null) 
+                else if (matchProvider.hasData)
                   Column(
                     children: [
                       _buildInfoRow('Àrbitre', matchProvider.refereeName),
-                      _buildInfoRow('Categoria', matchProvider.refereeCategory),
-                      _buildInfoRow('Llicència', matchProvider.currentReferee!.licenseId),
+                      _buildInfoRow('Competició', matchProvider.league),
+                      _buildInfoRow(
+                        'Jornada',
+                        matchProvider.matchday.toString(),
+                      ),
                       _buildInfoRow('Partit', matchProvider.matchTitle),
                     ],
                   )
-                else 
-                  const Text('No hi ha dades de l\'àrbitre'),
-                
+                else
+                  const Text('No hi ha dades del partit'),
+
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
-                  onPressed: () => matchProvider.refreshReferee(),
+                  onPressed: () => matchProvider.refresh(),
                   icon: const Icon(Icons.refresh, size: 18),
                   label: const Text('Recarregar'),
                 ),
@@ -91,9 +94,7 @@ class WeeklyMatchAdminWidget extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w500),
             ),
           ),
-          Expanded(
-            child: Text(value),
-          ),
+          Expanded(child: Text(value)),
         ],
       ),
     );

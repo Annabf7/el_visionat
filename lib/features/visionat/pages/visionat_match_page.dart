@@ -399,11 +399,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  Consumer<WeeklyMatchProvider>(
-                    builder: (context, matchProvider, child) {
-                      return MatchDetailsCard(details: matchProvider.matchDetails);
-                    },
-                  ),
+                  const MatchDetailsCard(),
                   const SizedBox(height: 16),
                   AddHighlightCard(onHighlightAdded: _addNewHighlight),
                   const SizedBox(height: 16),
@@ -471,11 +467,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
             },
           ),
           const SizedBox(height: 16),
-          Consumer<WeeklyMatchProvider>(
-            builder: (context, matchProvider, child) {
-              return MatchDetailsCard(details: matchProvider.matchDetails);
-            },
-          ),
+          const MatchDetailsCard(),
           const SizedBox(height: 16),
           AddHighlightCard(onHighlightAdded: _addNewHighlight),
           const SizedBox(height: 16),

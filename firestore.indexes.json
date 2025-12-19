@@ -7,6 +7,14 @@
         { "fieldPath": "email", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "vote_counts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "jornada", "order": "ASCENDING" },
+        { "fieldPath": "count", "order": "DESCENDING" }
+      ]
     }
   ]
 }

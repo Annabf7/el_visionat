@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 import 'package:el_visionat/core/widgets/visibility_detector_mixin.dart';
+import '../providers/weekly_match_provider.dart';
 
 /// Widget per mostrar un thumbnail animat del partit que redirigeix al vídeo real
 class MatchThumbnailVideo extends StatefulWidget {
   final String thumbnailClipUrl;
   final String realMatchUrl;
   final double height;
+  final String? matchTitle;
 
   const MatchThumbnailVideo({
     super.key,
     required this.thumbnailClipUrl,
     required this.realMatchUrl,
     this.height = 240,
+    this.matchTitle,
   });
 
   @override
@@ -200,6 +204,9 @@ class _MatchThumbnailVideoState extends State<MatchThumbnailVideo>
   }
 
   Widget _buildErrorFallback() {
+    // Obtenir el títol del provider o usar el paràmetre
+    final matchTitle = widget.matchTitle ?? 'Partit de la setmana';
+
     return GestureDetector(
       onTap: _openRealMatch,
       child: Container(
@@ -228,7 +235,7 @@ class _MatchThumbnailVideoState extends State<MatchThumbnailVideo>
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'CB Salt vs CB Martorell',
+                    matchTitle,
                     style: TextStyle(
                       color: AppTheme.white,
                       fontSize: 16,
@@ -323,6 +330,8 @@ class MatchVideoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final matchProvider = context.watch<WeeklyMatchProvider>();
+
     return Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,6 +340,7 @@ class MatchVideoSection extends StatelessWidget {
             thumbnailClipUrl: kThumbnailClipUrl,
             realMatchUrl: kRealMatchUrl,
             height: 240,
+            matchTitle: matchProvider.matchTitle,
           ),
           const SizedBox(height: 4),
           _buildActaButton(context),

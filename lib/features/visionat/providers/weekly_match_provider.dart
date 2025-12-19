@@ -1,88 +1,99 @@
 import 'package:flutter/foundation.dart';
-import '../services/match_referee_service.dart';
-import '../models/match_models.dart';
+import 'package:el_visionat/features/voting/models/weekly_focus.dart';
+import 'package:el_visionat/features/voting/services/weekly_focus_service.dart';
 
 /// Provider per gestionar la informació del partit de la setmana
 ///
-/// Permet actualitzar l'àrbitre només canviant el número de llicència
+/// Ara llegeix des de weekly_focus/current de Firestore
 class WeeklyMatchProvider extends ChangeNotifier {
-  final MatchRefereeService _refereeService;
+  final WeeklyFocusService _focusService = WeeklyFocusService();
 
-  WeeklyMatchProvider(this._refereeService) {
+  WeeklyMatchProvider() {
     // Auto-inicialitzar quan es crea el provider
     _autoInitialize();
   }
 
-  // --- CONFIGURACIÓ DEL PARTIT (només canviar aquestes variables) ---
-
-  /// ⚙️ VARIABLE PRINCIPAL: Només cal canviar aquest número!
-  static const String _currentRefereeLicense = "40177"; // 🔧 CANVIAR AQUÍ
-
-  /// Altres dades del partit (configurables)
-  static const String _currentLeague = "Super copa Catalunya";
-  static const int _currentMatchday = 14;
-  static const String _homeTeam = "CB Salt";
-  static const String _awayTeam = "CB Martorell";
-
   // --- ESTAT INTERN ---
-  MatchReferee? _currentReferee;
+  WeeklyFocus? _weeklyFocus;
   bool _isLoading = false;
   String? _errorMessage;
   bool _isInitialized = false;
 
   // --- GETTERS PÚBLICS ---
 
-  /// Dades de l'àrbitre actual (carregades des de Firestore)
-  MatchReferee? get currentReferee => _currentReferee;
+  /// Dades completes del focus setmanal
+  WeeklyFocus? get weeklyFocus => _weeklyFocus;
 
-  /// Nom de l'àrbitre per mostrar a la UI
-  String get refereeName => _currentReferee?.fullName ?? 'Carregant àrbitre...';
+  /// Nom de l'àrbitre principal
+  String get refereeName =>
+      _weeklyFocus?.refereeInfo.principal ?? 'Carregant àrbitre...';
 
-  /// Categoria de l'àrbitre
-  String get refereeCategory => _currentReferee?.category ?? '';
+  /// Categoria (usem la competició com a categoria)
+  String get refereeCategory => _weeklyFocus?.competitionName ?? '';
 
-  /// Detalls del partit per al widget MatchDetailsCard
-  MatchDetails get matchDetails => MatchDetails(
-    refereeName: refereeName,
-    league: _currentLeague,
-    matchday: _currentMatchday,
-  );
+  /// Jornada actual
+  int get matchday => _weeklyFocus?.jornada ?? 0;
 
-  /// Equips del partit
-  String get homeTeam => _homeTeam;
-  String get awayTeam => _awayTeam;
-  String get matchTitle => '$_homeTeam vs $_awayTeam';
+  /// Competició
+  String get league => _weeklyFocus?.competitionName ?? 'Super Copa Masculina';
+
+  /// Equip local
+  String get homeTeam =>
+      _weeklyFocus?.winningMatch.home.teamNameDisplay ?? 'Local';
+
+  /// Equip visitant
+  String get awayTeam =>
+      _weeklyFocus?.winningMatch.away.teamNameDisplay ?? 'Visitant';
+
+  /// Títol del partit
+  String get matchTitle => '$homeTeam vs $awayTeam';
+
+  /// Resultat del partit
+  String? get matchScore => _weeklyFocus?.winningMatch.scoreDisplay;
+
+  /// Puntuació local
+  int? get homeScore => _weeklyFocus?.winningMatch.homeScore;
+
+  /// Puntuació visitant
+  int? get awayScore => _weeklyFocus?.winningMatch.awayScore;
+
+  /// Data i hora formatada
+  String get dateDisplay => _weeklyFocus?.winningMatch.dateDisplay ?? '';
+
+  /// Data ISO
+  String get dateTime => _weeklyFocus?.winningMatch.dateTime ?? '';
+
+  /// Lloc/pavelló
+  String? get location => _weeklyFocus?.winningMatch.location;
+
+  /// Informació dels àrbitres
+  RefereeInfo? get refereeInfo => _weeklyFocus?.refereeInfo;
 
   /// Estats de càrrega
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get hasError => _errorMessage != null;
   bool get isInitialized => _isInitialized;
+  bool get hasData => _weeklyFocus != null && _weeklyFocus!.isValid;
 
   // --- MÈTODES PÚBLICS ---
 
-  /// Inicialitza el provider carregant les dades de l'àrbitre
-  ///
-  /// Crida això des d'initState() o addPostFrameCallback()
+  /// Inicialitza el provider carregant les dades del weekly_focus
   Future<void> initialize() async {
-    if (_isInitialized) return; // Evitar múltiples inicialitzacions
+    if (_isInitialized) return;
 
-    await _loadCurrentReferee();
+    await _loadWeeklyFocus();
     _isInitialized = true;
   }
 
-  /// Força la recàrrega de les dades de l'àrbitre
-  ///
-  /// Útil si canvies _currentRefereeLicense i vols recarregar
-  Future<void> refreshReferee() async {
-    await _loadCurrentReferee();
+  /// Força la recàrrega de les dades
+  Future<void> refresh() async {
+    await _loadWeeklyFocus(forceRefresh: true);
   }
 
   // --- MÈTODES PRIVATS ---
 
-  /// Inicialitzar automàticament quan es crea el provider
   void _autoInitialize() {
-    // Executar en el següent microtask per evitar problemes de constructors
     Future.microtask(() {
       if (!_isInitialized) {
         initialize();
@@ -90,27 +101,28 @@ class WeeklyMatchProvider extends ChangeNotifier {
     });
   }
 
-  Future<void> _loadCurrentReferee() async {
+  Future<void> _loadWeeklyFocus({bool forceRefresh = false}) async {
     _setLoading(true);
     _clearError();
 
     try {
-      final referee = await _refereeService.getRefereeByLicense(
-        _currentRefereeLicense,
+      final focus = await _focusService.getCurrentFocus(
+        forceRefresh: forceRefresh,
       );
 
-      if (referee != null) {
-        _currentReferee = referee;
+      if (focus != null) {
+        _weeklyFocus = focus;
         debugPrint(
-          '✅ Àrbitre carregat: ${referee.fullName} (${referee.licenseId})',
+          '✅ Weekly focus carregat: ${focus.winningMatch.matchDisplayName}',
+        );
+        debugPrint(
+          '   Àrbitre: ${focus.refereeInfo.principal ?? "no disponible"}',
         );
       } else {
-        _setError(
-          'No s\'ha pogut carregar l\'àrbitre amb llicència $_currentRefereeLicense',
-        );
+        _setError('No hi ha partit de la setmana configurat');
       }
     } catch (e) {
-      _setError('Error carregant àrbitre: ${e.toString()}');
+      _setError('Error carregant dades: ${e.toString()}');
       debugPrint('❌ Error en WeeklyMatchProvider: $e');
     }
 

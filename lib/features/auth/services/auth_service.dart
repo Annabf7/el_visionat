@@ -10,14 +10,22 @@ class AuthService {
   final FirebaseFunctions functions;
   // resolved emulator host used for emulator wiring (10.0.2.2 on Android, 127.0.0.1 otherwise)
   String _emulatorHost = '127.0.0.1';
+  // Whether we're using emulators (for skipping connectivity checks in production)
+  bool _usingEmulators = false;
 
   AuthService({
     required this.auth,
     required this.firestore,
     required this.functions,
   }) {
-    // [Constitució] Apuntar als emuladors en mode debug
-    if (kDebugMode) {
+    // [Constitució] Apuntar als emuladors en mode debug (si USE_EMULATORS=true)
+    // Use --dart-define=USE_EMULATORS=false to use production Firebase in debug mode
+    const useEmulators = bool.fromEnvironment(
+      'USE_EMULATORS',
+      defaultValue: true,
+    );
+    if (kDebugMode && useEmulators) {
+      _usingEmulators = true;
       try {
         // When running on Android emulator, use 10.0.2.2 to reach host machine.
         // On iOS simulator or desktop, localhost (127.0.0.1) works.
@@ -46,6 +54,8 @@ class AuthService {
           'Warning: Could not configure Firebase Emulators. They might be already set. Error: $e',
         );
       }
+    } else if (kDebugMode) {
+      debugPrint('Debug mode: using PRODUCTION Firebase (USE_EMULATORS=false)');
     }
   }
 
@@ -79,9 +89,10 @@ class AuthService {
       ),
     );
     try {
-      // In debug, do a quick TCP check to the Functions emulator to provide
+      // In debug with emulators, do a quick TCP check to the Functions emulator to provide
       // an earlier, clearer diagnostic if the emulator isn't reachable.
-      if (kDebugMode) {
+      // Skip this check when using production Firebase.
+      if (kDebugMode && _usingEmulators) {
         try {
           final reachable = await _isHostReachable(_emulatorHost, 5001);
           debugPrint(
@@ -117,11 +128,9 @@ class AuthService {
     required String llissenciaId,
     required String email,
   }) async {
-    // Ensure email uniqueness by reserving a document in `emails/<email_lowercase>`.
-    // This is an O(1) document access and performed in a transaction to avoid
-    // race conditions. If the doc already exists, we throw a standard
-    // Exception('emailAlreadyInUse') which the caller (AuthProvider) will
-    // surface to the UI as a readable message.
+    // The email reservation is now handled entirely by the Cloud Function
+    // `requestRegistration` which uses Admin SDK and can write to `emails/*`.
+    // This avoids permission issues since security rules block client writes.
     final callable = functions.httpsCallable(
       'requestRegistration',
       options: HttpsCallableOptions(
@@ -129,24 +138,10 @@ class AuthService {
       ),
     );
     final emailLower = email.trim().toLowerCase();
-    final emailDoc = firestore.collection('emails').doc(emailLower);
 
     try {
-      // Transaction: fail if doc exists, otherwise create it as a reservation.
-      await firestore.runTransaction((tx) async {
-        final snap = await tx.get(emailDoc);
-        if (snap.exists) {
-          throw Exception('emailAlreadyInUse');
-        }
-        tx.set(emailDoc, {
-          'licenseId': llissenciaId,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      });
-
-      // After reserving the email, call the backend function to submit the
-      // registration request. If that fails we attempt to rollback the
-      // reservation to avoid leaving stale reservations.
+      // Call the backend function to check email uniqueness and submit the
+      // registration request. The function handles email reservation.
       final result = await callable.call<Map<String, dynamic>>({
         'llissenciaId': llissenciaId,
         'email': emailLower,
@@ -156,28 +151,16 @@ class AuthService {
       debugPrint(
         'Functions Exception on requestRegistration: ${e.code} - ${e.message}',
       );
-      // rollback reservation
-      try {
-        await emailDoc.delete();
-      } catch (delErr) {
-        debugPrint('Failed to rollback email reservation: $delErr');
+      // Check for email already in use error from the function
+      if (e.code == 'already-exists' ||
+          (e.message?.contains('email') ?? false)) {
+        throw Exception('emailAlreadyInUse');
       }
       throw Exception(
         e.message ?? "Error en enviar la sol·licitud de registre.",
       );
     } on Exception catch (e) {
-      // If our transaction threw 'emailAlreadyInUse', propagate it directly.
-      if (e.toString().contains('emailAlreadyInUse')) {
-        throw Exception('emailAlreadyInUse');
-      }
       debugPrint('Generic Exception in requestRegistration: $e');
-      // Attempt rollback if reservation may have been created
-      try {
-        final existed = (await emailDoc.get()).exists;
-        if (existed) await emailDoc.delete();
-      } catch (_) {
-        // ignore rollback failures
-      }
       throw Exception("Error inesperat en enviar la sol·licitud de registre.");
     }
   }

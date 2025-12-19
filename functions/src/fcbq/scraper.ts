@@ -398,8 +398,69 @@ export function parseActa(html: string, actaUrl?: string): RefereeInfo {
   if (officials.operadorRll) info.operadorRll = officials.operadorRll;
   if (officials.caller1) info.caller1 = officials.caller1;
 
+  // Extraiem la instal·lació (nom del pavelló i adreça)
+  // Format típic a l'acta FCBQ:
+  // Instal·lació:
+  // PAVELLO ESPORTIU D'ARTES
+  // BARCELONA, S/N, Artés (08271)
+  const venuePattern = /Instal[\u00b7.]lació[:\s]*([^\n]+)\s*([^\n]*(?:\(\d{5}\)))?/i;
+  const venueMatch = pageText.match(venuePattern);
+  if (venueMatch) {
+    const venueName = venueMatch[1]?.trim();
+    const venueAddress = venueMatch[2]?.trim();
+    if (venueName) {
+      // Combinem nom i codi postal si hi ha
+      const postalCodeMatch = venueAddress?.match(/([^,]+),?\s*([^,]+,)?\s*(\w+)\s*\((\d{5})\)/);
+      if (postalCodeMatch) {
+        const city = postalCodeMatch[3]?.trim();
+        const postalCode = postalCodeMatch[4];
+        info.venue = `${venueName} - ${city} (${postalCode})`;
+        info.venueAddress = venueAddress;
+      } else {
+        info.venue = venueName;
+        if (venueAddress) info.venueAddress = venueAddress;
+      }
+    }
+  }
+
+  // Si no hem trobat amb el patró anterior, intentem una cerca més simple
+  if (!info.venue) {
+    // Busquem després de "Instal·lació:" fins a dos salts de línia
+    const simpleVenueMatch = pageText.match(/Instal[\u00b7.]lació[:\s]*\n?\s*([A-Z][A-Z\s'"\-.]+)\n?\s*([A-Z].*?\(\d{5}\))?/i);
+    if (simpleVenueMatch) {
+      let venueName = simpleVenueMatch[1]?.trim();
+      const fullAddress = simpleVenueMatch[2]?.trim();
+
+      // Netejar el nom (eliminar text extraño)
+      venueName = venueName.replace(/\s+/g, " ").trim();
+      // Tallem si trobem paraules que no haurien d'estar al nom
+      const cutMarkers = ["BARCELONA", "GIRONA", "TARRAGONA", "LLEIDA", "Carrer", "Av.", "Plaça"];
+      for (const marker of cutMarkers) {
+        const idx = venueName.indexOf(marker);
+        if (idx > 0) {
+          venueName = venueName.substring(0, idx).trim();
+        }
+      }
+      if (venueName && venueName.length > 3) {
+        // Extraiem ciutat i codi postal de l'adreça completa
+        if (fullAddress) {
+          const addressMatch = fullAddress.match(/,?\s*(\w+)\s*\((\d{5})\)/);
+          if (addressMatch) {
+            info.venue = `${venueName} - ${addressMatch[1]} (${addressMatch[2]})`;
+            info.venueAddress = fullAddress;
+          } else {
+            info.venue = venueName;
+          }
+        } else {
+          info.venue = venueName;
+        }
+      }
+    }
+  }
+
   console.log(`[parseActa] Àrbitre principal: ${info.principal || "no trobat"}`);
   console.log(`[parseActa] Àrbitre auxiliar: ${info.auxiliar || "no trobat"}`);
+  console.log(`[parseActa] Instal·lació: ${info.venue || "no trobada"}`);
 
   return info;
 }

@@ -59,7 +59,9 @@ void main() async {
   // If running in debug mode on web, point Firestore/Functions/Auth to the local emulators.
   // This is required for Flutter web where environment variables like FIRESTORE_EMULATOR_HOST
   // are not available. Ports are aligned with `firebase.json` (auth:9198, firestore:8088, functions:5001).
-  if (kDebugMode && kIsWeb) {
+  // Use --dart-define=USE_EMULATORS=false to skip emulators in debug mode.
+  const useEmulators = bool.fromEnvironment('USE_EMULATORS', defaultValue: true);
+  if (kDebugMode && kIsWeb && useEmulators) {
     const emulatorHost = '127.0.0.1';
     FirebaseFirestore.instance.useFirestoreEmulator(emulatorHost, 8088);
     FirebaseFunctions.instanceFor(
@@ -67,6 +69,8 @@ void main() async {
     ).useFunctionsEmulator(emulatorHost, 5001);
     FirebaseAuth.instance.useAuthEmulator(emulatorHost, 9198);
     debugPrint('Web debug: connected to emulators at $emulatorHost');
+  } else if (kDebugMode && kIsWeb) {
+    debugPrint('Web debug: using PRODUCTION Firebase (emulators disabled)');
   }
 
   // Warm up Functions emulator in debug mode to avoid cold start delays
@@ -75,9 +79,10 @@ void main() async {
   }
 
   // --- Inicialització Isar i TeamDataService (persistència local) ---
-  // If running on web, ensure the teams collection is seeded so the UI can
+  // If running on web with emulators, ensure the teams collection is seeded so the UI can
   // fetch the teams directly from Firestore (we bypass Isar on web).
-  if (kIsWeb) {
+  // Skip in production because it requires authentication.
+  if (kIsWeb && useEmulators) {
     await seedTeamsIfEmpty(FirebaseFirestore.instance);
   }
 
@@ -131,9 +136,7 @@ void main() async {
           ), // Provider per a la gestió d'equips
         ),
         ChangeNotifierProvider(
-          create: (_) => WeeklyMatchProvider(
-            MatchRefereeService(), // Service per carregar àrbitres
-          ), // Provider per al partit de la setmana
+          create: (_) => WeeklyMatchProvider(), // Llegeix de weekly_focus/current
         ),
         // Navigation provider to keep track of the current route name
         ChangeNotifierProvider(create: (_) => NavigationProvider()),

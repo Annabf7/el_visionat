@@ -4,9 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
 import 'package:el_visionat/core/widgets/global_header.dart';
 import '../widgets/featured_visioning_section.dart';
-import '../widgets/user_profile_summary_card.dart';
-import 'package:el_visionat/features/visionat/widgets/match_details_card.dart';
-import 'package:el_visionat/features/visionat/models/match_models.dart';
+import '../widgets/referee_team_card.dart';
 import 'package:el_visionat/features/voting/index.dart';
 import '../providers/home_provider.dart';
 import 'package:el_visionat/features/training/index.dart';
@@ -115,29 +113,30 @@ class _HomePageState extends State<HomePage> {
                         child: FeaturedVisioningSection(),
                       ),
                       const SizedBox(width: 16),
-                      // Perfil i Detalls (dreta, molt més estret)
+                      // Equip Arbitral i Detalls (dreta, molt més estret)
                       Expanded(
                         flex: 1,
-                        child: Column(
-                          children: [
-                            Container(
-                              constraints: const BoxConstraints(maxWidth: 400),
-                              padding: const EdgeInsets.all(0),
-                              child: const UserProfileSummaryCard(),
-                            ),
-                            const SizedBox(height: 16),
-                            Container(
-                              constraints: const BoxConstraints(maxWidth: 400),
-                              padding: const EdgeInsets.all(0),
-                              child: MatchDetailsCard(
-                                details: MatchDetails(
-                                  refereeName: 'Joan Garcia',
-                                  league: 'Lliga Catalana',
-                                  matchday: 14,
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 400,
                                 ),
+                                padding: const EdgeInsets.all(0),
+                                child: const RefereeTeamCard(),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 16),
+                              Container(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 400,
+                                ),
+                                padding: const EdgeInsets.all(0),
+                                child: const WeeklyFocusCard(),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -221,15 +220,9 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Column(
               children: [
-                const UserProfileSummaryCard(),
+                const RefereeTeamCard(),
                 const SizedBox(height: 16),
-                MatchDetailsCard(
-                  details: MatchDetails(
-                    refereeName: 'Joan Garcia',
-                    league: 'Lliga Catalana',
-                    matchday: 14,
-                  ),
-                ),
+                const WeeklyFocusCard(),
                 const SizedBox(height: 16),
                 const VotingSection(),
                 const SizedBox(height: 16),

@@ -1,62 +1,74 @@
 import 'package:flutter/material.dart';
-import '../models/match_models.dart';
+import 'package:provider/provider.dart';
+import '../providers/weekly_match_provider.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 
+/// Card que mostra els detalls del partit de la setmana
+/// Llegeix les dades de WeeklyMatchProvider
 class MatchDetailsCard extends StatelessWidget {
-  final MatchDetails details;
-
-  const MatchDetailsCard({super.key, required this.details});
+  const MatchDetailsCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 260),
-      decoration: BoxDecoration(
-        color: AppTheme.porpraFosc, // Canvi: fons més fosc per contrast
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.porpraFosc.withValues(
-              alpha: 0.3,
-            ), // Ombra més marcada
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+    return Consumer<WeeklyMatchProvider>(
+      builder: (context, provider, child) {
+        return Container(
+          constraints: const BoxConstraints(minHeight: 260),
+          decoration: BoxDecoration(
+            color: AppTheme.porpraFosc,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.porpraFosc.withValues(alpha: 0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ],
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Detalls del Partit',
-            style: const TextStyle(
-              fontFamily: 'Geist',
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.grisPistacho,
-            ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Detalls del Partit',
+                style: TextStyle(
+                  fontFamily: 'Geist',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.grisPistacho,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildDetailRow(
+                icon: Icons.sports_basketball,
+                label: 'Àrbitre',
+                value: provider.refereeName,
+              ),
+              _buildDivider(),
+              _buildDetailRow(
+                icon: Icons.emoji_events,
+                label: 'Competició',
+                value: provider.league,
+              ),
+              _buildDivider(),
+              _buildDetailRow(
+                icon: Icons.calendar_month,
+                label: 'Jornada',
+                value: provider.matchday.toString(),
+              ),
+              if (provider.location != null &&
+                  provider.location!.isNotEmpty) ...[
+                _buildDivider(),
+                _buildDetailRow(
+                  icon: Icons.location_on,
+                  label: 'Pavelló',
+                  value: provider.location!,
+                ),
+              ],
+            ],
           ),
-          const SizedBox(height: 20),
-          _buildDetailRow(
-            icon: Icons.sports_basketball,
-            label: 'Àrbitre',
-            value: details.refereeName,
-          ),
-          _buildDivider(),
-          _buildDetailRow(
-            icon: Icons.emoji_events,
-            label: 'Lliga',
-            value: details.league,
-          ),
-          _buildDivider(),
-          _buildDetailRow(
-            icon: Icons.calendar_month,
-            label: 'Jornada',
-            value: details.matchday.toString(),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

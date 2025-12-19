@@ -48,6 +48,9 @@ export interface RefereeInfo {
   cronometrador?: string; // Cronometrador/a
   operadorRll?: string; // Operador/a RLL (replay)
   caller1?: string; // Caller 1 (ajudant de taula)
+  // Instal·lació (nom del pavelló i adreça)
+  venue?: string; // Ex: "PAVELLO ESPORTIU D'ARTES - Artés (08271)"
+  venueAddress?: string; // Ex: "BARCELONA, S/N"
   // Metadades del partit per context
   matchDate?: string;
   homeTeam?: string;

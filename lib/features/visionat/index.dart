@@ -23,7 +23,6 @@ export 'widgets/referee_comment_card.dart';
 export 'widgets/tag_filter_bar.dart';
 export 'widgets/tag_selector/index.dart';
 export 'widgets/personal_analysis_modal.dart';
-export 'widgets/user_profile_personal_notes_widget.dart';
 export 'widgets/clips_section.dart';
 
 // Services
@@ -31,7 +30,6 @@ export 'services/highlight_service.dart';
 export 'services/collective_comment_service.dart';
 export 'services/personal_analysis_service.dart';
 export 'services/youtube_service.dart';
-export 'services/match_referee_service.dart';
 
 // Providers
 export 'providers/highlight_provider.dart';

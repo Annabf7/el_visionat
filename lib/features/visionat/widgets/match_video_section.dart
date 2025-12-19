@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -81,6 +82,19 @@ class _MatchThumbnailVideoState extends State<MatchThumbnailVideo>
 
   Future<void> _initializeVideoPlayer() async {
     if (isDisposed) return;
+
+    // En mode debug mòbil (emulador Android), no fem autoplay per evitar warnings d'ImageReader
+    // En web debug sí que fem autoplay perquè no té aquest problema
+    if (kDebugMode && !kIsWeb) {
+      debugPrint('MatchThumbnailVideo: autoplay desactivat en mode debug mòbil');
+      if (mounted && !isDisposed) {
+        setState(() {
+          _isInitialized = false;
+          _hasError = false;
+        });
+      }
+      return;
+    }
 
     try {
       // Verificar que la URL és vàlida

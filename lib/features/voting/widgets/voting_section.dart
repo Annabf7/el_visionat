@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -158,6 +159,19 @@ class _VotingVideoClipState extends State<VotingVideoClip> {
   }
 
   Future<void> _initializeVideo() async {
+    // En mode debug mòbil (emulador Android), no fem autoplay per evitar warnings d'ImageReader
+    // En web debug sí que fem autoplay perquè no té aquest problema
+    if (kDebugMode && !kIsWeb) {
+      debugPrint('VotingVideoClip: autoplay desactivat en mode debug mòbil');
+      if (mounted) {
+        setState(() {
+          _isInitialized = false;
+          _hasError = false;
+        });
+      }
+      return;
+    }
+
     try {
       _controller = VideoPlayerController.networkUrl(Uri.parse(_videoUrl));
       await _controller!.initialize();

@@ -128,6 +128,7 @@ teams/{teamId}
 matches/{matchId}
 votes/{jornadaId_userId}
 vote_counts/{jornada_matchId}
+weekly_focus/{jornada}
 highlights/{matchId}/{highlightId}
 collective_comments/{matchId}/{commentId}
 analysis_personal/{userId_matchId}
@@ -183,7 +184,23 @@ onVoteWrite → recalcula vote_counts
 (futur) onHighlightCreate → analítica o moderació
 
 (futur) onCommentCreate → notificació o moderació
+Scheduled (Cloud Scheduler)
 
+syncWeeklyVoting → Dilluns 8:00 (cron: `0 8 * * 1`)
+  - Tanca votació anterior i processa guanyador
+  - Publica nova jornada i obre votació
+  - Extreu automàticament el pavelló dels partits
+
+closeSuggestions → Dimecres 15:00 (cron: `0 15 * * 3`)
+  - Tanca suggeriments i minutatge
+
+HTTP Callable (admin/testing)
+
+setupWeeklyFocus → Configurar weekly_focus manualment
+
+forceProcessWinner → Forçar processament de guanyador
+
+triggerSyncWeeklyVoting → Disparar sync manualment
 5.3 Patrons d’Implementació
 
 Always validate input (schema)

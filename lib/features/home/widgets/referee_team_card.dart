@@ -27,7 +27,20 @@ class _RefereeTeamCardState extends State<RefereeTeamCard> {
 
   Future<void> _loadWeeklyFocus() async {
     try {
+      debugPrint('[RefereeTeamCard] Carregant weekly_focus...');
       final focus = await _focusService.getCurrentFocus();
+      debugPrint(
+        '[RefereeTeamCard] Focus rebut: ${focus != null ? "SÍ" : "NULL"}',
+      );
+      if (focus != null) {
+        debugPrint('[RefereeTeamCard] Jornada: ${focus.jornada}');
+        debugPrint(
+          '[RefereeTeamCard] refereeInfo.hasData: ${focus.refereeInfo.hasData}',
+        );
+        debugPrint(
+          '[RefereeTeamCard] refereeInfo.principal: ${focus.refereeInfo.principal}',
+        );
+      }
       if (mounted) {
         setState(() {
           _focus = focus;
@@ -35,6 +48,7 @@ class _RefereeTeamCardState extends State<RefereeTeamCard> {
         });
       }
     } catch (e) {
+      debugPrint('[RefereeTeamCard] ERROR: $e');
       if (mounted) {
         setState(() {
           _error = e.toString();

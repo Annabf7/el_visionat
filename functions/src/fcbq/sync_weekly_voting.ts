@@ -647,8 +647,7 @@ async function saveVotingData(
 
 export const syncWeeklyVoting = onSchedule(
   {
-    // TEMPORAL: Divendres 12:00 per testar (original: "0 8 * * 1" - dilluns 8:00)
-    schedule: "0 12 * * 5", // Cada divendres a les 12:00
+    schedule: "0 8 * * 1", // Cada dilluns a les 8:00
     timeZone: "Europe/Madrid",
     region: "europe-west1",
     memory: "512MiB",

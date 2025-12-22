@@ -176,18 +176,21 @@ class ProfileInfoWidget extends StatelessWidget {
             height: 1.3,
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          profile.anysArbitratsSafe,
-          textAlign: TextAlign.right,
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: isDesktop ? 14 : 12,
-            fontWeight: FontWeight.w500,
-            color: AppTheme.textBlackLow.withValues(alpha: 0.7),
-            height: 1.4,
+        // Només mostrem els anys d'experiència si la visibilitat ho permet
+        if (profile.visibility.showYearsExperience) ...[
+          const SizedBox(height: 4),
+          Text(
+            profile.anysArbitratsSafe,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: isDesktop ? 14 : 12,
+              fontWeight: FontWeight.w500,
+              color: AppTheme.textBlackLow.withValues(alpha: 0.7),
+              height: 1.4,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

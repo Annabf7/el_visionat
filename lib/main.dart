@@ -15,6 +15,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart'; // Importat per kDebugMode
+import 'package:flutter_localizations/flutter_localizations.dart';
 // Navigation provider importat des de core/index.dart
 
 import 'package:intl/date_symbol_data_local.dart';
@@ -60,7 +61,10 @@ void main() async {
   // This is required for Flutter web where environment variables like FIRESTORE_EMULATOR_HOST
   // are not available. Ports are aligned with `firebase.json` (auth:9198, firestore:8088, functions:5001).
   // Use --dart-define=USE_EMULATORS=false to skip emulators in debug mode.
-  const useEmulators = bool.fromEnvironment('USE_EMULATORS', defaultValue: true);
+  const useEmulators = bool.fromEnvironment(
+    'USE_EMULATORS',
+    defaultValue: true,
+  );
   if (kDebugMode && kIsWeb && useEmulators) {
     const emulatorHost = '127.0.0.1';
     FirebaseFirestore.instance.useFirestoreEmulator(emulatorHost, 8088);
@@ -136,7 +140,8 @@ void main() async {
           ), // Provider per a la gestió d'equips
         ),
         ChangeNotifierProvider(
-          create: (_) => WeeklyMatchProvider(), // Llegeix de weekly_focus/current
+          create: (_) =>
+              WeeklyMatchProvider(), // Llegeix de weekly_focus/current
         ),
         // Navigation provider to keep track of the current route name
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
@@ -176,6 +181,18 @@ class MyApp extends StatelessWidget {
       // Utilitzem el tema compartit AppTheme.theme (assumint que existeix)
       theme: AppTheme.theme,
       navigatorObservers: [navObserver],
+      // Localitzacions per tenir el calendari i altres widgets en català
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ca', 'ES'), // Català
+        Locale('es', 'ES'), // Espanyol
+        Locale('en', 'US'), // Anglès
+      ],
+      locale: const Locale('ca', 'ES'), // Forcem català per defecte
       // --- Configuració de Rutes ---
       initialRoute: '/', // La ruta inicial, gestionada per AuthWrapper
       routes: {

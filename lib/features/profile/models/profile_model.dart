@@ -32,43 +32,136 @@ class ProfileDefaults {
   }
 }
 
+/// Configuració de visibilitat del perfil públic
+class ProfileVisibility {
+  final bool showYearsExperience;
+  final bool showAnalyzedMatches;
+  final bool showPersonalNotes;
+  final bool showSeasonGoals;
+
+  const ProfileVisibility({
+    this.showYearsExperience = true,
+    this.showAnalyzedMatches = true,
+    this.showPersonalNotes = false,
+    this.showSeasonGoals = false,
+  });
+
+  factory ProfileVisibility.fromMap(Map<String, dynamic>? data) {
+    if (data == null) return const ProfileVisibility();
+    return ProfileVisibility(
+      showYearsExperience: data['showYearsExperience'] as bool? ?? true,
+      showAnalyzedMatches: data['showAnalyzedMatches'] as bool? ?? true,
+      showPersonalNotes: data['showPersonalNotes'] as bool? ?? false,
+      showSeasonGoals: data['showSeasonGoals'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'showYearsExperience': showYearsExperience,
+        'showAnalyzedMatches': showAnalyzedMatches,
+        'showPersonalNotes': showPersonalNotes,
+        'showSeasonGoals': showSeasonGoals,
+      };
+
+  ProfileVisibility copyWith({
+    bool? showYearsExperience,
+    bool? showAnalyzedMatches,
+    bool? showPersonalNotes,
+    bool? showSeasonGoals,
+  }) {
+    return ProfileVisibility(
+      showYearsExperience: showYearsExperience ?? this.showYearsExperience,
+      showAnalyzedMatches: showAnalyzedMatches ?? this.showAnalyzedMatches,
+      showPersonalNotes: showPersonalNotes ?? this.showPersonalNotes,
+      showSeasonGoals: showSeasonGoals ?? this.showSeasonGoals,
+    );
+  }
+}
+
 class ProfileModel {
   final String? displayName;
   final String? email;
   final String? refereeCategory;
-  final int? anysArbitrats;
+  final int? startYear; // Any d'inici com a àrbitre
   final String? portraitImageUrl;
   final String? headerImageUrl;
   final String? gender; // 'male' | 'female'
+
+  // Estadístiques
+  final int analyzedMatches;
+  final int personalNotesCount;
+  final int sharedClipsCount;
+
+  // Configuració de visibilitat
+  final ProfileVisibility visibility;
 
   ProfileModel({
     this.displayName,
     this.email,
     this.refereeCategory,
-    this.anysArbitrats,
+    this.startYear,
     this.portraitImageUrl,
     this.headerImageUrl,
     this.gender,
+    this.analyzedMatches = 0,
+    this.personalNotesCount = 0,
+    this.sharedClipsCount = 0,
+    this.visibility = const ProfileVisibility(),
   });
 
   /// Getter segur per al nom a mostrar
   String get displayNameSafe => (displayName?.trim().isNotEmpty == true)
       ? displayName!
       : (email?.trim().isNotEmpty == true)
-      ? email!
-      : 'Usuari';
+          ? email!
+          : 'Usuari';
 
   /// Getter segur per a la categoria
   String get categoriaSafe => (refereeCategory?.trim().isNotEmpty == true)
       ? refereeCategory!
       : 'Defineix la teva categoria';
 
+  /// Anys d'experiència calculats des de startYear
+  int? get yearsExperience {
+    if (startYear == null) return null;
+    return DateTime.now().year - startYear!;
+  }
+
   /// Getter segur per a l'experiència
-  String get anysArbitratsSafe =>
-      (anysArbitrats != null) ? '$anysArbitrats anys arbitrats' : '-';
+  String get anysArbitratsSafe {
+    final years = yearsExperience;
+    if (years == null) return '-';
+    if (years == 0) return 'Primer any';
+    if (years == 1) return '1 any arbitrant';
+    return '$years anys arbitrant';
+  }
+
+  /// Nivell d'accés a clips de la comunitat basat en clips compartits
+  /// 0 clips = només veus els teus
+  /// 1-2 clips = veus 5 clips de companys
+  /// 3-5 clips = veus tots els de la teva categoria
+  /// 6+ clips = veus TOTS els clips
+  int get communityAccessLevel {
+    if (sharedClipsCount >= 6) return 3; // Accés total
+    if (sharedClipsCount >= 3) return 2; // Categoria
+    if (sharedClipsCount >= 1) return 1; // Limitat
+    return 0; // Només propis
+  }
+
+  String get communityAccessDescription {
+    switch (communityAccessLevel) {
+      case 3:
+        return 'Accés total a clips de la comunitat';
+      case 2:
+        return 'Accés a clips de la teva categoria';
+      case 1:
+        return 'Accés limitat (5 clips)';
+      default:
+        return 'Comparteix clips per veure els dels companys';
+    }
+  }
 
   /// Getter que resol l'avatar: personalitzat o per defecte segons gènere
-  /// Si l'usuari té avatarUrl personalitzat, l'usa. Sinó, retorna el default segons gender.
   String get resolvedAvatarUrl {
     if (portraitImageUrl != null && portraitImageUrl!.trim().isNotEmpty) {
       return portraitImageUrl!;
@@ -77,7 +170,6 @@ class ProfileModel {
   }
 
   /// Getter que resol el header: personalitzat o per defecte segons gènere
-  /// Si l'usuari té headerImageUrl personalitzat, l'usa. Sinó, retorna el default segons gender.
   String get resolvedHeaderUrl {
     if (headerImageUrl != null && headerImageUrl!.trim().isNotEmpty) {
       return headerImageUrl!;
@@ -105,10 +197,16 @@ class ProfileModel {
       displayName: data['displayName'] as String?,
       email: data['email'] as String?,
       refereeCategory: category,
-      anysArbitrats: data['anysArbitrats'] as int?,
+      startYear: data['startYear'] as int?,
       portraitImageUrl: data['portraitImageUrl'] as String?,
       headerImageUrl: data['headerImageUrl'] as String?,
-      gender: data['gender'] as String?, // Fallback a 'male' es fa als getters
+      gender: data['gender'] as String?,
+      analyzedMatches: data['analyzedMatches'] as int? ?? 0,
+      personalNotesCount: data['personalNotesCount'] as int? ?? 0,
+      sharedClipsCount: data['sharedClipsCount'] as int? ?? 0,
+      visibility: ProfileVisibility.fromMap(
+        data['profileVisibility'] as Map<String, dynamic>?,
+      ),
     );
   }
 }

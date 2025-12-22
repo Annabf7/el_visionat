@@ -15,6 +15,14 @@
         { "fieldPath": "jornada", "order": "ASCENDING" },
         { "fieldPath": "count", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "video_clips",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ]
 }

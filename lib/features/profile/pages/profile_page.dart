@@ -12,6 +12,8 @@ import '../widgets/personal_notes_table_widget.dart';
 import '../widgets/season_goals_widget.dart';
 import '../widgets/badges_widget.dart';
 import '../widgets/profile_banner_widget.dart';
+import '../widgets/profile_visibility_dialog.dart';
+import '../widgets/my_clips_widget.dart';
 
 /// Pàgina de perfil d'usuari amb layout responsiu
 /// Segueix el prototip Figma amb la paleta de colors Visionat
@@ -144,7 +146,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           const SizedBox(height: 35),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 24),
-                            child: _buildEmpremtaVisionat(),
+                            child: _buildEmpremtaVisionat(profile),
                           ),
                           const SizedBox(height: 32),
                           Padding(
@@ -162,6 +164,11 @@ class _ProfilePageState extends State<ProfilePage> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 24),
                             child: _buildApuntsPersonals(),
+                          ),
+                          const SizedBox(height: 32),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: _buildMeusClips(),
                           ),
                           const SizedBox(height: 32),
                         ],
@@ -199,7 +206,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   _buildPersonalInfo(profile),
                   const SizedBox(height: 24),
-                  _buildEmpremtaVisionat(),
+                  _buildEmpremtaVisionat(profile),
+                  const SizedBox(height: 24),
+                  _buildMeusClips(),
                   const SizedBox(height: 24),
                   _buildApuntsPersonals(),
                   const SizedBox(height: 24),
@@ -224,12 +233,16 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildEmpremtaVisionat() {
-    return const ProfileFootprintWidget();
+  Widget _buildEmpremtaVisionat(ProfileModel profile) {
+    return ProfileFootprintWidget(profile: profile);
   }
 
   Widget _buildApuntsPersonals() {
     return const PersonalNotesTableWidget();
+  }
+
+  Widget _buildMeusClips() {
+    return const MyClipsWidget();
   }
 
   Widget _buildObjectiusTemporada() {
@@ -315,14 +328,30 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  void _handleChangeVisibility() {
+  void _handleChangeVisibility() async {
     debugPrint('👁️ ProfilePage: Configurant visibilitat del perfil');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('👁️ Configuració de visibilitat en desenvolupament'),
-        duration: Duration(seconds: 2),
+
+    // Obtenir visibilitat actual de Firestore
+    final data = await _fetchProfileInfo();
+    final profile = ProfileModel.fromMap(data);
+
+    if (!mounted) return;
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => ProfileVisibilityDialog(
+        initialVisibility: profile.visibility,
       ),
     );
+
+    if (result == 'success' && mounted) {
+      setState(() {
+        _profileRefreshKey++;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Visibilitat actualitzada!')),
+      );
+    }
   }
 
   void _handleCompareEvolution() {

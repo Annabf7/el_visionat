@@ -245,9 +245,9 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
     return Positioned(
       bottom: isCompact ? 8 : 12,
       left: 0,
-      right: isCompact ? 0 : null,
+      right: isCompact ? null : null,
       child: Align(
-        alignment: isCompact ? Alignment.center : Alignment.centerLeft,
+        alignment: Alignment.centerLeft,
         child: Container(
           constraints: BoxConstraints(maxWidth: isCompact ? 200 : 260),
           padding: EdgeInsets.symmetric(
@@ -352,25 +352,27 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
   /// Transició suau cap al fons blanc - EFECTE PROFESSIONAL
   Widget _buildBottomBlurOverlay({bool isDesktop = false}) {
     return Positioned(
-      bottom: isDesktop ? -70 : -30, // Ambdós més avall per no crear espai
+      bottom: isDesktop ? -70 : 0, // Mòbil: a ras del bottom
       left: 0,
       right: 0,
       child: Container(
-        height: isDesktop ? 120 : 60, // Mòbil: degradat més petit
+        height: isDesktop
+            ? 120
+            : 100, // Mòbil: degradat molt més alt per fondre bé
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
               Colors.transparent,
-              Colors.white.withValues(alpha: 0.05),
-              Colors.white.withValues(alpha: 0.15),
-              Colors.white.withValues(alpha: 0.35),
-              Colors.white.withValues(alpha: 0.6),
-              Colors.white.withValues(alpha: 0.85),
+              Colors.white.withValues(alpha: 0.1),
+              Colors.white.withValues(alpha: 0.3),
+              Colors.white.withValues(alpha: 0.55),
+              Colors.white.withValues(alpha: 0.75),
+              Colors.white.withValues(alpha: 0.9),
               Colors.white,
             ],
-            stops: const [0.0, 0.15, 0.3, 0.45, 0.65, 0.85, 1.0],
+            stops: const [0.0, 0.2, 0.4, 0.55, 0.7, 0.85, 1.0],
           ),
         ),
       ),

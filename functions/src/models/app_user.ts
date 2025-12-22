@@ -16,7 +16,11 @@ export interface AppUser {
     llissenciaId: string;
     categoriaRrtt: string;
 
+    // Gènere per a l'avatar per defecte ('male' | 'female')
+    gender: "male" | "female";
+
     // Altres camps que pots afegir al futur
     analyzedMatches?: number;
-    avatarUrl?: string;
+    avatarUrl?: string; // Avatar personalitzat (override del default segons gender)
+    headerUrl?: string; // Header personalitzat (override del default segons gender)
 }

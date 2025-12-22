@@ -88,6 +88,7 @@ export const completeRegistration = onCall({region: "europe-west1", timeoutSecon
 
     // Tenim una sol·licitud aprovada
     const approvedRequestDoc = requestSnapshot.docs[0];
+    const approvedRequestData = approvedRequestDoc.data() as RegistrationRequest;
 
     // 3. Transacció Atòmica per crear usuari i actualitzar estats
     const newUid = await db.runTransaction(async (transaction) => {
@@ -118,6 +119,8 @@ export const completeRegistration = onCall({region: "europe-west1", timeoutSecon
       const createdUid = userRecord.uid;
 
       // 3c. Crear el document de perfil a /users/{uid}
+      // Obtenim el gender de la sol·licitud aprovada (fallback a 'male' per compatibilitat)
+      const userGender = approvedRequestData.gender || "male";
       const newUserProfile: AppUser = {
         uid: createdUid,
         email: normalizedEmail,
@@ -125,6 +128,7 @@ export const completeRegistration = onCall({region: "europe-west1", timeoutSecon
         role: "referee", // O determinar si és 'auxiliar' basat en registryData.categoriaRrtt si cal
         llissenciaId: llissenciaId,
         categoriaRrtt: registryData.categoriaRrtt,
+        gender: userGender,
         isSubscribed: false, // Estat inicial de subscripció
         createdAt: FieldValue.serverTimestamp(),
       };

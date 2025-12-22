@@ -205,13 +205,16 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     // Deriva refereeCategory si no existeix
     String derivedCategory = widget.initialCategory;
     if ((data == null || data['refereeCategory'] == null)) {
-      // Ex: "C1 Barcelona" → "Categoria C1 - RT Barcelona"
-      final regExp = RegExp(r'([A-Z0-9]+)\s+(.+)', caseSensitive: false);
-      final match = regExp.firstMatch(widget.initialCategory);
-      if (match != null) {
-        final code = match.group(1);
-        final region = match.group(2);
-        derivedCategory = 'Categoria $code - RT $region';
+      // Si ja comença per "Categoria", no fer res
+      if (!widget.initialCategory.toLowerCase().startsWith('categoria')) {
+        // Ex: "C1 Barcelona" → "Categoria C1 - RT Barcelona"
+        final regExp = RegExp(r'([A-Z0-9]+)\s+(.+)', caseSensitive: false);
+        final match = regExp.firstMatch(widget.initialCategory);
+        if (match != null) {
+          final code = match.group(1);
+          final region = match.group(2);
+          derivedCategory = 'Categoria $code - RT $region';
+        }
       }
     } else if (data['refereeCategory'] != null) {
       derivedCategory = data['refereeCategory'] as String;

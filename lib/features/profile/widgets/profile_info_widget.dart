@@ -108,28 +108,12 @@ class ProfileInfoWidget extends StatelessWidget {
 
   /// Imatge de l'avatar (local o de xarxa)
   Widget _buildAvatarImage() {
-    if (profile.portraitImageUrl != null &&
-        profile.portraitImageUrl!.isNotEmpty) {
-      return CachedNetworkImage(
-        imageUrl: profile.portraitImageUrl!,
-        fit: BoxFit.cover,
-        placeholder: (context, url) => _buildAvatarPlaceholder(),
-        errorWidget: (context, url, error) => _buildDefaultAvatar(),
-      );
-    } else {
-      return _buildDefaultAvatar();
-    }
-  }
-
-  /// Imatge per defecte local
-  Widget _buildDefaultAvatar() {
-    return Image.asset(
-      'assets/images/profile/portrait.jpg',
+    // Sempre usem resolvedAvatarUrl que ja gestiona el fallback segons gender
+    return CachedNetworkImage(
+      imageUrl: profile.resolvedAvatarUrl,
       fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        debugPrint('Error carregant portrait.jpg: $error');
-        return _buildFallbackAvatar();
-      },
+      placeholder: (context, url) => _buildAvatarPlaceholder(),
+      errorWidget: (context, url, error) => _buildFallbackAvatar(),
     );
   }
 

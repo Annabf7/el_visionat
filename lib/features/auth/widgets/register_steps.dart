@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'utils.dart';
+import 'package:el_visionat/core/theme/app_theme.dart';
 
 class RegisterView extends StatelessWidget {
   const RegisterView({super.key});
@@ -18,7 +19,11 @@ class RegisterView extends StatelessWidget {
       child: switch (authProvider.currentStep) {
         RegistrationStep.initial || RegistrationStep.licenseLookup =>
           const RegisterStep1License(key: ValueKey('RegisterStep1')),
-        RegistrationStep.licenseVerified ||
+        RegistrationStep.licenseVerified => const RegisterStepGender(
+          key: ValueKey('RegisterStep1_5'),
+        ),
+        RegistrationStep.genderSelection || RegistrationStep.genderSelected =>
+          const RegisterStep2Email(key: ValueKey('RegisterStep2')),
         RegistrationStep.requestingRegistration => const RegisterStep2Email(
           key: ValueKey('RegisterStep2'),
         ),
@@ -40,8 +45,10 @@ class RegisterView extends StatelessWidget {
   }
 
   Widget _buildErrorStep(BuildContext context, AuthProvider authProvider) {
-    if (authProvider.verifiedLicenseData != null) {
+    if (authProvider.selectedGender != null) {
       return const RegisterStep2Email(key: ValueKey('RegisterStep2_Error'));
+    } else if (authProvider.verifiedLicenseData != null) {
+      return const RegisterStepGender(key: ValueKey('RegisterStep1_5_Error'));
     } else {
       return const RegisterStep1License(key: ValueKey('RegisterStep1_Error'));
     }
@@ -325,6 +332,206 @@ class RegisterStep3RequestSent extends StatelessWidget {
               child: Text(
                 'Iniciar sessió',
                 style: TextStyle(color: colorScheme.primary),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// STEP 1.5: Selecció de gènere per l'avatar per defecte
+/// Aquest pas és obligatori per continuar al registre
+class RegisterStepGender extends StatefulWidget {
+  const RegisterStepGender({super.key});
+
+  @override
+  State<RegisterStepGender> createState() => _RegisterStepGenderState();
+}
+
+class _RegisterStepGenderState extends State<RegisterStepGender> {
+  String? _selectedGender;
+
+  void _handleContinue() {
+    if (_selectedGender != null) {
+      context.read<AuthProvider>().selectGender(_selectedGender!);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+    final licenseData = authProvider.verifiedLicenseData;
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final bool showError =
+        authProvider.errorMessage != null &&
+        authProvider.currentStep == RegistrationStep.error;
+
+    if (licenseData == null) {
+      return const Center(
+        key: ValueKey('Step1_5Loading'),
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32.0),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Hola ${licenseData['nom'] ?? ''}!',
+              style: textTheme.headlineMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Selecciona el teu sexe per configurar el perfil.',
+              style: textTheme.bodyLarge?.copyWith(
+                color: colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+
+            // Cards de selecció
+            Row(
+              children: [
+                Expanded(
+                  child: _GenderCard(
+                    label: 'Masculí',
+                    icon: Icons.male,
+                    isSelected: _selectedGender == 'male',
+                    onTap: () {
+                      setState(() {
+                        _selectedGender = 'male';
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _GenderCard(
+                    label: 'Femení',
+                    icon: Icons.female,
+                    isSelected: _selectedGender == 'female',
+                    onTap: () {
+                      setState(() {
+                        _selectedGender = 'female';
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+
+            // Botó Continuar
+            ElevatedButton(
+              onPressed: _selectedGender != null ? _handleContinue : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _selectedGender != null
+                    ? AppTheme.mostassa
+                    : Colors.grey.shade300,
+                foregroundColor: _selectedGender != null
+                    ? Colors.black
+                    : Colors.grey.shade600,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Text('Continuar'),
+            ),
+
+            if (showError)
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: Text(
+                  authProvider.errorMessage!,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.error,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+
+            Padding(
+              padding: const EdgeInsets.only(top: 16.0),
+              child: TextButton(
+                onPressed: () {
+                  if (mounted) {
+                    context.read<AuthProvider>().reset();
+                  }
+                },
+                child: const Text('Tornar a introduir llicència'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Widget privat per les cards de gènere
+class _GenderCard extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _GenderCard({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.mostassa.withValues(alpha: 0.15)
+              : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppTheme.mostassa : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppTheme.mostassa.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 48,
+              color: isSelected ? AppTheme.mostassa : Colors.grey.shade600,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected ? AppTheme.porpraFosc : Colors.grey.shade700,
               ),
             ),
           ],

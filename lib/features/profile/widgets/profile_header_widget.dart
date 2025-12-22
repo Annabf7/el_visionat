@@ -47,47 +47,82 @@ class ProfileHeaderWidget extends StatefulWidget {
 class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
   bool _isAdjustingImage = false;
   double _imageOffsetY = 0.0; // -1.5 (dalt) a 1.5 (baix)
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth > 900;
-    final headerHeight = widget.height ?? (isDesktop ? 500.0 : 170.0);
 
-    return SizedBox(
-      width: double.infinity,
-      height: headerHeight,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Imatge principal del header
-          _buildHeaderImage(),
+    // Si hi ha altura específica, usar-la
+    if (widget.height != null) {
+      return SizedBox(
+        width: double.infinity,
+        height: widget.height,
+        child: _buildHeaderContent(isDesktop),
+      );
+    }
 
-          // Efecte blur a la part inferior
-          _buildBottomBlurOverlay(),
+    // Desktop: altura fixa que omple tot l'ample
+    // Mòbil: AspectRatio 4:3
+    if (isDesktop) {
+      // Altura basada en l'ample de pantalla amb ratio 16:9
+      final height = screenWidth / (16 / 9);
+      return SizedBox(
+        width: double.infinity,
+        height: height.clamp(300.0, 500.0), // Màxim 500px, mínim 300px
+        child: _buildHeaderContent(isDesktop),
+      );
+    }
 
-          // Gradient overlay per millor contrast dels botons
-          _buildTopGradientOverlay(),
+    return AspectRatio(
+      aspectRatio: 4 / 3,
+      child: _buildHeaderContent(isDesktop),
+    );
+  }
 
-          // Botó menú kebab (3 punts) - part superior dreta
-          Positioned(top: 16, right: 16, child: _buildKebabMenuButton(context)),
+  Widget _buildHeaderContent(bool isDesktop) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Imatge principal del header
+        _buildHeaderImage(isDesktop: isDesktop),
 
-          // Botó d'ajustament d'imatge - només desktop
-          if (isDesktop)
-            Positioned(top: 16, left: 16, child: _buildImageAdjustButton()),
+        // Efecte blur a la part inferior
+        _buildBottomBlurOverlay(isDesktop: isDesktop),
 
-          // Controls d'ajustament quan està actiu
-          if (_isAdjustingImage) _buildAdjustmentControls(),
-        ],
-      ),
+        // Gradient overlay per millor contrast dels botons
+        _buildTopGradientOverlay(),
+
+        // Botó menú kebab (3 punts) - part superior dreta
+        Positioned(
+          top: isDesktop ? 16 : 8,
+          right: isDesktop ? 16 : 8,
+          child: _buildKebabMenuButton(context, isCompact: !isDesktop),
+        ),
+
+        // Botó d'ajustament d'imatge - desktop i mòbil
+        Positioned(
+          top: isDesktop ? 16 : 8,
+          left: isDesktop ? 16 : 8,
+          child: _buildImageAdjustButton(isCompact: !isDesktop),
+        ),
+
+        // Controls d'ajustament quan està actiu
+        if (_isAdjustingImage) _buildAdjustmentControls(isCompact: !isDesktop),
+      ],
     );
   }
 
   /// Imatge principal del header amb ajustament interactiu
-  Widget _buildHeaderImage() {
+  Widget _buildHeaderImage({required bool isDesktop}) {
+    // Desktop: BoxFit.cover per omplir tot l'espai sense vores blanques
+    // Mòbil: BoxFit.contain per veure la imatge completa
+    final imageFit = isDesktop ? BoxFit.cover : BoxFit.contain;
+
     final imageWidget = widget.imageUrl != null && widget.imageUrl!.isNotEmpty
         ? Image.network(
             widget.imageUrl!,
-            fit: BoxFit.contain,
+            fit: imageFit,
             width: double.infinity,
             height: double.infinity,
             errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
@@ -103,36 +138,62 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
           )
         : Image.asset(
             'assets/images/profile/profile_header.webp',
-            fit: BoxFit.contain,
+            fit: imageFit,
             width: double.infinity,
             height: double.infinity,
             errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
           );
 
-    return Positioned.fill(
-      child: GestureDetector(
-        onPanUpdate: _isAdjustingImage
-            ? (details) {
-                setState(() {
-                  _imageOffsetY += details.delta.dy / 150;
-                  _imageOffsetY = _imageOffsetY.clamp(-1.5, 1.5);
-                });
-              }
-            : null,
-        child: ClipRect(
-          child: OverflowBox(
-            minHeight: 0,
-            maxHeight: double.infinity,
-            alignment: Alignment(0.0, _imageOffsetY),
-            child: SizedBox(
-              width: double.infinity,
-              height: 850, // Altura més gran per permetre més desplaçament
-              child: imageWidget,
-            ),
+    // Quan estem ajustant, usem GestureDetector amb verticalDrag
+    // que té prioritat sobre el scroll del pare
+    Widget content;
+
+    if (isDesktop) {
+      // Desktop: Amb OverflowBox per ajustar la posició vertical
+      content = ClipRect(
+        child: OverflowBox(
+          minHeight: 0,
+          maxHeight: double.infinity,
+          alignment: Alignment(0.0, _imageOffsetY),
+          child: SizedBox(
+            width: double.infinity,
+            height: 500, // Alçada reduïda per desktop
+            child: imageWidget,
           ),
         ),
-      ),
-    );
+      );
+    } else {
+      // Mòbil: Amb OverflowBox per ajustar la posició vertical
+      content = ClipRect(
+        child: OverflowBox(
+          minHeight: 0,
+          maxHeight: double.infinity,
+          alignment: Alignment(0.0, _imageOffsetY),
+          child: SizedBox(
+            width: double.infinity,
+            height: 850,
+            child: imageWidget,
+          ),
+        ),
+      );
+    }
+
+    if (_isAdjustingImage) {
+      return Positioned.fill(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onVerticalDragUpdate: (details) {
+            setState(() {
+              _imageOffsetY += details.delta.dy / 150;
+              _imageOffsetY = _imageOffsetY.clamp(-1.5, 1.5);
+            });
+          },
+          child: content,
+        ),
+      );
+    }
+
+    return Positioned.fill(child: content);
   }
 
   /// Imatge de fallback
@@ -146,8 +207,13 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
   }
 
   /// Botó per activar/desactivar mode d'ajustament
-  Widget _buildImageAdjustButton() {
+  Widget _buildImageAdjustButton({bool isCompact = false}) {
+    final buttonSize = isCompact ? 36.0 : 40.0;
+    final iconSize = isCompact ? 18.0 : 20.0;
+
     return Container(
+      width: buttonSize,
+      height: buttonSize,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: _isAdjustingImage
@@ -155,10 +221,11 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
             : Colors.black.withValues(alpha: 0.5),
       ),
       child: IconButton(
+        padding: EdgeInsets.zero,
         icon: Icon(
           _isAdjustingImage ? Icons.check : Icons.tune,
           color: _isAdjustingImage ? Colors.black : Colors.white,
-          size: 20,
+          size: iconSize,
         ),
         onPressed: () {
           setState(() {
@@ -173,24 +240,28 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
     );
   }
 
-  /// Controls d'ajustament
-  Widget _buildAdjustmentControls() {
+  /// Controls d'ajustament - compactes per no ocupar massa espai
+  Widget _buildAdjustmentControls({bool isCompact = false}) {
     return Positioned(
-      bottom: 20,
+      bottom: isCompact ? 8 : 12,
       left: 0,
+      right: isCompact ? 0 : null,
       child: Align(
-        alignment: Alignment.centerLeft, // Ara a l'esquerra
+        alignment: isCompact ? Alignment.center : Alignment.centerLeft,
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 400),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          margin: const EdgeInsets.symmetric(horizontal: 20),
+          constraints: BoxConstraints(maxWidth: isCompact ? 200 : 260),
+          padding: EdgeInsets.symmetric(
+            horizontal: isCompact ? 10 : 12,
+            vertical: isCompact ? 8 : 10,
+          ),
+          margin: EdgeInsets.symmetric(horizontal: isCompact ? 10 : 16),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.85),
-            borderRadius: BorderRadius.circular(12),
+            color: Colors.black.withValues(alpha: 0.8),
+            borderRadius: BorderRadius.circular(10),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 8,
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 6,
                 offset: const Offset(0, 2),
               ),
             ],
@@ -198,42 +269,54 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.swipe_vertical,
                     color: AppTheme.mostassa,
-                    size: 24,
+                    size: isCompact ? 16 : 18,
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   Text(
-                    'Arrossega per ajustar',
+                    'Arrossega',
                     style: TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
+                      fontSize: isCompact ? 11 : 12,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: isCompact ? 6 : 8),
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
+                  SizedBox(
+                    height: isCompact ? 26 : 28,
                     child: OutlinedButton(
                       onPressed: () {
                         setState(() => _imageOffsetY = 0.0);
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white54),
+                        side: const BorderSide(color: Colors.white54, width: 1),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isCompact ? 10 : 12,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      child: const Text('Reset'),
+                      child: Text(
+                        'Reset',
+                        style: TextStyle(fontSize: isCompact ? 10 : 11),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
+                  SizedBox(width: isCompact ? 6 : 8),
+                  SizedBox(
+                    height: isCompact ? 26 : 28,
                     child: ElevatedButton(
                       onPressed: () {
                         widget.onImageOffsetChanged?.call(_imageOffsetY);
@@ -242,8 +325,19 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.mostassa,
                         foregroundColor: Colors.black,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isCompact ? 12 : 14,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      child: const Text('Aplicar'),
+                      child: Text(
+                        'OK',
+                        style: TextStyle(
+                          fontSize: isCompact ? 10 : 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -255,26 +349,28 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
     );
   }
 
-  /// Transició suau cap al fons blanc - PROTEGEIX LA FIGURA DE L'ÀRBITRE
-  Widget _buildBottomBlurOverlay() {
+  /// Transició suau cap al fons blanc - EFECTE PROFESSIONAL
+  Widget _buildBottomBlurOverlay({bool isDesktop = false}) {
     return Positioned(
-      bottom: 0,
+      bottom: isDesktop ? -70 : -30, // Ambdós més avall per no crear espai
       left: 0,
       right: 0,
       child: Container(
-        height: 35, // Altura reduïda - només part inferior buida
+        height: isDesktop ? 120 : 60, // Mòbil: degradat més petit
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.transparent, // Figura nítida (0%)
-              Colors.white.withValues(alpha: 0.2), // Inici suau (20%)
-              Colors.white.withValues(alpha: 0.5), // Transició (50%)
-              Colors.white.withValues(alpha: 0.8), // Fort (80%)
-              Colors.white, // Blanc pur final (100%)
+              Colors.transparent,
+              Colors.white.withValues(alpha: 0.05),
+              Colors.white.withValues(alpha: 0.15),
+              Colors.white.withValues(alpha: 0.35),
+              Colors.white.withValues(alpha: 0.6),
+              Colors.white.withValues(alpha: 0.85),
+              Colors.white,
             ],
-            stops: const [0.0, 0.3, 0.6, 0.8, 1.0],
+            stops: const [0.0, 0.15, 0.3, 0.45, 0.65, 0.85, 1.0],
           ),
         ),
       ),
@@ -306,8 +402,13 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
   }
 
   /// Botó del menú kebab (3 punts) amb popup
-  Widget _buildKebabMenuButton(BuildContext context) {
+  Widget _buildKebabMenuButton(BuildContext context, {bool isCompact = false}) {
+    final buttonSize = isCompact ? 36.0 : 40.0;
+    final iconSize = isCompact ? 18.0 : 20.0;
+
     return Container(
+      width: buttonSize,
+      height: buttonSize,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: Colors.black.withValues(alpha: 0.5),
@@ -320,9 +421,9 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
         ],
       ),
       child: PopupMenuButton<String>(
-        icon: Icon(Icons.more_vert, color: AppTheme.white, size: 24),
-        iconSize: 24,
-        padding: const EdgeInsets.all(8),
+        icon: Icon(Icons.more_vert, color: AppTheme.white, size: iconSize),
+        iconSize: iconSize,
+        padding: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         color: AppTheme.white,
         elevation: 8,

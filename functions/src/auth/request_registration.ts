@@ -12,6 +12,7 @@ const db = getFirestore();
 interface RequestRegistrationData {
   llissenciaId: string;
   email: string;
+  gender: "male" | "female";
 }
 
 // Assegurem la regió aquí
@@ -20,12 +21,16 @@ export const requestRegistration = onCall({region: "europe-west1", secrets: ["RE
   // Log inicial
   console.log("[requestRegistration onCall] Received request with data:", JSON.stringify(request.data));
 
-  const {llissenciaId, email} = request.data as RequestRegistrationData;
+  const {llissenciaId, email, gender} = request.data as RequestRegistrationData;
 
   // 1. Validació bàsica d'entrada
   if (!llissenciaId || !email) {
     console.warn("[requestRegistration onCall] Invalid argument: Missing llissenciaId or email");
     throw new HttpsError("invalid-argument", "Falten l'ID de llicència o el correu electrònic.");
+  }
+  if (!gender || (gender !== "male" && gender !== "female")) {
+    console.warn("[requestRegistration onCall] Invalid argument: Invalid or missing gender");
+    throw new HttpsError("invalid-argument", "El camp gènere és obligatori i ha de ser 'male' o 'female'.");
   }
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
@@ -118,6 +123,7 @@ export const requestRegistration = onCall({region: "europe-west1", secrets: ["RE
         email: normalizedEmail,
         nom: registryData.nom, // Agafem nom/cognoms del document llegit dins la transacció
         cognoms: registryData.cognoms,
+        gender: gender,
         status: "pending",
         createdAt: FieldValue.serverTimestamp(),
       };

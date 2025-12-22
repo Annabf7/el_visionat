@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import '../providers/auth_provider.dart'; // Importem el provider actualitzat
+import '../widgets/register_steps.dart'; // Import RegisterStepGender
 import '../../../core/theme/app_theme.dart';
 
 class LoginPage extends StatelessWidget {
@@ -756,6 +757,10 @@ class _RegisterView extends StatelessWidget {
         return const _RegisterStep1License(key: ValueKey('RegisterStep1'));
 
       case RegistrationStep.licenseVerified:
+      case RegistrationStep.genderSelection:
+        return const RegisterStepGender(key: ValueKey('RegisterStep1_5'));
+
+      case RegistrationStep.genderSelected:
       case RegistrationStep.requestingRegistration:
         return const _RegisterStep2Email(key: ValueKey('RegisterStep2'));
 

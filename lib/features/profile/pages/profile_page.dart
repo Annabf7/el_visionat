@@ -120,11 +120,15 @@ class _ProfilePageState extends State<ProfilePage> {
                             child: Stack(
                               clipBehavior: Clip.none,
                               children: [
-                                ProfileHeaderWidget(
-                                  imageUrl: data?['headerImageUrl'] as String?,
-                                  onEditProfile: () => _handleEditProfile(),
-                                  onChangeVisibility: () => _handleChangeVisibility(),
-                                  onCompareProfileEvolution: () => _handleCompareEvolution(),
+                                Positioned.fill(
+                                  child: ProfileHeaderWidget(
+                                    imageUrl: profile.resolvedHeaderUrl,
+                                    onEditProfile: () => _handleEditProfile(),
+                                    onChangeVisibility: () =>
+                                        _handleChangeVisibility(),
+                                    onCompareProfileEvolution: () =>
+                                        _handleCompareEvolution(),
+                                  ),
                                 ),
                                 Positioned(
                                   right: 0,
@@ -183,12 +187,12 @@ class _ProfilePageState extends State<ProfilePage> {
         return Column(
           children: [
             ProfileHeaderWidget(
-              imageUrl: data?['headerImageUrl'] as String?,
+              imageUrl: profile.resolvedHeaderUrl,
               onEditProfile: () => _handleEditProfile(),
               onChangeVisibility: () => _handleChangeVisibility(),
               onCompareProfileEvolution: () => _handleCompareEvolution(),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 0),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(

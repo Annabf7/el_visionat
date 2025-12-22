@@ -69,6 +69,7 @@ export const validateLicenseRegister = onCall({region: "europe-west1", timeoutSe
       createdAt: Timestamp.now(),
       llissenciaId: llissenciaId,
       categoriaRrtt: registryData.categoriaRrtt,
+      gender: "male", // Default per flux sense selecció
     };
 
     await db.collection("users").doc(newUid).set(newUserProfile);

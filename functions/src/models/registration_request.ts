@@ -19,6 +19,9 @@ export interface RegistrationRequest {
   /** Cognoms de l'àrbitre (copiat de /referees_registry per conveniència). */
   cognoms: string;
 
+  /** Gènere per a l'avatar per defecte ('male' | 'female'). */
+  gender: "male" | "female";
+
   /** Estat actual de la sol·licitud ('pending', 'approved', 'rejected', 'completed'). */
   status: "pending" | "approved" | "rejected" | "completed";
 

@@ -127,6 +127,7 @@ class AuthService {
   Future<Map<String, dynamic>> requestRegistration({
     required String llissenciaId,
     required String email,
+    required String gender,
   }) async {
     // The email reservation is now handled entirely by the Cloud Function
     // `requestRegistration` which uses Admin SDK and can write to `emails/*`.
@@ -145,6 +146,7 @@ class AuthService {
       final result = await callable.call<Map<String, dynamic>>({
         'llissenciaId': llissenciaId,
         'email': emailLower,
+        'gender': gender,
       });
       return result.data;
     } on FirebaseFunctionsException catch (e) {

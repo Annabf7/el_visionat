@@ -8,7 +8,9 @@ import 'package:firebase_auth/firebase_auth.dart'; // Importem per als codis d'e
 enum RegistrationStep {
   initial, // Estat inicial, abans de verificar la llicència
   licenseLookup, // Verificant la llicència
-  licenseVerified, // Llicència verificada, mostrant dades, esperant email
+  licenseVerified, // Llicència verificada, mostrant dades, esperant selecció gènere
+  genderSelection, // [NOU] Seleccionant gènere per l'avatar per defecte
+  genderSelected, // [NOU] Gènere seleccionat, esperant email
   requestingRegistration, // Enviant la sol·licitud d'aprovació
   requestSent, // Sol·licitud enviada, esperant aprovació manual
   approvedNeedPassword, // [NOU] Detectat aprovat durant login, redirigir a crear contrasenya
@@ -50,6 +52,7 @@ class AuthProvider with ChangeNotifier {
   Map<String, dynamic>? _verifiedLicenseData;
   String? _pendingLicenseId;
   String? _pendingEmail;
+  String? _selectedGender; // 'male' | 'female'
   bool _isWaitingForToken = false;
 
   // --- Getters Públics ---
@@ -59,6 +62,7 @@ class AuthProvider with ChangeNotifier {
   Map<String, dynamic>? get verifiedLicenseData => _verifiedLicenseData;
   String? get pendingLicenseId => _pendingLicenseId;
   String? get pendingEmail => _pendingEmail;
+  String? get selectedGender => _selectedGender;
   bool get isWaitingForToken => _isWaitingForToken;
 
   // --- Convenience accessors for UI (avoid screens reading Firebase directly)
@@ -125,15 +129,25 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  /// PAS 1.5: Selecciona el gènere per l'avatar per defecte.
+  void selectGender(String gender) {
+    if (gender != 'male' && gender != 'female') {
+      _setError('Gènere invàlid', notify: true);
+      return;
+    }
+    _selectedGender = gender;
+    _currentStep = RegistrationStep.genderSelected;
+    notifyListeners();
+  }
+
   /// PAS 2: Envia la sol·licitud de registre amb l'email.
   Future<void> submitRegistrationRequest(String email) async {
-    if (_currentStep != RegistrationStep.licenseVerified ||
-        _pendingLicenseId == null) {
-      // User reached this action without a verified license. Provide a
-      // clearer UX: set the provider back to the license lookup step so the
-      // UI shows the verification form and an explanatory error message.
+    if (_currentStep != RegistrationStep.genderSelected ||
+        _pendingLicenseId == null ||
+        _selectedGender == null) {
+      // User reached this action without completing previous steps
       _setError(
-        'Has de verificar la llicència abans d\'enviar la sol·licitud. Torna al pas de verificació.',
+        'Has de verificar la llicència i seleccionar el gènere abans d\'enviar la sol·licitud.',
         notify: true,
         errorStep: RegistrationStep.licenseLookup,
       );
@@ -148,6 +162,7 @@ class AuthProvider with ChangeNotifier {
       await authService.requestRegistration(
         llissenciaId: _pendingLicenseId!,
         email: email,
+        gender: _selectedGender!,
       );
       _pendingEmail = email;
       _currentStep = RegistrationStep.requestSent;
@@ -168,7 +183,7 @@ class AuthProvider with ChangeNotifier {
         return;
       }
       if (!msg.contains('already-exists')) {
-        _currentStep = RegistrationStep.licenseVerified;
+        _currentStep = RegistrationStep.genderSelected;
       }
       _setError(msg, notify: true);
     }
@@ -313,6 +328,7 @@ class AuthProvider with ChangeNotifier {
     _verifiedLicenseData = null;
     _pendingLicenseId = null;
     _pendingEmail = null;
+    _selectedGender = null;
     _isWaitingForToken = false;
     notifyListeners();
   }

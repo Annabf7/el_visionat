@@ -10,6 +10,7 @@ import 'package:el_visionat/core/index.dart';
 import 'package:el_visionat/core/services/team_mapping_service.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
@@ -57,9 +58,9 @@ void main() async {
   // session so local testing always starts with a clean auth state.
   await authService.clearAuthIfEmulator();
 
-  // If running in debug mode on web, point Firestore/Functions/Auth to the local emulators.
+  // If running in debug mode on web, point Firestore/Functions/Auth/Storage to the local emulators.
   // This is required for Flutter web where environment variables like FIRESTORE_EMULATOR_HOST
-  // are not available. Ports are aligned with `firebase.json` (auth:9198, firestore:8088, functions:5001).
+  // are not available. Ports are aligned with `firebase.json` (auth:9198, firestore:8088, functions:5001, storage:9199).
   // Use --dart-define=USE_EMULATORS=false to skip emulators in debug mode.
   const useEmulators = bool.fromEnvironment(
     'USE_EMULATORS',
@@ -72,7 +73,11 @@ void main() async {
       region: 'europe-west1',
     ).useFunctionsEmulator(emulatorHost, 5001);
     FirebaseAuth.instance.useAuthEmulator(emulatorHost, 9198);
-    debugPrint('Web debug: connected to emulators at $emulatorHost');
+    // Storage emulator al port 9199
+    await FirebaseStorage.instance.useStorageEmulator(emulatorHost, 9199);
+    debugPrint(
+      'Web debug: connected to emulators at $emulatorHost (including Storage)',
+    );
   } else if (kDebugMode && kIsWeb) {
     debugPrint('Web debug: using PRODUCTION Firebase (emulators disabled)');
   }

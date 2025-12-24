@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/personal_analysis.dart';
+import 'analyzed_matches_service.dart';
 
 /// Servei per gestionar les operacions d'anàlisi personal amb Firestore
 ///
@@ -80,6 +81,19 @@ class PersonalAnalysisService {
       final analysisWithId = analysis.copyWith(id: docRef.id);
 
       await docRef.set(analysisWithId);
+
+      // Incrementar comptador d'apunts personals
+      await _firestore.collection('users').doc(analysis.userId).update({
+        'personalNotesCount': FieldValue.increment(1),
+      });
+
+      // Tracking: Marcar partit com analitzat (gestiona automàticament si és nou)
+      final analyzedMatchesService = AnalyzedMatchesService();
+      await analyzedMatchesService.markMatchAsAnalyzed(
+        analysis.userId,
+        analysis.matchId,
+        action: 'personal_note',
+      );
     } catch (e) {
       throw Exception('Error afegint apunt personal: ${e.toString()}');
     }
@@ -129,21 +143,30 @@ class PersonalAnalysisService {
     try {
       final docRef = _getCollection(userId).doc(analysisId);
 
+      // Primer obtenir l'apunt per saber el matchId
+      final docSnapshot = await docRef.get();
+
+      if (!docSnapshot.exists) {
+        throw Exception('L\'apunt personal no existeix');
+      }
+
+      final analysis = docSnapshot.data()!;
+
+      // Verificar que l'usuari és el propietari
+      if (analysis.userId != userId) {
+        throw Exception('No tens permisos per eliminar aquest apunt');
+      }
+
       await _firestore.runTransaction((transaction) async {
-        final docSnapshot = await transaction.get(docRef);
-
-        if (!docSnapshot.exists) {
-          throw Exception('L\'apunt personal no existeix');
-        }
-
-        final analysis = docSnapshot.data()!;
-
-        // Verificar que l'usuari és el propietari
-        if (analysis.userId != userId) {
-          throw Exception('No tens permisos per eliminar aquest apunt');
-        }
-
         transaction.delete(docRef);
+
+        // Decrementar només el comptador d'apunts personals
+        // NOTA: No desmarquem el partit com analitzat perquè l'usuari
+        // realment el va analitzar. Un cop analitzat, es manté així.
+        final userRef = _firestore.collection('users').doc(userId);
+        transaction.update(userRef, {
+          'personalNotesCount': FieldValue.increment(-1),
+        });
       });
     } catch (e) {
       throw Exception('Error eliminant apunt personal: ${e.toString()}');
@@ -155,6 +178,7 @@ class PersonalAnalysisService {
     try {
       final collection = _getCollection(userId);
       final querySnapshot = await collection.get();
+      final totalCount = querySnapshot.docs.length;
 
       // Eliminar en batches per evitar límits de Firestore
       const batchSize = 500;
@@ -180,6 +204,15 @@ class PersonalAnalysisService {
       // Executar tots els batches
       for (final batch in batches) {
         await batch.commit();
+      }
+
+      // Resetejar el comptador d'apunts personals a 0
+      // NOTA: No resetegem analyzedMatches perquè els partits analitzats
+      // es mantenen (l'usuari realment els va analitzar)
+      if (totalCount > 0) {
+        await _firestore.collection('users').doc(userId).update({
+          'personalNotesCount': 0,
+        });
       }
     } catch (e) {
       throw Exception('Error eliminant tots els apunts: ${e.toString()}');

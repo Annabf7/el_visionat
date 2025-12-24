@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/collective_comment.dart';
+import 'analyzed_matches_service.dart';
 
 /// Servei per gestionar comentaris col·lectius de partits a Firestore
 /// 
@@ -52,7 +53,7 @@ class CollectiveCommentService {
   Future<void> addComment(CollectiveComment comment) async {
     try {
       final collection = _commentsCollection(comment.matchId);
-      
+
       // Si no té ID, generar-ne un automàticament
       if (comment.id.isEmpty) {
         final docRef = collection.doc();
@@ -62,6 +63,14 @@ class CollectiveCommentService {
         // Usar l'ID existent
         await collection.doc(comment.id).set(comment);
       }
+
+      // Tracking: Marcar partit com analitzat
+      final analyzedMatchesService = AnalyzedMatchesService();
+      await analyzedMatchesService.markMatchAsAnalyzed(
+        comment.createdBy,
+        comment.matchId,
+        action: 'collective_comment',
+      );
     } catch (e) {
       throw Exception('Error afegint comentari: $e');
     }

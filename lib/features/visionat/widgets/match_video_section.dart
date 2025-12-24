@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 import 'package:el_visionat/core/widgets/visibility_detector_mixin.dart';
 import '../providers/weekly_match_provider.dart';
+import '../services/analyzed_matches_service.dart';
 
 /// Widget per mostrar un thumbnail animat del partit que redirigeix al vídeo real
 class MatchThumbnailVideo extends StatefulWidget {
@@ -13,11 +15,13 @@ class MatchThumbnailVideo extends StatefulWidget {
   final String realMatchUrl;
   final double height;
   final String? matchTitle;
+  final String matchId; // ID del partit per tracking
 
   const MatchThumbnailVideo({
     super.key,
     required this.thumbnailClipUrl,
     required this.realMatchUrl,
+    required this.matchId,
     this.height = 240,
     this.matchTitle,
   });
@@ -139,6 +143,19 @@ class _MatchThumbnailVideoState extends State<MatchThumbnailVideo>
 
   Future<void> _openRealMatch() async {
     try {
+      // Tracking: Marcar partit com analitzat abans d'obrir l'enllaç
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final analyzedMatchesService = AnalyzedMatchesService();
+        await analyzedMatchesService.markMatchAsAnalyzed(
+          user.uid,
+          widget.matchId,
+          action: 'video_click',
+        );
+        debugPrint('✅ Partit ${widget.matchId} marcat com analitzat (video_click)');
+      }
+
+      // Obrir el vídeo del partit
       final Uri url = Uri.parse(widget.realMatchUrl);
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
@@ -340,7 +357,12 @@ class MatchVideoSection extends StatelessWidget {
   /// URL del partit real (exemple temporal)
   static const String kRealMatchUrl = 'https://www.twitch.tv/clubbasquetsalt';
 
-  const MatchVideoSection({super.key});
+  final String matchId; // ID del partit per tracking
+
+  const MatchVideoSection({
+    super.key,
+    required this.matchId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -353,6 +375,7 @@ class MatchVideoSection extends StatelessWidget {
           MatchThumbnailVideo(
             thumbnailClipUrl: kThumbnailClipUrl,
             realMatchUrl: kRealMatchUrl,
+            matchId: matchId,
             height: 240,
             matchTitle: matchProvider.matchTitle,
           ),

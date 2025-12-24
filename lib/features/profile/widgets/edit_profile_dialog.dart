@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
@@ -165,19 +167,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
   bool _loadingInitial = true;
   final _formKey = GlobalKey<FormState>();
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Connecta Firebase Storage a l'emulador només en mode debug
-    assert(() {
-      try {
-        FirebaseStorage.instance.useStorageEmulator('localhost', 9199);
-      } catch (_) {
-        // Ja pot estar connectat, ignora errors
-      }
-      return true;
-    }());
-  }
+  // La configuració de l'emulador de Storage es gestiona a main.dart
 
   @override
   void initState() {
@@ -247,13 +237,9 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
   }) async {
     final picker = ImagePicker();
     final dialogNavigator = Navigator.of(context, rootNavigator: true);
+    String? errorMessage;
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const Center(child: CircularProgressIndicator()),
-    );
-
+    // 1. Primer seleccionem la imatge SENSE mostrar el diàleg de càrrega
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 80,
@@ -261,28 +247,126 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     );
 
     if (!mounted || pickedFile == null) {
-      if (mounted) dialogNavigator.pop();
       return null;
     }
 
+    // 2. Ara mostrem el diàleg de càrrega
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                isHeader
+                    ? 'Pujant imatge de capçalera...'
+                    : 'Pujant imatge de perfil...',
+                style: const TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
     try {
       final file = pickedFile;
-      final ext = 'webp';
+      // Determinar extensió real del fitxer
+      final originalName = file.name;
+      String ext = 'jpg';
+      if (originalName.contains('.')) {
+        ext = originalName.split('.').last.toLowerCase();
+        if (!['jpg', 'jpeg', 'png', 'webp', 'gif'].contains(ext)) {
+          ext = 'jpg';
+        }
+      }
+
       final path = isHeader
           ? 'profile_images/$userId/header.$ext'
           : 'profile_images/$userId/portrait.$ext';
       final storageRef = FirebaseStorage.instance.ref().child(path);
-      await storageRef.putData(await file.readAsBytes());
+
+      debugPrint('📸 Llegint bytes de la imatge: $originalName');
+
+      // Llegim els bytes
+      final bytes = await file.readAsBytes();
+      debugPrint(
+        '📸 Bytes llegits: ${bytes.length} bytes (${(bytes.length / 1024).toStringAsFixed(1)} KB)',
+      );
+
+      // Determinar content type
+      String contentType = 'image/jpeg';
+      if (ext == 'png') contentType = 'image/png';
+      if (ext == 'webp') contentType = 'image/webp';
+      if (ext == 'gif') contentType = 'image/gif';
+
+      debugPrint('📸 Pujant a: $path amb contentType: $contentType');
+
+      // Pujar amb metadata
+      final metadata = SettableMetadata(
+        contentType: contentType,
+        customMetadata: {'uploadedBy': userId, 'originalName': originalName},
+      );
+
+      TaskSnapshot snapshot;
+
+      if (kIsWeb) {
+        // A web, usar putString amb base64 funciona millor
+        debugPrint('📸 Usant putString (base64) per web...');
+        final base64Data = base64Encode(bytes);
+        final uploadTask = storageRef.putString(
+          base64Data,
+          format: PutStringFormat.base64,
+          metadata: metadata,
+        );
+
+        // Escoltar progrés
+        uploadTask.snapshotEvents.listen(
+          (event) {
+            final progress = event.bytesTransferred / event.totalBytes;
+            debugPrint('📸 Progrés: ${(progress * 100).toStringAsFixed(1)}%');
+          },
+          onError: (e) {
+            debugPrint('📸 Error en stream: $e');
+          },
+        );
+
+        snapshot = await uploadTask;
+      } else {
+        // A mòbil/desktop, putData funciona bé
+        debugPrint('📸 Usant putData per mòbil/desktop...');
+        final uploadTask = storageRef.putData(bytes, metadata);
+
+        uploadTask.snapshotEvents.listen((event) {
+          final progress = event.bytesTransferred / event.totalBytes;
+          debugPrint('📸 Progrés: ${(progress * 100).toStringAsFixed(1)}%');
+        });
+
+        snapshot = await uploadTask;
+      }
+
+      debugPrint('📸 Pujada completada! State: ${snapshot.state}');
+
+      if (snapshot.state != TaskState.success) {
+        throw Exception('La pujada no s\'ha completat correctament');
+      }
+
       final url = await storageRef.getDownloadURL();
+      debugPrint('📸 URL obtinguda: $url');
 
       final userDoc = FirebaseFirestore.instance
           .collection('users')
           .doc(userId);
-      final originalName = file.name;
       await userDoc.update({
         isHeader ? 'headerImageUrl' : 'portraitImageUrl': url,
         isHeader ? 'headerOriginalName' : 'portraitOriginalName': originalName,
       });
+      debugPrint('📸 Firestore actualitzat!');
 
       if (!mounted) return null;
 
@@ -297,13 +381,26 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       });
 
       dialogNavigator.pop();
-      // NO tanquem el diàleg ni fem navigator.pop aquí!
       return url;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      errorMessage = e.toString().replaceAll('Exception: ', '');
+      debugPrint('❌ Error pujant imatge: $e');
+      debugPrint('❌ StackTrace: $stackTrace');
+
       if (!mounted) return null;
 
       dialogNavigator.pop();
-      // NO tanquem el diàleg ni fem navigator.pop aquí!
+
+      // Mostrar error a l'usuari
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $errorMessage'),
+            backgroundColor: Colors.red.shade700,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
       return null;
     }
   }

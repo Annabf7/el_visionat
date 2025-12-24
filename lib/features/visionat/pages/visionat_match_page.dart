@@ -348,7 +348,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
               children: [
                 const MatchHeader(),
                 const SizedBox(height: 24),
-                const MatchVideoSection(),
+                MatchVideoSection(matchId: _mockMatchId),
                 const SizedBox(height: 24),
                 Consumer<VisionatHighlightProvider>(
                   builder: (context, provider, child) => TagFilterBar(
@@ -430,7 +430,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
         children: [
           const MatchHeader(),
           const SizedBox(height: 16),
-          const MatchVideoSection(),
+          MatchVideoSection(matchId: _mockMatchId),
           const SizedBox(height: 16),
           Consumer<VisionatHighlightProvider>(
             builder: (context, provider, child) => TagFilterBar(

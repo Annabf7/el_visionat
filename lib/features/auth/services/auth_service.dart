@@ -19,10 +19,10 @@ class AuthService {
     required this.functions,
   }) {
     // [Constitució] Apuntar als emuladors en mode debug (si USE_EMULATORS=true)
-    // Use --dart-define=USE_EMULATORS=false to use production Firebase in debug mode
+    // Use --dart-define=USE_EMULATORS=true to enable emulators in debug mode
     const useEmulators = bool.fromEnvironment(
       'USE_EMULATORS',
-      defaultValue: true,
+      defaultValue: false, // Canviat a false per treballar en producció per defecte
     );
     if (kDebugMode && useEmulators) {
       _usingEmulators = true;

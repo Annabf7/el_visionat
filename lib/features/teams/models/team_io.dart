@@ -1,2 +1,2 @@
 // Legacy compat: re-export the canonical Team model.
-export 'team.dart';
+export 'package:el_visionat/models/team.dart';

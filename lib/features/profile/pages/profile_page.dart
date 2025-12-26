@@ -4,6 +4,8 @@ import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:el_visionat/features/profile/widgets/edit_profile_dialog.dart';
+import 'package:provider/provider.dart';
+import 'package:el_visionat/features/visionat/providers/personal_analysis_provider.dart';
 import '../widgets/profile_header_widget.dart';
 import '../models/profile_model.dart';
 import '../widgets/profile_info_widget.dart';
@@ -27,6 +29,19 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _profileRefreshKey = 0; // Força re-fetch de dades després de canvis
+
+  @override
+  void initState() {
+    super.initState();
+    // Inicialitzar el PersonalAnalysisProvider amb l'usuari actual
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final provider = context.read<PersonalAnalysisProvider>();
+        provider.setUser(user.uid);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

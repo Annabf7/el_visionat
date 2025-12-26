@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/personal_analysis.dart';
 import '../providers/personal_analysis_provider.dart';
 
@@ -31,7 +32,9 @@ class PersonalAnalysisModal extends StatefulWidget {
 class _PersonalAnalysisModalState extends State<PersonalAnalysisModal> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _textController;
+  late final TextEditingController _ruleArticleController;
   late final Set<AnalysisTag> _selectedTags;
+  late AnalysisSource _selectedSource;
   bool _isLoading = false;
 
   @override
@@ -43,12 +46,18 @@ class _PersonalAnalysisModalState extends State<PersonalAnalysisModal> {
       text: widget.existingAnalysis?.text ?? '',
     );
 
+    _ruleArticleController = TextEditingController(
+      text: widget.existingAnalysis?.ruleArticle ?? '',
+    );
+
     _selectedTags = Set<AnalysisTag>.from(widget.existingAnalysis?.tags ?? []);
+    _selectedSource = widget.existingAnalysis?.source ?? AnalysisSource.match;
   }
 
   @override
   void dispose() {
     _textController.dispose();
+    _ruleArticleController.dispose();
     super.dispose();
   }
 
@@ -109,14 +118,16 @@ class _PersonalAnalysisModalState extends State<PersonalAnalysisModal> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      const SizedBox(height: 8),
                       // TextFormField per al text de l'apunt
                       TextFormField(
                         controller: _textController,
                         decoration: InputDecoration(
-                          labelText: 'Text de l\'apunt',
+                          labelText: 'Descripció de la situació',
                           hintText: 'Escriu aquí les teves observacions...',
                           border: const OutlineInputBorder(),
                           prefixIcon: const Icon(Icons.edit),
+                          floatingLabelBehavior: FloatingLabelBehavior.auto,
                           suffixIcon: _textController.text.isNotEmpty
                               ? IconButton(
                                   onPressed: () {
@@ -131,7 +142,71 @@ class _PersonalAnalysisModalState extends State<PersonalAnalysisModal> {
                         minLines: 3,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'El text de l\'apunt és obligatori';
+                            return 'La descripció és obligatòria';
+                          }
+                          return null;
+                        },
+                        onChanged: (_) => setState(() {}),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Selector de font (Partit o Test)
+                      DropdownButtonFormField<AnalysisSource>(
+                        initialValue: _selectedSource,
+                        decoration: const InputDecoration(
+                          labelText: 'Origen de l\'apunt',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: AnalysisSource.values.map((source) {
+                          return DropdownMenuItem(
+                            value: source,
+                            child: Row(
+                              children: [
+                                Icon(source.icon, size: 20),
+                                const SizedBox(width: 8),
+                                Text(source.displayName),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() {
+                              _selectedSource = value;
+                            });
+                          }
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Camp d'article del reglament (OBLIGATORI)
+                      TextFormField(
+                        controller: _ruleArticleController,
+                        decoration: InputDecoration(
+                          labelText: 'Article del reglament *',
+                          hintText: 'Ex: Art. 33.10',
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.menu_book),
+                          suffixIcon: _ruleArticleController.text.isNotEmpty
+                              ? IconButton(
+                                  onPressed: () {
+                                    _ruleArticleController.clear();
+                                    setState(() {});
+                                  },
+                                  icon: const Icon(Icons.clear),
+                                )
+                              : null,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'L\'article del reglament és obligatori';
+                          }
+                          // Validar format bàsic (Art. XX.YY o Art. XX)
+                          final regex = RegExp(r'^Art\.\s*\d+(\.\d+)?$', caseSensitive: false);
+                          if (!regex.hasMatch(value.trim())) {
+                            return 'Format invàlid. Exemple: Art. 33.10';
                           }
                           return null;
                         },
@@ -308,6 +383,8 @@ class _PersonalAnalysisModalState extends State<PersonalAnalysisModal> {
         final updatedAnalysis = widget.existingAnalysis!.copyWith(
           text: text,
           tags: _selectedTags.toList(),
+          ruleArticle: _ruleArticleController.text.trim(),
+          source: _selectedSource,
         );
 
         await provider.updateAnalysis(updatedAnalysis);
@@ -322,17 +399,23 @@ class _PersonalAnalysisModalState extends State<PersonalAnalysisModal> {
         }
       } else {
         // Crear nou apunt
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) {
+          throw Exception('Usuari no autenticat');
+        }
+
         final newAnalysis = PersonalAnalysis(
           id: '', // El servei generarà l'ID automàticament
-          userId: provider.userId!,
+          userId: user.uid,
           matchId: widget.matchId,
           jornadaId: 'jornada_actual', // TODO: obtenir de context real
           text: text,
           tags: _selectedTags.toList(),
           createdAt: DateTime.now(),
-          userDisplayName:
-              'Usuari Actual', // TODO: obtenir del context d'autenticació
+          userDisplayName: user.displayName ?? 'Usuari',
           isEdited: false,
+          source: _selectedSource,
+          ruleArticle: _ruleArticleController.text.trim(),
         );
 
         await provider.addAnalysis(newAnalysis);

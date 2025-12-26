@@ -1,4 +1,4 @@
-import 'package:el_visionat/features/teams/models/team_platform.dart';
+import 'package:el_visionat/models/team.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';

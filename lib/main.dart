@@ -61,10 +61,10 @@ void main() async {
   // If running in debug mode on web, point Firestore/Functions/Auth/Storage to the local emulators.
   // This is required for Flutter web where environment variables like FIRESTORE_EMULATOR_HOST
   // are not available. Ports are aligned with `firebase.json` (auth:9198, firestore:8088, functions:5001, storage:9199).
-  // Use --dart-define=USE_EMULATORS=false to skip emulators in debug mode.
+  // Use --dart-define=USE_EMULATORS=true to enable emulators in debug mode.
   const useEmulators = bool.fromEnvironment(
     'USE_EMULATORS',
-    defaultValue: true,
+    defaultValue: false, // Canviat a false per treballar en producció per defecte
   );
   if (kDebugMode && kIsWeb && useEmulators) {
     const emulatorHost = '127.0.0.1';

@@ -30,36 +30,23 @@ class PersonalNotesTableWidget extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // Taula d'apunts: responsiva, scroll només en mòbil
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isMobile = constraints.maxWidth < 700;
-                final tableContent = Column(
-                  children: [
-                    // Mostrar màxim 3 apunts o apunts de mostra
-                    ...List.generate(
-                      3, // Sempre mostrar 3 files
-                      (index) => _buildPersonalNoteItem(
-                        analysisProvider.analyses.isNotEmpty &&
-                                index < analysisProvider.analyses.length
-                            ? analysisProvider.analyses[index]
-                            : null,
-                        itemIndex: index,
-                        isFirst: index == 0,
-                        isLast: index == 2,
-                      ),
-                    ),
-                  ],
-                );
-                if (isMobile) {
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: IntrinsicWidth(child: tableContent),
-                  );
-                } else {
-                  return SizedBox(width: double.infinity, child: tableContent);
-                }
-              },
+            // Taula d'apunts: sempre ocupa tot l'espai disponible
+            Column(
+              children: [
+                // Mostrar màxim 3 apunts o apunts de mostra
+                ...List.generate(
+                  3, // Sempre mostrar 3 files
+                  (index) => _buildPersonalNoteItem(
+                    analysisProvider.analyses.isNotEmpty &&
+                            index < analysisProvider.analyses.length
+                        ? analysisProvider.analyses[index]
+                        : null,
+                    itemIndex: index,
+                    isFirst: index == 0,
+                    isLast: index == 2,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
 

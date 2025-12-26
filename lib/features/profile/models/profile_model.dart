@@ -3,6 +3,8 @@
 // ignore: unnecessary_library_name
 library profile_model;
 
+import 'season_goals_model.dart';
+
 /// URLs per defecte segons el gènere (Firebase Storage)
 class ProfileDefaults {
   // Avatar per defecte - Dona
@@ -95,6 +97,9 @@ class ProfileModel {
   // Configuració de visibilitat
   final ProfileVisibility visibility;
 
+  // Objectius de temporada
+  final SeasonGoals seasonGoals;
+
   ProfileModel({
     this.displayName,
     this.email,
@@ -107,6 +112,7 @@ class ProfileModel {
     this.personalNotesCount = 0,
     this.sharedClipsCount = 0,
     this.visibility = const ProfileVisibility(),
+    this.seasonGoals = const SeasonGoals(),
   });
 
   /// Getter segur per al nom a mostrar
@@ -206,6 +212,9 @@ class ProfileModel {
       sharedClipsCount: data['sharedClipsCount'] as int? ?? 0,
       visibility: ProfileVisibility.fromMap(
         data['profileVisibility'] as Map<String, dynamic>?,
+      ),
+      seasonGoals: SeasonGoals.fromMap(
+        data['seasonGoals'] as Map<String, dynamic>?,
       ),
     );
   }

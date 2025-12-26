@@ -7,7 +7,6 @@
 export 'models/assessment_grade.dart';
 
 // --- Services ---
-export 'services/isar_service.dart';
 export 'services/firestore_seeder.dart';
 
 // --- Navigation ---

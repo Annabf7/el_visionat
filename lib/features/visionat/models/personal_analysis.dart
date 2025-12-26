@@ -1,4 +1,25 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+
+/// Enumeració d'origen de l'apunt personal
+enum AnalysisSource {
+  match('match', 'Partit', Icons.sports_basketball),
+  test('test', 'Test', Icons.quiz),
+  training('training', 'Formació', Icons.school);
+
+  const AnalysisSource(this.value, this.displayName, this.icon);
+
+  final String value;
+  final String displayName;
+  final IconData icon;
+
+  static AnalysisSource fromValue(String value) {
+    return AnalysisSource.values.firstWhere(
+      (source) => source.value == value,
+      orElse: () => AnalysisSource.match,
+    );
+  }
+}
 
 /// Enumeració de categories d'anàlisi arbitral
 enum AnalysisCategory {
@@ -318,7 +339,7 @@ enum AnalysisTag {
   }
 }
 
-/// Model per a l'anàlisi personal d'un partit
+/// Model per a l'anàlisi personal d'un partit o test
 /// Representa les notes privades d'un usuari sobre el seu arbitratge
 class PersonalAnalysis {
   final String id;
@@ -332,6 +353,12 @@ class PersonalAnalysis {
   final DateTime? editedAt;
   final bool isEdited;
 
+  // Nous camps
+  final AnalysisSource source; // Origen: partit o test
+  final String ruleArticle; // Article del reglament (obligatori) ex: "Art. 33.10"
+  final String? testId; // ID del test (si source == test)
+  final String? matchName; // Nom del partit/test per mostrar
+
   const PersonalAnalysis({
     required this.id,
     required this.matchId,
@@ -343,6 +370,10 @@ class PersonalAnalysis {
     required this.createdAt,
     this.editedAt,
     required this.isEdited,
+    this.source = AnalysisSource.match, // Per defecte: partit
+    this.ruleArticle = '', // Per compatibilitat amb dades antigues
+    this.testId,
+    this.matchName,
   });
 
   /// Validació bàsica del model
@@ -391,6 +422,10 @@ class PersonalAnalysis {
     DateTime? createdAt,
     DateTime? editedAt,
     bool? isEdited,
+    AnalysisSource? source,
+    String? ruleArticle,
+    String? testId,
+    String? matchName,
   }) {
     return PersonalAnalysis(
       id: id ?? this.id,
@@ -403,6 +438,10 @@ class PersonalAnalysis {
       createdAt: createdAt ?? this.createdAt,
       editedAt: editedAt ?? this.editedAt,
       isEdited: isEdited ?? this.isEdited,
+      source: source ?? this.source,
+      ruleArticle: ruleArticle ?? this.ruleArticle,
+      testId: testId ?? this.testId,
+      matchName: matchName ?? this.matchName,
     );
   }
 
@@ -419,6 +458,10 @@ class PersonalAnalysis {
       'createdAt': Timestamp.fromDate(createdAt),
       'editedAt': editedAt != null ? Timestamp.fromDate(editedAt!) : null,
       'isEdited': isEdited,
+      'source': source.value,
+      'ruleArticle': ruleArticle,
+      'testId': testId,
+      'matchName': matchName,
     };
   }
 
@@ -439,6 +482,12 @@ class PersonalAnalysis {
           ? (json['editedAt'] as Timestamp).toDate()
           : null,
       isEdited: json['isEdited'] as bool,
+      source: json['source'] != null
+          ? AnalysisSource.fromValue(json['source'] as String)
+          : AnalysisSource.match,
+      ruleArticle: json['ruleArticle'] as String? ?? '',
+      testId: json['testId'] as String?,
+      matchName: json['matchName'] as String?,
     );
   }
 
@@ -473,7 +522,11 @@ class PersonalAnalysis {
           _listEquals(tags, other.tags) &&
           createdAt == other.createdAt &&
           editedAt == other.editedAt &&
-          isEdited == other.isEdited;
+          isEdited == other.isEdited &&
+          source == other.source &&
+          ruleArticle == other.ruleArticle &&
+          testId == other.testId &&
+          matchName == other.matchName;
 
   @override
   int get hashCode =>
@@ -486,7 +539,11 @@ class PersonalAnalysis {
       tags.hashCode ^
       createdAt.hashCode ^
       editedAt.hashCode ^
-      isEdited.hashCode;
+      isEdited.hashCode ^
+      source.hashCode ^
+      ruleArticle.hashCode ^
+      testId.hashCode ^
+      matchName.hashCode;
 
   /// Helper per comparar llistes
   bool _listEquals(List<AnalysisTag> a, List<AnalysisTag> b) {

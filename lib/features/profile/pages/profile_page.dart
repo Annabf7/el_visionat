@@ -169,9 +169,9 @@ class _ProfilePageState extends State<ProfilePage> {
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(child: _buildObjectiusTemporada()),
+                                Expanded(child: _buildObjectiusTemporada(profile)),
                                 const SizedBox(width: 32),
-                                Expanded(child: _buildBadges()),
+                                Expanded(child: _buildBadges(profile)),
                               ],
                             ),
                           ),
@@ -227,9 +227,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: 24),
                   _buildApuntsPersonals(),
                   const SizedBox(height: 24),
-                  _buildObjectiusTemporada(),
+                  _buildObjectiusTemporada(profile),
                   const SizedBox(height: 24),
-                  _buildBadges(),
+                  _buildBadges(profile),
                   const SizedBox(height: 32),
                 ],
               ),
@@ -260,12 +260,12 @@ class _ProfilePageState extends State<ProfilePage> {
     return const MyClipsWidget();
   }
 
-  Widget _buildObjectiusTemporada() {
-    return const SeasonGoalsWidget();
+  Widget _buildObjectiusTemporada(ProfileModel profile) {
+    return SeasonGoalsWidget(initialGoals: profile.seasonGoals);
   }
 
-  Widget _buildBadges() {
-    return const BadgesWidget();
+  Widget _buildBadges(ProfileModel profile) {
+    return BadgesWidget(profile: profile);
   }
 
   // 🔥 PROFILE HEADER CALLBACKS

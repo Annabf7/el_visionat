@@ -87,24 +87,17 @@ void main() async {
     _warmUpFunctions();
   }
 
-  // --- Inicialització Isar i TeamDataService (persistència local) ---
-  // If running on web with emulators, ensure the teams collection is seeded so the UI can
-  // fetch the teams directly from Firestore (we bypass Isar on web).
-  // Skip in production because it requires authentication.
+  // --- Inicialització de serveis ---
+  // If running on web with emulators, ensure the teams collection is seeded
   if (kIsWeb && useEmulators) {
     await seedTeamsIfEmpty(FirebaseFirestore.instance);
   }
 
-  final isarService = IsarService();
-  // Assegurem que la BBDD està oberta abans d'arrencar l'app
-  await isarService.openDB();
-
   // Inicialitzem el TeamMappingService per resoldre logos d'equips
   await TeamMappingService.instance.initialize();
 
-  // Instanciem el servei de dades d'equips passant Isar i Firestore
+  // Instanciem el servei de dades d'equips amb Firestore
   final teamDataService = TeamDataService(
-    isarService,
     FirebaseFirestore.instance,
   );
 
@@ -117,8 +110,7 @@ void main() async {
     // --- Configuració dels Providers ---
     MultiProvider(
       providers: [
-        // Injecció dels serveis de persistència (disponibles globalment)
-        Provider<IsarService>.value(value: isarService),
+        // Injecció del servei de dades d'equips (disponible globalment)
         Provider<TeamDataService>.value(value: teamDataService),
         // Proveïdor per a l'estat d'autenticació de Firebase (User?)
         StreamProvider<User?>.value(

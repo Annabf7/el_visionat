@@ -195,6 +195,12 @@ class SeasonGoals {
       objectiusTrimestrals.every((g) => g.isEmpty) &&
       objectiuTemporada.isEmpty;
 
+  /// Indica si hi ha algun objectiu definit (per mostrar públicament)
+  bool get hasAnyGoal =>
+      !objectiuTemporada.isEmpty ||
+      puntsMillorar.any((g) => !g.isEmpty) ||
+      objectiusTrimestrals.any((g) => !g.isEmpty);
+
   /// Obté l'historial filtrat per categoria
   List<GoalHistoryEntry> getHistoryByCategory(String category) {
     return history

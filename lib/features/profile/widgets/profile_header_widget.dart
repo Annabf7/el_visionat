@@ -30,6 +30,15 @@ class ProfileHeaderWidget extends StatefulWidget {
   /// Callback per guardar l'offset de la imatge
   final Function(double offset)? onImageOffsetChanged;
 
+  /// Mostra el menú kebab (per defecte: true)
+  final bool showMenu;
+
+  /// Mostra el botó d'ajustament d'imatge (per defecte: true)
+  final bool showImageAdjustButton;
+
+  /// Callback per al botó de retorn (només quan showMenu és false)
+  final VoidCallback? onBackPressed;
+
   const ProfileHeaderWidget({
     super.key,
     this.imageUrl,
@@ -38,6 +47,9 @@ class ProfileHeaderWidget extends StatefulWidget {
     this.onCompareProfileEvolution,
     this.height,
     this.onImageOffsetChanged,
+    this.showMenu = true,
+    this.showImageAdjustButton = true,
+    this.onBackPressed,
   });
 
   @override
@@ -93,19 +105,29 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
         // Gradient overlay per millor contrast dels botons
         _buildTopGradientOverlay(),
 
-        // Botó menú kebab (3 punts) - part superior dreta
-        Positioned(
-          top: isDesktop ? 16 : 8,
-          right: isDesktop ? 16 : 8,
-          child: _buildKebabMenuButton(context, isCompact: !isDesktop),
-        ),
+        // Botó menú kebab (3 punts) - part superior dreta (només si showMenu és true)
+        if (widget.showMenu)
+          Positioned(
+            top: isDesktop ? 16 : 8,
+            right: isDesktop ? 16 : 8,
+            child: _buildKebabMenuButton(context, isCompact: !isDesktop),
+          ),
 
-        // Botó d'ajustament d'imatge - desktop i mòbil
-        Positioned(
-          top: isDesktop ? 16 : 8,
-          left: isDesktop ? 16 : 8,
-          child: _buildImageAdjustButton(isCompact: !isDesktop),
-        ),
+        // Botó de retorn - part superior dreta (només si showMenu és false i hi ha onBackPressed)
+        if (!widget.showMenu && widget.onBackPressed != null)
+          Positioned(
+            top: isDesktop ? 16 : 8,
+            right: isDesktop ? 16 : 8,
+            child: _buildBackButton(isCompact: !isDesktop),
+          ),
+
+        // Botó d'ajustament d'imatge - desktop i mòbil (només si showImageAdjustButton és true)
+        if (widget.showImageAdjustButton)
+          Positioned(
+            top: isDesktop ? 16 : 8,
+            left: isDesktop ? 16 : 8,
+            child: _buildImageAdjustButton(isCompact: !isDesktop),
+          ),
 
         // Controls d'ajustament quan està actiu
         if (_isAdjustingImage) _buildAdjustmentControls(isCompact: !isDesktop),
@@ -439,7 +461,7 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
           _buildPopupMenuItem(
             'change_visibility',
             Icons.visibility_outlined,
-            'Configuració de la visibilitat',
+            'Visibilitat del meu perfil',
           ),
           _buildPopupMenuItem(
             'compare_evolution',
@@ -447,6 +469,35 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
             'Comparar amb fa 1 any',
           ),
         ],
+      ),
+    );
+  }
+
+  /// Botó de retorn per tornar al perfil privat
+  Widget _buildBackButton({bool isCompact = false}) {
+    final buttonSize = isCompact ? 36.0 : 40.0;
+    final iconSize = isCompact ? 18.0 : 20.0;
+
+    return Container(
+      width: buttonSize,
+      height: buttonSize,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.black.withValues(alpha: 0.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: IconButton(
+        icon: Icon(Icons.arrow_back, color: AppTheme.white, size: iconSize),
+        iconSize: iconSize,
+        padding: EdgeInsets.zero,
+        onPressed: widget.onBackPressed,
+        tooltip: 'Tornar al meu perfil',
       ),
     );
   }

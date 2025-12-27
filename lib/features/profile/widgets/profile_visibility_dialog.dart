@@ -218,7 +218,12 @@ class _ProfileVisibilityDialogState extends State<ProfileVisibilityDialog> {
                   Icons.edit_note_outlined,
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+
+                // Botó de previsualització
+                _buildPreviewButton(),
+
+                const SizedBox(height: 24),
 
                 // Botons
                 Row(
@@ -497,6 +502,50 @@ class _ProfileVisibilityDialogState extends State<ProfileVisibilityDialog> {
                 }
                 return AppTheme.grisPistacho;
               }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreviewButton() {
+    return OutlinedButton(
+      onPressed: () {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) return;
+
+        // Navegar a la pàgina de perfil públic del propi usuari
+        Navigator.of(context).pushNamed(
+          '/user-profile',
+          arguments: user.uid,
+        );
+      },
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppTheme.porpraFosc,
+        side: BorderSide(
+          color: AppTheme.porpraFosc.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.visibility_outlined,
+            size: 20,
+            color: AppTheme.porpraFosc,
+          ),
+          const SizedBox(width: 10),
+          const Text(
+            'Veure el meu perfil públic',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
             ),
           ),
         ],

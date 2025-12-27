@@ -205,6 +205,20 @@ class MyApp extends StatelessWidget {
             const CreatePasswordPage(), // Ruta per crear contrasenya
         // Pots afegir més rutes aquí si callen
       },
+      onGenerateRoute: (settings) {
+        // Ruta dinàmica per veure perfils públics d'usuaris
+        if (settings.name == '/user-profile') {
+          final userId = settings.arguments as String?;
+          if (userId != null) {
+            return MaterialPageRoute(
+              builder: (context) => RequireAuth(
+                child: UserProfilePage(userId: userId),
+              ),
+            );
+          }
+        }
+        return null;
+      },
     );
   }
 }

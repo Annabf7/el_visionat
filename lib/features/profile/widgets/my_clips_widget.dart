@@ -31,12 +31,6 @@ class MyClipsWidget extends StatelessWidget {
         final docs = snapshot.data?.docs ?? [];
         final hasClips = !isLoading && !hasError && docs.isNotEmpty;
 
-        // Debug logging
-        debugPrint('MyClipsWidget: isLoading=$isLoading, hasError=$hasError, docs=${docs.length}');
-        if (hasError) {
-          debugPrint('MyClipsWidget ERROR: ${snapshot.error}');
-        }
-
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

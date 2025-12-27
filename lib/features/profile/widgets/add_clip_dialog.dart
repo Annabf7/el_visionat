@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
 import 'package:video_compress/video_compress.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -25,9 +27,11 @@ class _AddClipDialogState extends State<AddClipDialog> {
   final _personalDescriptionController = TextEditingController();
   final _technicalFeedbackController = TextEditingController();
   final _learningNotesController = TextEditingController();
+  final _videoUrlController = TextEditingController();
 
   // State
   XFile? _selectedVideo;
+  XFile? _selectedThumbnail; // Imatge del thumbnail
   DateTime? _matchDate;
   AnalysisTag _actionType = AnalysisTag.faltaPersonal;
   ClipOutcome _outcome = ClipOutcome.dubte;
@@ -37,6 +41,7 @@ class _AddClipDialogState extends State<AddClipDialog> {
   String? _errorMessage;
   int? _videoDuration;
   int? _videoSize;
+  bool _useExternalUrl = false; // Mode: fitxer local vs enllaç extern
 
   @override
   void dispose() {
@@ -45,6 +50,7 @@ class _AddClipDialogState extends State<AddClipDialog> {
     _personalDescriptionController.dispose();
     _technicalFeedbackController.dispose();
     _learningNotesController.dispose();
+    _videoUrlController.dispose();
     super.dispose();
   }
 
@@ -62,32 +68,45 @@ class _AddClipDialogState extends State<AddClipDialog> {
 
       // Verificar mida
       final bytes = await video.readAsBytes();
-      if (bytes.length > VideoClipLimits.maxFileSizeBytes) {
+      final fileSize = bytes.length;
+
+      if (fileSize > VideoClipLimits.maxFileSizeBytes) {
         setState(() {
           _errorMessage =
-              'El vídeo és massa gran (màx ${VideoClipLimits.maxFileSizeBytes ~/ (1024 * 1024)}MB). Es comprimirà automàticament.';
+              'El vídeo és massa gran (${fileSize ~/ (1024 * 1024)}MB). Màxim ${VideoClipLimits.maxFileSizeBytes ~/ (1024 * 1024)}MB.\n'
+              'Recomana\'m: Utilitza una eina gratuïta com HandBrake per comprimir-lo.';
         });
+        return;
       }
 
-      // Obtenir durada amb video_compress
-      final info = await VideoCompress.getMediaInfo(video.path);
+      // En web, no podem obtenir durada amb video_compress (no suportat)
+      // Només en mòbil (Android/iOS)
+      int? duration;
+      if (!kIsWeb) {
+        try {
+          final info = await VideoCompress.getMediaInfo(video.path);
+          duration = (info.duration ?? 0) ~/ 1000; // ms a segons
+
+          // Validar durada
+          if (duration > VideoClipLimits.maxDurationSeconds) {
+            setState(() {
+              _errorMessage =
+                  'El vídeo és massa llarg (${duration}s). Màxim ${VideoClipLimits.maxDurationSeconds}s.';
+            });
+            return;
+          }
+        } catch (e) {
+          debugPrint('Error obtenint info del vídeo: $e');
+          // Continuar igualment, sense durada
+        }
+      }
 
       setState(() {
         _selectedVideo = video;
-        _videoDuration = (info.duration ?? 0) ~/ 1000; // ms a segons
-        _videoSize = bytes.length;
+        _videoDuration = duration;
+        _videoSize = fileSize;
         _errorMessage = null;
       });
-
-      // Validar durada
-      if (_videoDuration != null &&
-          _videoDuration! > VideoClipLimits.maxDurationSeconds) {
-        setState(() {
-          _errorMessage =
-              'El vídeo és massa llarg (${_videoDuration}s). Màxim ${VideoClipLimits.maxDurationSeconds}s.';
-          _selectedVideo = null;
-        });
-      }
     } catch (e) {
       setState(() {
         _errorMessage = 'Error seleccionant vídeo: $e';
@@ -95,10 +114,50 @@ class _AddClipDialogState extends State<AddClipDialog> {
     }
   }
 
+  Future<void> _pickThumbnail() async {
+    final picker = ImagePicker();
+    try {
+      final image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1280,
+        maxHeight: 720,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+
+      // Verificar mida (màx 2MB per thumbnails)
+      final bytes = await image.readAsBytes();
+      final fileSizeMB = bytes.length / (1024 * 1024);
+
+      if (fileSizeMB > 2) {
+        setState(() {
+          _errorMessage = 'La imatge és massa gran (${fileSizeMB.toStringAsFixed(1)}MB). Màxim 2MB.';
+        });
+        return;
+      }
+
+      setState(() {
+        _selectedThumbnail = image;
+        _errorMessage = null;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error seleccionant thumbnail: $e';
+      });
+    }
+  }
+
   Future<void> _uploadClip() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedVideo == null) {
-      setState(() => _errorMessage = 'Has de seleccionar un vídeo');
+
+    // Validar que hi ha vídeo (fitxer o enllaç)
+    if (!_useExternalUrl && _selectedVideo == null) {
+      setState(() => _errorMessage = 'Has de seleccionar un vídeo o proporcionar un enllaç');
+      return;
+    }
+    if (_useExternalUrl && _videoUrlController.text.trim().isEmpty) {
+      setState(() => _errorMessage = 'Has de proporcionar un enllaç de vídeo');
       return;
     }
 
@@ -112,45 +171,65 @@ class _AddClipDialogState extends State<AddClipDialog> {
     });
 
     try {
-      // 1. Comprimir vídeo si és necessari
-      String videoPath = _selectedVideo!.path;
+      String videoUrl;
+      String? thumbnailUrl;
       int finalSize = _videoSize ?? 0;
 
-      if (finalSize > VideoClipLimits.maxFileSizeBytes) {
-        setState(() => _errorMessage = 'Comprimint vídeo...');
-
-        final compressed = await VideoCompress.compressVideo(
-          _selectedVideo!.path,
-          quality: VideoQuality.MediumQuality,
-          deleteOrigin: false,
+      if (_useExternalUrl) {
+        // Mode enllaç extern: usar URL directament
+        videoUrl = _videoUrlController.text.trim();
+        finalSize = 0; // No sabem la mida d'enllaços externs
+      } else {
+        // Mode fitxer local: pujar a Firebase Storage
+        // En web NO comprimim (video_compress no suportat)
+        // En mòbil, tampoc comprimim per simplicitat (validem mida abans)
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName = 'clip_${user.uid}_$timestamp.mp4';
+        final storageRef = FirebaseStorage.instance.ref().child(
+          'video_clips/${user.uid}/$fileName',
         );
 
-        if (compressed?.file != null) {
-          videoPath = compressed!.file!.path;
-          finalSize = await compressed.file!.length();
-        }
+        final uploadTask = storageRef.putData(
+          await _selectedVideo!.readAsBytes(),
+          SettableMetadata(contentType: 'video/mp4'),
+        );
+
+        uploadTask.snapshotEvents.listen((event) {
+          setState(() {
+            _uploadProgress = event.bytesTransferred / event.totalBytes * 0.8; // 80% per vídeo
+          });
+        });
+
+        await uploadTask;
+        videoUrl = await storageRef.getDownloadURL();
       }
 
-      // 2. Pujar a Firebase Storage
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = 'clip_${user.uid}_$timestamp.mp4';
-      final storageRef = FirebaseStorage.instance.ref().child(
-        'video_clips/${user.uid}/$fileName',
-      );
+      // Pujar thumbnail si n'hi ha
+      if (_selectedThumbnail != null) {
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final thumbnailFileName = 'thumbnail_${user.uid}_$timestamp.jpg';
+        final thumbnailRef = FirebaseStorage.instance.ref().child(
+          'video_clips/${user.uid}/thumbnails/$thumbnailFileName',
+        );
 
-      final uploadTask = storageRef.putData(
-        await XFile(videoPath).readAsBytes(),
-        SettableMetadata(contentType: 'video/mp4'),
-      );
-
-      uploadTask.snapshotEvents.listen((event) {
         setState(() {
-          _uploadProgress = event.bytesTransferred / event.totalBytes;
+          _uploadProgress = 0.8; // Començar thumbnail al 80%
         });
-      });
 
-      await uploadTask;
-      final videoUrl = await storageRef.getDownloadURL();
+        final thumbnailUpload = thumbnailRef.putData(
+          await _selectedThumbnail!.readAsBytes(),
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
+
+        thumbnailUpload.snapshotEvents.listen((event) {
+          setState(() {
+            _uploadProgress = 0.8 + (event.bytesTransferred / event.totalBytes * 0.2); // 20% per thumbnail
+          });
+        });
+
+        await thumbnailUpload;
+        thumbnailUrl = await thumbnailRef.getDownloadURL();
+      }
 
       // 3. Crear document a Firestore
       final clipData = {
@@ -163,6 +242,7 @@ class _AddClipDialogState extends State<AddClipDialog> {
             ? Timestamp.fromDate(_matchDate!)
             : null,
         'videoUrl': videoUrl,
+        if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl,
         'durationSeconds': _videoDuration ?? 0,
         'fileSizeBytes': finalSize,
         'actionType': _actionType.value,
@@ -180,7 +260,8 @@ class _AddClipDialogState extends State<AddClipDialog> {
         'createdAt': FieldValue.serverTimestamp(),
       };
 
-      await FirebaseFirestore.instance.collection('video_clips').add(clipData);
+      final docRef = await FirebaseFirestore.instance.collection('video_clips').add(clipData);
+      debugPrint('✅ Clip guardat a Firestore amb ID: ${docRef.id}');
 
       // 4. Actualitzar comptador si és públic
       if (_isPublic) {
@@ -188,8 +269,10 @@ class _AddClipDialogState extends State<AddClipDialog> {
             .collection('users')
             .doc(user.uid)
             .update({'sharedClipsCount': FieldValue.increment(1)});
+        debugPrint('✅ Comptador sharedClipsCount actualitzat');
       }
 
+      debugPrint('✅ Clip pujat correctament. Navegant enrere...');
       if (mounted) {
         Navigator.of(context).pop('success');
       }
@@ -299,6 +382,10 @@ class _AddClipDialogState extends State<AddClipDialog> {
                   children: [
                     // Selector de vídeo
                     _buildVideoSelector(),
+                    const SizedBox(height: 20),
+
+                    // Selector de thumbnail (opcional)
+                    _buildThumbnailSelector(),
                     const SizedBox(height: 28),
 
                     // Informació del partit
@@ -847,6 +934,154 @@ class _AddClipDialogState extends State<AddClipDialog> {
   }
 
   Widget _buildVideoSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Toggle entre fitxer local i enllaç extern
+        Row(
+          children: [
+            Expanded(
+              child: _buildSourceToggleButton(
+                label: 'Pujar arxiu',
+                icon: Icons.upload_file,
+                isSelected: !_useExternalUrl,
+                onTap: () => setState(() {
+                  _useExternalUrl = false;
+                  _videoUrlController.clear();
+                  _errorMessage = null;
+                }),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildSourceToggleButton(
+                label: 'Enllaç extern',
+                icon: Icons.link,
+                isSelected: _useExternalUrl,
+                onTap: () => setState(() {
+                  _useExternalUrl = true;
+                  _selectedVideo = null;
+                  _videoDuration = null;
+                  _videoSize = null;
+                  _errorMessage = null;
+                }),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Selector específic segons el mode
+        if (_useExternalUrl) _buildUrlInput() else _buildFileSelector(),
+      ],
+    );
+  }
+
+  Widget _buildSourceToggleButton({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: _isUploading ? null : onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.mostassa.withValues(alpha: 0.15)
+              : AppTheme.grisPistacho.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected
+                ? AppTheme.mostassa
+                : AppTheme.grisPistacho.withValues(alpha: 0.4),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? AppTheme.mostassa : AppTheme.grisBody,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected ? AppTheme.porpraFosc : AppTheme.grisBody,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUrlInput() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: _videoUrlController,
+          enabled: !_isUploading,
+          decoration: InputDecoration(
+            labelText: 'Enllaç del vídeo *',
+            hintText: 'https://youtube.com/... o Google Drive, Vimeo, etc.',
+            prefixIcon: const Icon(Icons.link, size: 20),
+            filled: true,
+            fillColor: AppTheme.grisPistacho.withValues(alpha: 0.15),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: AppTheme.grisPistacho.withValues(alpha: 0.5),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: AppTheme.grisPistacho.withValues(alpha: 0.5),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppTheme.lilaMitja, width: 1.5),
+            ),
+          ),
+          validator: (v) =>
+              v?.trim().isEmpty == true ? 'Proporciona un enllaç' : null,
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.blue.shade200),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.info_outline, size: 16, color: Colors.blue.shade700),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Plataformes compatibles: YouTube, Google Drive, Vimeo, Streamable',
+                  style: TextStyle(fontSize: 11, color: Colors.blue.shade900),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFileSelector() {
     return InkWell(
       onTap: _isUploading ? null : _pickVideo,
       borderRadius: BorderRadius.circular(16),
@@ -954,6 +1189,117 @@ class _AddClipDialogState extends State<AddClipDialog> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildThumbnailSelector() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.grisPistacho.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _selectedThumbnail != null
+              ? AppTheme.mostassa.withValues(alpha: 0.4)
+              : AppTheme.grisPistacho.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.image_outlined,
+                size: 20,
+                color: AppTheme.porpraFosc.withValues(alpha: 0.7),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Imatge de previsualització (opcional)',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textBlackLow.withValues(alpha: 0.8),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          if (_selectedThumbnail != null) ...[
+            // Previsualització del thumbnail
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: FutureBuilder<Uint8List>(
+                    future: _selectedThumbnail!.readAsBytes(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        return Image.memory(
+                          snapshot.data!,
+                          width: double.infinity,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        );
+                      }
+                      return Container(
+                        width: double.infinity,
+                        height: 120,
+                        color: AppTheme.grisPistacho.withValues(alpha: 0.3),
+                        child: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IconButton(
+                    onPressed: _isUploading
+                        ? null
+                        : () => setState(() => _selectedThumbnail = null),
+                    icon: const Icon(Icons.close),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.black.withValues(alpha: 0.6),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.all(8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            // Botó per seleccionar thumbnail
+            OutlinedButton.icon(
+              onPressed: _isUploading ? null : _pickThumbnail,
+              icon: const Icon(Icons.add_photo_alternate, size: 18),
+              label: const Text('Afegir imatge de previsualització'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.porpraFosc,
+                side: BorderSide(
+                  color: AppTheme.grisPistacho.withValues(alpha: 0.5),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Afegeix una captura o fotograma del vídeo per millorar la previsualització',
+              style: TextStyle(
+                fontSize: 11,
+                color: AppTheme.grisBody.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

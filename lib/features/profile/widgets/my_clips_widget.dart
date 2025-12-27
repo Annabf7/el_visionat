@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 import '../models/video_clip_model.dart';
 import 'add_clip_dialog.dart';
+import 'clip_detail_dialog.dart';
 
 /// Widget que mostra la llista de clips de l'usuari
 /// Inclou botó per afegir nous clips
@@ -29,6 +30,12 @@ class MyClipsWidget extends StatelessWidget {
         final hasError = snapshot.hasError;
         final docs = snapshot.data?.docs ?? [];
         final hasClips = !isLoading && !hasError && docs.isNotEmpty;
+
+        // Debug logging
+        debugPrint('MyClipsWidget: isLoading=$isLoading, hasError=$hasError, docs=${docs.length}');
+        if (hasError) {
+          debugPrint('MyClipsWidget ERROR: ${snapshot.error}');
+        }
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,9 +333,9 @@ class MyClipsWidget extends StatelessWidget {
   }
 
   void _showClipDetails(BuildContext context, VideoClip clip) {
-    // TODO: Implementar vista detallada del clip amb reproductor
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Obrint clip: ${clip.matchInfo}')));
+    showDialog(
+      context: context,
+      builder: (context) => ClipDetailDialog(clip: clip),
+    );
   }
 }

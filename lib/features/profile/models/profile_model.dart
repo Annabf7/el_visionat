@@ -4,6 +4,7 @@
 library profile_model;
 
 import 'season_goals_model.dart';
+import 'home_address_model.dart';
 
 /// URLs per defecte segons el gènere (Firebase Storage)
 class ProfileDefaults {
@@ -100,6 +101,9 @@ class ProfileModel {
   // Objectius de temporada
   final SeasonGoals seasonGoals;
 
+  // Adreça de casa de l'àrbitre (per càlcul de quilometratge)
+  final HomeAddress homeAddress;
+
   ProfileModel({
     this.displayName,
     this.email,
@@ -113,7 +117,8 @@ class ProfileModel {
     this.sharedClipsCount = 0,
     this.visibility = const ProfileVisibility(),
     this.seasonGoals = const SeasonGoals(),
-  });
+    HomeAddress? homeAddress,
+  }) : homeAddress = homeAddress ?? HomeAddress.empty();
 
   /// Getter segur per al nom a mostrar
   String get displayNameSafe => (displayName?.trim().isNotEmpty == true)
@@ -216,6 +221,9 @@ class ProfileModel {
       seasonGoals: SeasonGoals.fromMap(
         data['seasonGoals'] as Map<String, dynamic>?,
       ),
+      homeAddress: data['homeAddress'] != null
+          ? HomeAddress.fromFirestore(data['homeAddress'] as Map<String, dynamic>)
+          : null,
     );
   }
 }

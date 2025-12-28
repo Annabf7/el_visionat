@@ -103,6 +103,13 @@ class GlobalHeader extends StatelessWidget implements PreferredSizeWidget {
           },
         ),
 
+        // Icona de comptabilitat
+        IconButton(
+          onPressed: () => Navigator.pushNamed(context, '/accounting'),
+          icon: const Icon(Icons.euro_outlined, color: AppTheme.mostassa),
+          tooltip: 'Comptabilitat',
+        ),
+
         // Icona campana (notificacions)
         IconButton(
           onPressed: () {

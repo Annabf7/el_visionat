@@ -88,6 +88,12 @@ class SideNavigationMenu extends StatelessWidget {
                       onTap: () => Navigator.pushNamed(ctx, '/teams'),
                     ),
                     _NavigationItem(
+                      icon: Icons.assignment,
+                      text: 'Les meves designacions',
+                      isSelected: isActive('/designations'),
+                      onTap: () => Navigator.pushNamed(ctx, '/designations'),
+                    ),
+                    _NavigationItem(
                       icon: Icons.science,
                       text: 'El Laboratori Arbitral',
                     ),

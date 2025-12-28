@@ -6,6 +6,7 @@ import 'package:el_visionat/features/visionat/index.dart';
 import 'package:el_visionat/features/voting/index.dart';
 import 'package:el_visionat/features/teams/index.dart';
 import 'package:el_visionat/features/profile/index.dart';
+import 'package:el_visionat/features/designations/pages/designations_page.dart';
 import 'package:el_visionat/core/index.dart';
 import 'package:el_visionat/core/services/team_mapping_service.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
@@ -200,6 +201,7 @@ class MyApp extends StatelessWidget {
         '/accounting': (context) => RequireAuth(child: const AccountingPage()),
         '/teams': (context) => RequireAuth(child: const TeamsPage()),
         '/visionat': (context) => RequireAuth(child: const VisionatMatchPage()),
+        '/designations': (context) => RequireAuth(child: const DesignationsPage()),
         '/login': (context) => const LoginPage(), // Ruta explícita per a Login
         '/create-password': (context) =>
             const CreatePasswordPage(), // Ruta per crear contrasenya

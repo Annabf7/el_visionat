@@ -49,6 +49,9 @@ serviceAccountKey.json                # CLAU PRIVADA, MAI fer commit!
 *.key
 *.p12
 
+# 🔐 API Keys (Google Places, etc.)
+/lib/core/config/api_keys.dart         # API keys privades, MAI fer commit!
+
 # 🔐 AFEGIT: Google Services autogenerats
 android/app/google-services.json      # Firebase Android config
 ios/Runner/GoogleService-Info.plist   # Firebase iOS config

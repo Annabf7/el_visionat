@@ -15,17 +15,22 @@ class ProfileFootprintWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width > 900;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Títol principal
-        const Text(
-          'La teva Empremta',
-          style: TextStyle(
-            fontFamily: 'Geist',
-            color: AppTheme.textBlackLow,
-            fontWeight: FontWeight.w700,
-            fontSize: 24,
+        Align(
+          alignment: isDesktop ? Alignment.centerRight : Alignment.centerLeft,
+          child: const Text(
+            'La teva Empremta',
+            style: TextStyle(
+              fontFamily: 'Geist',
+              color: AppTheme.textBlackLow,
+              fontWeight: FontWeight.w700,
+              fontSize: 24,
+            ),
           ),
         ),
         const SizedBox(height: 32),

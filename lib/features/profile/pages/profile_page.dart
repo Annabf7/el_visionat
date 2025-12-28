@@ -16,6 +16,7 @@ import '../widgets/badges_widget.dart';
 import '../widgets/profile_banner_widget.dart';
 import '../widgets/profile_visibility_dialog.dart';
 import '../widgets/my_clips_widget.dart';
+import '../widgets/accounting_summary_widget.dart';
 
 /// Pàgina de perfil d'usuari amb layout responsiu
 /// Segueix el prototip Figma amb la paleta de colors Visionat
@@ -169,7 +170,9 @@ class _ProfilePageState extends State<ProfilePage> {
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(child: _buildObjectiusTemporada(profile)),
+                                Expanded(
+                                  child: _buildObjectiusTemporada(profile),
+                                ),
                                 const SizedBox(width: 32),
                                 Expanded(child: _buildBadges(profile)),
                               ],
@@ -249,7 +252,37 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildEmpremtaVisionat(ProfileModel profile) {
-    return ProfileFootprintWidget(profile: profile);
+    final isDesktop = MediaQuery.of(context).size.width > 900;
+
+    if (isDesktop) {
+      // Layout en Row per desktop - Designacions a l'esquerra, Empremta a la dreta
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 4,
+            child: AccountingSummaryWidget(profile: profile),
+          ),
+          const SizedBox(width: 24),
+          Expanded(
+            flex: 5,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 56),
+              child: ProfileFootprintWidget(profile: profile),
+            ),
+          ),
+        ],
+      );
+    } else {
+      // Layout en Column per mòbil
+      return Column(
+        children: [
+          AccountingSummaryWidget(profile: profile),
+          const SizedBox(height: 24),
+          ProfileFootprintWidget(profile: profile),
+        ],
+      );
+    }
   }
 
   Widget _buildApuntsPersonals() {
@@ -354,9 +387,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
     final result = await showDialog<String>(
       context: context,
-      builder: (context) => ProfileVisibilityDialog(
-        initialVisibility: profile.visibility,
-      ),
+      builder: (context) =>
+          ProfileVisibilityDialog(initialVisibility: profile.visibility),
     );
 
     if (result == 'success' && mounted) {

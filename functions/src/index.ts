@@ -27,6 +27,7 @@ import {resendActivationToken} from "./auth/resend_activation_token";
 import {sendPasswordResetEmail} from "./auth/send_password_reset_email";
 import {warmFunctions} from "./utils/warm_functions";
 import {getYouTubeVideos} from "./youtube/getYouTubeVideos";
+import {searchAddresses, getPlaceDetails} from "./googlePlaces";
 
 // FCBQ Integration - Scraping de dades de la Federació
 import {
@@ -54,6 +55,8 @@ exports.resendActivationToken = resendActivationToken;
 exports.sendPasswordResetEmail = sendPasswordResetEmail;
 exports.warmFunctions = warmFunctions;
 exports.getYouTubeVideos = getYouTubeVideos;
+exports.searchAddresses = searchAddresses;
+exports.getPlaceDetails = getPlaceDetails;
 
 // FCBQ Integration exports
 exports.fetchJornada = fetchJornada;

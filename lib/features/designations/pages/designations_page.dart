@@ -1,11 +1,17 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../core/navigation/side_navigation_menu.dart';
+import '../../../core/widgets/global_header.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../profile/models/profile_model.dart';
 import '../models/designation_model.dart';
 import '../repositories/designations_repository.dart';
 import '../services/pdf_parser_service.dart';
 import '../services/tariff_calculator_service.dart';
+import '../services/distance_calculator_service.dart';
 import '../widgets/designations_tab_view.dart';
 import '../widgets/earnings_summary_widget.dart';
 import '../widgets/category_stats_widget.dart';
@@ -20,6 +26,7 @@ class DesignationsPage extends StatefulWidget {
 
 class _DesignationsPageState extends State<DesignationsPage>
     with SingleTickerProviderStateMixin {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late TabController _tabController;
   final _repository = DesignationsRepository();
 
@@ -78,6 +85,26 @@ class _DesignationsPageState extends State<DesignationsPage>
         return;
       }
 
+      // Obtenir l'adreça de casa de l'àrbitre per calcular quilometratge
+      final user = FirebaseAuth.instance.currentUser;
+      String userHomeAddress = '';
+
+      if (user != null) {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists) {
+          final userData = userDoc.data();
+          final profile = ProfileModel.fromMap(userData);
+
+          if (profile.homeAddress.isComplete) {
+            userHomeAddress = profile.homeAddress.fullAddress;
+          }
+        }
+      }
+
       // Processar cada partit trobat
       int successCount = 0;
       int duplicateCount = 0;
@@ -101,11 +128,18 @@ class _DesignationsPageState extends State<DesignationsPage>
           continue;
         }
 
-        // Calcular quilometratge (podríem implementar càlcul automàtic amb Google Maps API)
-        // Per ara, posem 0 i l'usuari ho pot editar després
-        const kilometers = 0.0;
+        // Calcular quilometratge automàticament si tenim adreça de casa
+        double kilometers = 0.0;
+        final venueAddress = matchData['locationAddress']!;
 
-        // Calcular ingressos
+        if (userHomeAddress.isNotEmpty && venueAddress.isNotEmpty) {
+          kilometers = await DistanceCalculatorService.calculateDistance(
+            originAddress: userHomeAddress,
+            destinationAddress: venueAddress,
+          );
+        }
+
+        // Calcular ingressos amb quilometratge calculat
         final earnings = TariffCalculatorService.calculateEarnings(
           category: matchData['category']!,
           role: matchData['role']!,
@@ -184,6 +218,99 @@ class _DesignationsPageState extends State<DesignationsPage>
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isLargeScreen = constraints.maxWidth > 900;
+
+        if (isLargeScreen) {
+          // Layout desktop: Menú lateral ocupa tota l'alçada
+          return Scaffold(
+            key: _scaffoldKey,
+            body: Row(
+              children: [
+                // Menú lateral amb alçada completa
+                const SizedBox(
+                  width: 288,
+                  height: double.infinity,
+                  child: SideNavigationMenu(),
+                ),
+
+                // Columna dreta amb GlobalHeader + contingut
+                Expanded(
+                  child: Column(
+                    children: [
+                      // GlobalHeader només per l'amplada restant
+                      GlobalHeader(
+                        scaffoldKey: _scaffoldKey,
+                        title: 'Les meves designacions',
+                        showMenuButton: false,
+                      ),
+
+                      // Contingut principal
+                      Expanded(
+                        child: _buildDesktopContent(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            floatingActionButton: _buildFloatingActionButton(),
+          );
+        } else {
+          // Layout mòbil: comportament tradicional
+          return Scaffold(
+            key: _scaffoldKey,
+            drawer: const SideNavigationMenu(),
+            body: Column(
+              children: [
+                // GlobalHeader amb icona hamburguesa
+                GlobalHeader(
+                  scaffoldKey: _scaffoldKey,
+                  title: 'Les meves designacions',
+                  showMenuButton: true,
+                ),
+
+                // Contingut principal
+                Expanded(child: _buildMobileContent()),
+              ],
+            ),
+            floatingActionButton: _buildFloatingActionButton(),
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildFloatingActionButton() {
+    return FloatingActionButton.extended(
+      onPressed: _isUploading ? null : _handlePdfUpload,
+      backgroundColor: AppTheme.mostassa,
+      foregroundColor: AppTheme.porpraFosc,
+      elevation: 6,
+      highlightElevation: 10,
+      icon: _isUploading
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.porpraFosc),
+              ),
+            )
+          : const Icon(Icons.upload_file_rounded, size: 22),
+      label: Text(
+        _isUploading ? 'Processant...' : 'Pujar PDF',
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 15,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopContent() {
     final now = DateTime.now();
 
     // Calcular dates per cada període
@@ -195,77 +322,52 @@ class _DesignationsPageState extends State<DesignationsPage>
     final yearStart = DateTime(now.year, 1, 1, 0, 0, 0);
     final yearEnd = DateTime(now.year, 12, 31, 23, 59, 59);
 
-    return Scaffold(
-      backgroundColor: AppTheme.grisPistacho.withValues(alpha: 0.12),
-      appBar: AppBar(
-        backgroundColor: AppTheme.porpraFosc,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Les meves designacions',
-          style: TextStyle(
-            fontSize: 21,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
-          ),
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppTheme.mostassa,
-          indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.2,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-          tabs: const [
-            Tab(text: 'Setmana'),
-            Tab(text: 'Mes'),
-            Tab(text: 'Any'),
-            Tab(text: 'Tot'),
-          ],
-        ),
-      ),
-      body: Column(
+    return Container(
+      color: AppTheme.grisPistacho.withValues(alpha: 0.12),
+      child: Column(
         children: [
-          // Resum econòmic i estadístiques
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isWideScreen = constraints.maxWidth > 900;
+          // Tabs
+          Container(
+            color: AppTheme.porpraFosc,
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: AppTheme.mostassa,
+              indicatorWeight: 3,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white70,
+              labelStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+              tabs: const [
+                Tab(text: 'Setmana'),
+                Tab(text: 'Mes'),
+                Tab(text: 'Any'),
+                Tab(text: 'Tot'),
+              ],
+            ),
+          ),
 
-              if (isWideScreen) {
-                // En pantalles grans: row amb dos widgets
-                return const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: EarningsSummaryWidget(inRow: true),
-                      ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: CategoryStatsWidget(inRow: true),
-                      ),
-                    ],
-                  ),
-                );
-              } else {
-                // En pantalles petites: column amb dos widgets
-                return const Column(
-                  children: [
-                    EarningsSummaryWidget(inRow: false),
-                    CategoryStatsWidget(inRow: false),
-                  ],
-                );
-              }
-            },
+          // Resum econòmic i estadístiques en fila (desktop)
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: EarningsSummaryWidget(inRow: true),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: CategoryStatsWidget(inRow: true),
+                ),
+              ],
+            ),
           ),
 
           // Historial de partits
@@ -291,30 +393,82 @@ class _DesignationsPageState extends State<DesignationsPage>
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isUploading ? null : _handlePdfUpload,
-        backgroundColor: AppTheme.mostassa,
-        foregroundColor: AppTheme.porpraFosc,
-        elevation: 6,
-        highlightElevation: 10,
-        icon: _isUploading
-            ? SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppTheme.porpraFosc),
-                ),
-              )
-            : const Icon(Icons.upload_file_rounded, size: 22),
-        label: Text(
-          _isUploading ? 'Processant...' : 'Pujar PDF',
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 15,
-            letterSpacing: 0.3,
+    );
+  }
+
+  Widget _buildMobileContent() {
+    final now = DateTime.now();
+
+    // Calcular dates per cada període
+    final weekStartDate = now.subtract(Duration(days: now.weekday - 1));
+    final weekStart = DateTime(weekStartDate.year, weekStartDate.month, weekStartDate.day, 0, 0, 0);
+    final weekEnd = DateTime(weekStartDate.year, weekStartDate.month, weekStartDate.day + 6, 23, 59, 59);
+    final monthStart = DateTime(now.year, now.month, 1, 0, 0, 0);
+    final monthEnd = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+    final yearStart = DateTime(now.year, 1, 1, 0, 0, 0);
+    final yearEnd = DateTime(now.year, 12, 31, 23, 59, 59);
+
+    return Container(
+      color: AppTheme.grisPistacho.withValues(alpha: 0.12),
+      child: Column(
+        children: [
+          // Tabs
+          Container(
+            color: AppTheme.porpraFosc,
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: AppTheme.mostassa,
+              indicatorWeight: 3,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white70,
+              labelStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+              tabs: const [
+                Tab(text: 'Setmana'),
+                Tab(text: 'Mes'),
+                Tab(text: 'Any'),
+                Tab(text: 'Tot'),
+              ],
+            ),
           ),
-        ),
+
+          // Resum econòmic i estadístiques en columna (mòbil)
+          const Column(
+            children: [
+              EarningsSummaryWidget(inRow: false),
+              CategoryStatsWidget(inRow: false),
+            ],
+          ),
+
+          // Historial de partits
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                DesignationsTabView(
+                  startDate: weekStart,
+                  endDate: weekEnd,
+                ),
+                DesignationsTabView(
+                  startDate: monthStart,
+                  endDate: monthEnd,
+                ),
+                DesignationsTabView(
+                  startDate: yearStart,
+                  endDate: yearEnd,
+                ),
+                const DesignationsTabView(),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

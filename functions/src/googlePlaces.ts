@@ -159,3 +159,67 @@ export const getPlaceDetails = onCall(
       );
     }
   });
+
+/**
+ * Cloud Function per calcular distància entre dues adreces
+ * Utilitza Google Maps Distance Matrix API
+ */
+export const calculateDistance = onCall(
+  {region: "europe-west1", secrets: [googlePlacesApiKey]},
+  async (request) => {
+  // Verificar autenticació
+    if (!request.auth) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Cal estar autenticat per utilitzar aquesta funció"
+      );
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = request.data as any;
+    const originAddress = body?.originAddress ?? "";
+    const destinationAddress = body?.destinationAddress ?? "";
+
+    if (!originAddress || !destinationAddress) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Cal proporcionar originAddress i destinationAddress"
+      );
+    }
+
+    try {
+      const url = new URL("https://maps.googleapis.com/maps/api/distancematrix/json");
+      url.searchParams.append("origins", originAddress);
+      url.searchParams.append("destinations", destinationAddress);
+      url.searchParams.append("key", googlePlacesApiKey.value());
+      url.searchParams.append("mode", "driving");
+      url.searchParams.append("language", "ca");
+
+      const response = await fetch(url.toString());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await response.json() as any;
+
+      if (result.status === "OK" && result.rows && result.rows.length > 0) {
+        const elements = result.rows[0].elements;
+        if (elements && elements.length > 0 && elements[0].status === "OK") {
+          const distanceInMeters = elements[0].distance?.value ?? 0;
+          const kilometers = distanceInMeters / 1000.0;
+
+          return {
+            kilometers,
+            distanceText: elements[0].distance?.text ?? "",
+            durationText: elements[0].duration?.text ?? "",
+          };
+        }
+      }
+
+      console.error("Distance Matrix API error:", result.status);
+      return {kilometers: 0.0, distanceText: "", durationText: ""};
+    } catch (error) {
+      console.error("Error calculant distància:", error);
+      throw new HttpsError(
+        "internal",
+        "Error calculant la distància"
+      );
+    }
+  });

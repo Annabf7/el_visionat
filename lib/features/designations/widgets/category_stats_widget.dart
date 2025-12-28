@@ -19,8 +19,9 @@ class CategoryStatsWidget extends StatelessWidget {
           ? EdgeInsets.zero
           : const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(24),
+      constraints: inRow ? const BoxConstraints(minHeight: 400, maxHeight: 400) : null,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: AppTheme.grisPistacho.withValues(alpha: 0.3),
@@ -28,15 +29,16 @@ class CategoryStatsWidget extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.porpraFosc.withValues(alpha: 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: AppTheme.porpraFosc.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Row(
             children: [
               Container(
@@ -64,8 +66,8 @@ class CategoryStatsWidget extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          FutureBuilder<Map<String, int>>(
-            future: repository.getCategoryStats(),
+          StreamBuilder<Map<String, int>>(
+            stream: repository.getCategoryStatsStream(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
@@ -141,6 +143,7 @@ class CategoryStatsWidget extends StatelessWidget {
                                     style: const TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w500,
+                                      color: AppTheme.porpraFosc,
                                     ),
                                     textAlign: TextAlign.center,
                                     maxLines: 2,
@@ -157,7 +160,10 @@ class CategoryStatsWidget extends StatelessWidget {
                               getTitlesWidget: (value, meta) {
                                 return Text(
                                   value.toInt().toString(),
-                                  style: const TextStyle(fontSize: 10),
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: AppTheme.porpraFosc,
+                                  ),
                                 );
                               },
                             ),
@@ -175,7 +181,7 @@ class CategoryStatsWidget extends StatelessWidget {
                           horizontalInterval: 1,
                           getDrawingHorizontalLine: (value) {
                             return FlLine(
-                              color: Colors.grey.withValues(alpha: 0.2),
+                              color: AppTheme.porpraFosc.withValues(alpha: 0.15),
                               strokeWidth: 1,
                             );
                           },
@@ -216,6 +222,7 @@ class CategoryStatsWidget extends StatelessWidget {
             },
           ),
         ],
+        ),
       ),
     );
   }

@@ -28,8 +28,9 @@ class EarningsSummaryWidget extends StatelessWidget {
           ? EdgeInsets.zero
           : const EdgeInsets.all(16),
       padding: const EdgeInsets.all(24),
+      constraints: inRow ? const BoxConstraints(minHeight: 400, maxHeight: 400) : null,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: AppTheme.grisPistacho.withValues(alpha: 0.3),
@@ -37,26 +38,27 @@ class EarningsSummaryWidget extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.porpraFosc.withValues(alpha: 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: AppTheme.porpraFosc.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppTheme.mostassa.withValues(alpha: 0.15),
+                  color: AppTheme.grisBody.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   Icons.euro_rounded,
-                  color: AppTheme.mostassa,
+                  color: Colors.black,
                   size: 24,
                 ),
               ),
@@ -76,8 +78,8 @@ class EarningsSummaryWidget extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: FutureBuilder<double>(
-                  future: repository.getTotalEarnings(
+                child: StreamBuilder<double>(
+                  stream: repository.getTotalEarningsStream(
                     startDate: weekStart,
                     endDate: weekEnd,
                   ),
@@ -93,8 +95,8 @@ class EarningsSummaryWidget extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: FutureBuilder<double>(
-                  future: repository.getTotalEarnings(
+                child: StreamBuilder<double>(
+                  stream: repository.getTotalEarningsStream(
                     startDate: monthStart,
                     endDate: monthEnd,
                   ),
@@ -114,8 +116,8 @@ class EarningsSummaryWidget extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: FutureBuilder<double>(
-                  future: repository.getTotalEarnings(
+                child: StreamBuilder<double>(
+                  stream: repository.getTotalEarningsStream(
                     startDate: yearStart,
                     endDate: yearEnd,
                   ),
@@ -131,8 +133,8 @@ class EarningsSummaryWidget extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: FutureBuilder<double>(
-                  future: repository.getTotalEarnings(),
+                child: StreamBuilder<double>(
+                  stream: repository.getTotalEarningsStream(),
                   builder: (context, snapshot) {
                     return _EarningCard(
                       title: 'Total',
@@ -146,6 +148,7 @@ class EarningsSummaryWidget extends StatelessWidget {
             ],
           ),
         ],
+        ),
       ),
     );
   }
@@ -171,10 +174,10 @@ class _EarningCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.grisPistacho.withValues(alpha: 0.2),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: color.withValues(alpha: 0.25),
+          color: AppTheme.lilaMitja.withValues(alpha: 0.25),
           width: 1.5,
         ),
       ),
@@ -186,10 +189,10 @@ class _EarningCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.2),
+                  color: AppTheme.lilaMitja.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, color: color, size: 16),
+                child: Icon(icon, color: AppTheme.lilaMitja, size: 16),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -209,7 +212,7 @@ class _EarningCard extends StatelessWidget {
           Text(
             formatter.format(amount),
             style: TextStyle(
-              color: color,
+              color: AppTheme.lilaMitja,
               fontSize: 19,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,

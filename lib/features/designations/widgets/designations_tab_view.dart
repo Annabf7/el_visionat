@@ -11,11 +11,7 @@ class DesignationsTabView extends StatelessWidget {
   final DateTime? startDate;
   final DateTime? endDate;
 
-  const DesignationsTabView({
-    super.key,
-    this.startDate,
-    this.endDate,
-  });
+  const DesignationsTabView({super.key, this.startDate, this.endDate});
 
   @override
   Widget build(BuildContext context) {
@@ -30,9 +26,7 @@ class DesignationsTabView extends StatelessWidget {
           : repository.getDesignations(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (snapshot.hasError) {
@@ -154,7 +148,10 @@ class _DateGroup extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: AppTheme.porpraFosc,
                   borderRadius: BorderRadius.circular(10),
@@ -171,7 +168,10 @@ class _DateGroup extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppTheme.mostassa.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
@@ -204,6 +204,10 @@ class _DateGroup extends StatelessWidget {
               children: designations.map((designation) {
                 return Container(
                   width: 380,
+                  constraints: const BoxConstraints(
+                    minHeight: 280,
+                    maxHeight: 280,
+                  ),
                   margin: const EdgeInsets.only(right: 14, bottom: 20),
                   child: _DesignationCard(designation: designation),
                 );
@@ -235,236 +239,255 @@ class _DesignationCard extends StatelessWidget {
     final timeFormat = DateFormat('HH:mm', 'ca_ES');
     final currencyFormat = NumberFormat.currency(locale: 'ca_ES', symbol: '€');
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: AppTheme.grisPistacho.withValues(alpha: 0.4),
-          width: 1.5,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppTheme.porpraFosc.withValues(alpha: 0.15),
+          width: 2,
         ),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => _showDesignationDetails(context),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: AppTheme.grisPistacho.withValues(alpha: 0.15),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.porpraFosc.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header amb hora
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppTheme.lilaClar.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppTheme.lilaClar.withValues(alpha: 0.5),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.access_time_rounded,
-                      size: 14,
-                      color: AppTheme.porpraFosc,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      timeFormat.format(designation.date),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.porpraFosc,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Equips
-              Row(
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () => _showDesignationDetails(context),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      designation.localTeam,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.porpraFosc,
-                        letterSpacing: -0.2,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                  // Header amb hora
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppTheme.grisBody.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        'vs',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.grisBody,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      designation.visitantTeam,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.porpraFosc,
-                        letterSpacing: -0.2,
-                      ),
-                      textAlign: TextAlign.right,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Categoria i competició
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  _InfoChip(
-                    icon: Icons.category_rounded,
-                    label: designation.category,
-                    color: AppTheme.grisPistacho,
-                  ),
-                  _InfoChip(
-                    icon: Icons.emoji_events_rounded,
-                    label: designation.competition,
-                    color: AppTheme.mostassa,
-                  ),
-                  _InfoChip(
-                    icon: Icons.person_rounded,
-                    label: designation.role == 'principal'
-                        ? 'Principal'
-                        : 'Auxiliar',
-                    color: AppTheme.lilaMitja,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Localització
-              Row(
-                children: [
-                  Icon(
-                    Icons.location_on_rounded,
-                    size: 15,
-                    color: AppTheme.grisBody.withValues(alpha: 0.6),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      designation.location,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.grisBody.withValues(alpha: 0.8),
-                        letterSpacing: 0.1,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-
-              Divider(height: 24, color: AppTheme.grisPistacho.withValues(alpha: 0.4)),
-
-              // Informació econòmica
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _EarningDetail(
-                    label: 'Drets',
-                    amount: currencyFormat.format(designation.earnings.rights),
-                    color: AppTheme.lilaMitja,
-                  ),
-                  _EarningDetail(
-                    label: 'Km',
-                    amount: currencyFormat
-                        .format(designation.earnings.kilometersAmount),
-                    color: AppTheme.lilaClar,
-                  ),
-                  _EarningDetail(
-                    label: 'Dietes',
-                    amount:
-                        currencyFormat.format(designation.earnings.allowance),
-                    color: AppTheme.grisPistacho,
-                  ),
-                  _EarningDetail(
-                    label: 'Total',
-                    amount: currencyFormat.format(designation.earnings.total),
-                    color: AppTheme.mostassa,
-                    isTotal: true,
-                  ),
-                ],
-              ),
-
-              // Apunts si n'hi ha
-              if (designation.notes != null && designation.notes!.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
+                    decoration: BoxDecoration(
                       color: AppTheme.lilaClar.withValues(alpha: 0.3),
-                      width: 1.5,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppTheme.lilaClar.withValues(alpha: 0.5),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.access_time_rounded,
+                          size: 14,
+                          color: AppTheme.porpraFosc,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          timeFormat.format(designation.date),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.porpraFosc,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 12),
+
+                  // Equips
+                  Row(
                     children: [
-                      Icon(
-                        Icons.note_rounded,
-                        size: 14,
-                        color: AppTheme.lilaMitja,
-                      ),
-                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          designation.notes!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.textBlackLow,
-                            fontStyle: FontStyle.italic,
-                            letterSpacing: 0.1,
+                          designation.localTeam,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.porpraFosc,
+                            letterSpacing: -0.2,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.grisBody.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'vs',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.grisBody,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          designation.visitantTeam,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.porpraFosc,
+                            letterSpacing: -0.2,
+                          ),
+                          textAlign: TextAlign.right,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ],
+                  const SizedBox(height: 12),
+
+                  // Categoria i rol
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      _InfoChip(
+                        icon: Icons.category_rounded,
+                        label: designation.category,
+                        color: AppTheme.lilaMitja,
+                      ),
+                      _InfoChip(
+                        icon: Icons.person_rounded,
+                        label: designation.role == 'principal'
+                            ? 'Principal'
+                            : 'Auxiliar',
+                        color: AppTheme.lilaMitja,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Localització
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on_rounded,
+                        size: 15,
+                        color: AppTheme.grisBody.withValues(alpha: 0.6),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          designation.location,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.grisBody.withValues(alpha: 0.8),
+                            letterSpacing: 0.1,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  Divider(
+                    height: 24,
+                    color: AppTheme.grisPistacho.withValues(alpha: 0.4),
+                  ),
+
+                  // Informació econòmica
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _EarningDetail(
+                        label: 'Drets',
+                        amount: currencyFormat.format(
+                          designation.earnings.rights,
+                        ),
+                        color: AppTheme.lilaMitja,
+                      ),
+                      _EarningDetail(
+                        label: 'Km',
+                        amount: currencyFormat.format(
+                          designation.earnings.kilometersAmount,
+                        ),
+                        color: AppTheme.lilaMitja,
+                      ),
+                      _EarningDetail(
+                        label: 'Dietes',
+                        amount: currencyFormat.format(
+                          designation.earnings.allowance,
+                        ),
+                        color: AppTheme.lilaMitja,
+                      ),
+                      _EarningDetail(
+                        label: 'Total',
+                        amount: currencyFormat.format(
+                          designation.earnings.total,
+                        ),
+                        color: AppTheme.lilaMitja,
+                        isTotal: true,
+                      ),
+                    ],
+                  ),
+
+                  // Apunts si n'hi ha
+                  if (designation.notes != null &&
+                      designation.notes!.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: AppTheme.lilaClar.withValues(alpha: 0.3),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.note_rounded,
+                            size: 14,
+                            color: AppTheme.lilaMitja,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              designation.notes!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textBlackLow,
+                                fontStyle: FontStyle.italic,
+                                letterSpacing: 0.1,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -661,7 +684,10 @@ class _DesignationDetailsSheetState extends State<_DesignationDetailsSheet> {
 
               // Data i hora
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: AppTheme.grisPistacho.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
@@ -672,7 +698,11 @@ class _DesignationDetailsSheetState extends State<_DesignationDetailsSheet> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.event_rounded, color: AppTheme.lilaMitja, size: 20),
+                    Icon(
+                      Icons.event_rounded,
+                      color: AppTheme.lilaMitja,
+                      size: 20,
+                    ),
                     const SizedBox(width: 10),
                     Text(
                       dateFormat.format(widget.designation.date),
@@ -736,7 +766,11 @@ class _DesignationDetailsSheetState extends State<_DesignationDetailsSheet> {
                       color: AppTheme.mostassa.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(Icons.euro_rounded, color: AppTheme.mostassa, size: 18),
+                    child: Icon(
+                      Icons.euro_rounded,
+                      color: AppTheme.mostassa,
+                      size: 18,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Text(
@@ -753,17 +787,21 @@ class _DesignationDetailsSheetState extends State<_DesignationDetailsSheet> {
               const SizedBox(height: 12),
               _DetailRow(
                 label: 'Drets d\'arbitratge',
-                value: currencyFormat.format(widget.designation.earnings.rights),
+                value: currencyFormat.format(
+                  widget.designation.earnings.rights,
+                ),
               ),
               _DetailRow(
                 label: 'Quilometratge',
-                value: currencyFormat
-                    .format(widget.designation.earnings.kilometersAmount),
+                value: currencyFormat.format(
+                  widget.designation.earnings.kilometersAmount,
+                ),
               ),
               _DetailRow(
                 label: 'Dietes',
-                value:
-                    currencyFormat.format(widget.designation.earnings.allowance),
+                value: currencyFormat.format(
+                  widget.designation.earnings.allowance,
+                ),
               ),
               _DetailRow(
                 label: 'TOTAL',
@@ -782,7 +820,11 @@ class _DesignationDetailsSheetState extends State<_DesignationDetailsSheet> {
                       color: AppTheme.lilaClar.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(Icons.note_rounded, color: AppTheme.lilaMitja, size: 18),
+                    child: Icon(
+                      Icons.note_rounded,
+                      color: AppTheme.lilaMitja,
+                      size: 18,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Text(
@@ -798,8 +840,15 @@ class _DesignationDetailsSheetState extends State<_DesignationDetailsSheet> {
                   if (!_isEditing)
                     TextButton.icon(
                       onPressed: () => setState(() => _isEditing = true),
-                      icon: Icon(Icons.edit_rounded, size: 18, color: AppTheme.lilaMitja),
-                      label: Text('Editar', style: TextStyle(color: AppTheme.lilaMitja)),
+                      icon: Icon(
+                        Icons.edit_rounded,
+                        size: 18,
+                        color: AppTheme.lilaMitja,
+                      ),
+                      label: Text(
+                        'Editar',
+                        style: TextStyle(color: AppTheme.lilaMitja),
+                      ),
                     ),
                 ],
               ),

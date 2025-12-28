@@ -270,6 +270,32 @@ class DesignationsRepository {
     }
   }
 
+  /// Obté estadístiques per categoria com a Stream (actualització en temps real)
+  Stream<Map<String, int>> getCategoryStatsStream() {
+    if (_currentUserId == null) {
+      return Stream.value({});
+    }
+
+    return _firestore
+        .collection('users')
+        .doc(_currentUserId)
+        .collection('designations')
+        .snapshots()
+        .map((snapshot) {
+      final Map<String, int> stats = {};
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final category = data['category'] as String?;
+        if (category != null) {
+          stats[category] = (stats[category] ?? 0) + 1;
+        }
+      }
+
+      return stats;
+    });
+  }
+
   /// Obté el total d'ingressos per període
   Future<double> getTotalEarnings({
     DateTime? startDate,
@@ -309,5 +335,41 @@ class DesignationsRepository {
                     name: 'DesignationsRepository');
       return 0.0;
     }
+  }
+
+  /// Obté el total d'ingressos per període com a Stream (actualització en temps real)
+  Stream<double> getTotalEarningsStream({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) {
+    if (_currentUserId == null) {
+      return Stream.value(0.0);
+    }
+
+    Query query = _firestore
+        .collection('users')
+        .doc(_currentUserId)
+        .collection('designations');
+
+    if (startDate != null) {
+      query = query.where('date',
+                        isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
+    }
+    if (endDate != null) {
+      query = query.where('date',
+                        isLessThanOrEqualTo: Timestamp.fromDate(endDate));
+    }
+
+    return query.snapshots().map((snapshot) {
+      double total = 0.0;
+      for (final doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final earnings = data['earnings'] as Map<String, dynamic>?;
+        if (earnings != null) {
+          total += (earnings['total'] as num?)?.toDouble() ?? 0.0;
+        }
+      }
+      return total;
+    });
   }
 }

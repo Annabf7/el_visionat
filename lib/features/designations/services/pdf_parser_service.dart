@@ -47,6 +47,9 @@ class PdfParserService {
     final List<Map<String, String>> matches = [];
 
     developer.log('Starting to parse PDF text', name: 'PdfParserService');
+    developer.log('PDF TEXT START ==================', name: 'PdfParserService');
+    developer.log(text, name: 'PdfParserService');
+    developer.log('PDF TEXT END ====================', name: 'PdfParserService');
 
     // Dividir el text en línies
     final lines = text.split('\n');

@@ -12,10 +12,15 @@ class GooglePlacesService {
     if (query.isEmpty) return [];
 
     try {
+      developer.log('Cercant adreces per: $query', name: 'GooglePlacesService');
       final callable = _functions.httpsCallable('searchAddresses');
       final result = await callable.call({'query': query});
 
+      developer.log('Resposta rebuda: ${result.data}', name: 'GooglePlacesService');
+
       final suggestions = result.data['suggestions'] as List;
+      developer.log('Suggeriments trobats: ${suggestions.length}', name: 'GooglePlacesService');
+
       return suggestions
           .map((s) => PlaceSuggestion(
                 placeId: s['placeId'],

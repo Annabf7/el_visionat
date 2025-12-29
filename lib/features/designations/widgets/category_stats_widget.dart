@@ -94,8 +94,19 @@ class CategoryStatsWidget extends StatelessWidget {
               }
 
               final stats = snapshot.data!;
+
+              // Debug: mostrar categories i prioritats
+              for (final entry in stats.entries) {
+                print('Category: "${entry.key}" -> Priority: ${_getCategoryPriority(entry.key)}');
+              }
+
               final sortedEntries = stats.entries.toList()
-                ..sort((a, b) => b.value.compareTo(a.value));
+                ..sort((a, b) {
+                  // Ordenar per jerarquia de categoria (de més important a menys)
+                  final priorityA = _getCategoryPriority(a.key);
+                  final priorityB = _getCategoryPriority(b.key);
+                  return priorityA.compareTo(priorityB);
+                });
 
               return Column(
                 children: [
@@ -225,6 +236,90 @@ class CategoryStatsWidget extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Retorna la prioritat d'una categoria segons la jerarquia oficial
+  /// Números més baixos = més prioritat (apareixen primer a l'esquerra)
+  int _getCategoryPriority(String category) {
+    // Normalitzar la categoria per comparació (sense espais extra, majúscules/minúscules)
+    final normalized = category.trim().toUpperCase();
+
+    // Jerarquia oficial de categories (de més important a menys)
+    final priorities = {
+      // Lligues professionals
+      'ACB': 1,
+      'PRIMERA FEB': 2,
+      'LLIGA FEMENINA': 3,
+      'FEMENINA CHALLENGE': 4,
+      'SEGONA FEB': 5,
+      'FEMENINA 2': 6,
+      'TERCERA FEB': 7,
+
+      // Copes i tornejos
+      'SUPER COPA': 8,
+      'COPA CATALUNYA': 9,
+
+      // Categories territorials
+      'PRIMERA CATEGORIA': 10,
+      '1A CATEGORIA': 10,
+      'SEGONA CATEGORIA': 11,
+      '2A CATEGORIA': 11,
+      'TERRITORIAL SÈNIOR': 12,
+      '1A TERRITORIAL': 12,
+      '1A. TERRITORIAL': 12,
+      '2A I 3A TERRITORIAL': 13,
+      '2A TERRITORIAL': 13,
+      '3A TERRITORIAL': 13,
+
+      // Categories de base
+      'SOTS 25': 14,
+      'SOTS 20 PREFERENT': 15,
+      'SOTS 20 NIVELL A': 16,
+      'SOTS 20 NIVELL B': 17,
+      'JÚNIOR PREFERENT': 18,
+      'JUNIOR PREFERENT': 18,
+      'JÚNIOR PREFERENT 1R ANY': 19,
+      'JUNIOR PREFERENT 1R ANY': 19,
+      'JÚNIOR INTERTERRITORIAL': 20,
+      'JUNIOR INTERTERRITORIAL': 20,
+      'JÚNIOR NIVELL A': 21,
+      'JUNIOR NIVELL A': 21,
+      'JÚNIOR NIVELL B': 22,
+      'JUNIOR NIVELL B': 22,
+      'JÚNIOR NIVELL C': 23,
+      'JUNIOR NIVELL C': 23,
+      'CADET PREFERENT': 24,
+      'CADET PREFERENT 1R ANY': 25,
+      'CADET INTERTERRITORIAL': 26,
+      'CADET PROMOCIÓ': 27,
+      'CADET MASCULÍ PROMOCIÓ': 27, // Variant amb masculí/femení
+      'CADET FEMENÍ PROMOCIÓ': 27,
+      'INFANTIL PREFERENT': 28,
+      'INFANTIL PREFERENT 1R ANY': 29,
+      'INFANTIL INTERTERRITORIAL': 30,
+      'INFANTIL': 31,
+      'PREINFANTIL': 31,
+      'PRE-INFANTIL': 31, // Amb guió
+      'MINI': 32,
+      'PREMINI': 32,
+      'PRE-MINI': 32, // Amb guió
+      'ESCOBOL': 33,
+      '3X3 NO PROMOCIÓ': 34,
+      '3X3 PROMOCIÓ': 35,
+    };
+
+    // Buscar coincidència exacta o parcial (ordenat per claus més llargues primer)
+    final sortedPriorities = priorities.entries.toList()
+      ..sort((a, b) => b.key.length.compareTo(a.key.length));
+
+    for (final entry in sortedPriorities) {
+      if (normalized.contains(entry.key)) {
+        return entry.value;
+      }
+    }
+
+    // Si no es troba, assignar una prioritat baixa (al final)
+    return 999;
   }
 
   Color _getColorForIndex(int index) {

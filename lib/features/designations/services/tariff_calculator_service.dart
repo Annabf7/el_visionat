@@ -29,8 +29,31 @@ class TariffCalculatorService {
 
   /// Calcula els drets d'arbitratge segons categoria i rol
   static double _calculateRights(String category, String role) {
-    final cat = category.toUpperCase();
+    // Normalitzar categoria: eliminar prefixos com "C.T.", "C.C.", "C.I.", etc.
+    String normalizedCategory = category.toUpperCase().trim();
+
+    // Eliminar prefixos comuns
+    final prefixes = ['C.T.', 'CT.', 'C.C.', 'CC.', 'C.I.', 'CI.', 'C. T.', 'C. C.', 'C. I.'];
+    for (final prefix in prefixes) {
+      if (normalizedCategory.startsWith(prefix)) {
+        normalizedCategory = normalizedCategory.substring(prefix.length).trim();
+        print('TariffCalculator: Removed prefix "$prefix" from category');
+        break;
+      }
+    }
+
+    // Eliminar punts després de "1A.", "2A.", "3A."
+    normalizedCategory = normalizedCategory
+        .replaceAll('1A.', '1A')
+        .replaceAll('2A.', '2A')
+        .replaceAll('3A.', '3A');
+
+    final cat = normalizedCategory;
     final isPrincipal = role.toLowerCase() == 'principal';
+
+    print('TariffCalculator: Original category: "$category"');
+    print('TariffCalculator: Normalized category: "$cat"');
+    print('TariffCalculator: Role: "$role" (isPrincipal: $isPrincipal)');
 
     // Masculins
     if (cat.contains('SUPER COPA') && cat.contains('MASCULÍ')) {
@@ -85,8 +108,8 @@ class TariffCalculatorService {
     if (cat.contains('CADET INTERTERRITORIAL')) {
       return isPrincipal ? 27.00 : 27.00;
     }
-    if (cat.contains('CADET PROMOCIÓ')) {
-      return 24.00; // Només àrbitre principal
+    if (cat.contains('CADET') && cat.contains('PROMOCIÓ')) {
+      return 24.00; // Només àrbitre principal (masculí o sense especificar)
     }
     if (cat.contains('CADET PREFERENT 1R ANY')) {
       return isPrincipal ? 27.00 : 27.00;
@@ -101,8 +124,9 @@ class TariffCalculatorService {
     if (cat.contains('MINI A1')) {
       return isPrincipal ? 22.00 : 22.00;
     }
-    if (cat.contains('PREMINI') || cat.contains('MINI') ||
-        cat.contains('PREINFANTIL') || cat.contains('INFANTIL PROMOCIÓ')) {
+    if (cat.contains('PREMINI') || cat.contains('PRE-MINI') || cat.contains('MINI') ||
+        cat.contains('PREINFANTIL') || cat.contains('PRE-INFANTIL') ||
+        cat.contains('INFANTIL PROMOCIÓ')) {
       return 22.00; // Només àrbitre principal
     }
     if (cat.contains('ESCOBOL')) {

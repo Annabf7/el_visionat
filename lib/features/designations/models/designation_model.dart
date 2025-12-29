@@ -12,6 +12,7 @@ class DesignationModel {
   final String visitantTeam;
   final String location;
   final String locationAddress;
+  final String? originAddress; // Adreça d'origen (opcional, si null s'usa l'adreça de casa)
   final double kilometers;
   final EarningsModel earnings;
   final String? pdfUrl;
@@ -29,6 +30,7 @@ class DesignationModel {
     required this.visitantTeam,
     required this.location,
     required this.locationAddress,
+    this.originAddress,
     required this.kilometers,
     required this.earnings,
     this.pdfUrl,
@@ -48,6 +50,7 @@ class DesignationModel {
       'visitantTeam': visitantTeam,
       'location': location,
       'locationAddress': locationAddress,
+      'originAddress': originAddress,
       'kilometers': kilometers,
       'earnings': earnings.toMap(),
       'pdfUrl': pdfUrl,
@@ -70,6 +73,7 @@ class DesignationModel {
       visitantTeam: data['visitantTeam'] ?? '',
       location: data['location'] ?? '',
       locationAddress: data['locationAddress'] ?? '',
+      originAddress: data['originAddress'],
       kilometers: (data['kilometers'] ?? 0).toDouble(),
       earnings: EarningsModel.fromMap(data['earnings'] ?? {}),
       pdfUrl: data['pdfUrl'],
@@ -90,6 +94,7 @@ class DesignationModel {
     String? visitantTeam,
     String? location,
     String? locationAddress,
+    String? originAddress,
     double? kilometers,
     EarningsModel? earnings,
     String? pdfUrl,
@@ -107,6 +112,7 @@ class DesignationModel {
       visitantTeam: visitantTeam ?? this.visitantTeam,
       location: location ?? this.location,
       locationAddress: locationAddress ?? this.locationAddress,
+      originAddress: originAddress ?? this.originAddress,
       kilometers: kilometers ?? this.kilometers,
       earnings: earnings ?? this.earnings,
       pdfUrl: pdfUrl ?? this.pdfUrl,

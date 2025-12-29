@@ -205,8 +205,9 @@ class PdfParserService {
       }
 
       // Extreure localització
-      if ((line.contains('CIUTAT') || line.contains('PAVELLÓ') ||
-          line.contains('POLIESPORTIU') || line.contains('COMPLEX')) &&
+      if ((line.contains('CIUTAT') || line.contains('PAVELLÓ') || line.contains('PAVELLO') ||
+          line.contains('POLIESPORTIU') || line.contains('COMPLEX') ||
+          line.contains('PARC') || line.contains('MUNICIPAL')) &&
           !line.contains('CATEGORIA')) {
         currentLocation = line;
         developer.log('Found location: $currentLocation', name: 'PdfParserService');

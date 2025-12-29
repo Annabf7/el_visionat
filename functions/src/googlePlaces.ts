@@ -195,9 +195,23 @@ export const calculateDistance = onCall(
       url.searchParams.append("mode", "driving");
       url.searchParams.append("language", "ca");
 
+      console.log("Distance Matrix API Request:", {
+        origin: originAddress,
+        destination: destinationAddress,
+        url: url.toString().replace(googlePlacesApiKey.value(), "***API_KEY***"),
+      });
+
       const response = await fetch(url.toString());
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await response.json() as any;
+
+      console.log("Distance Matrix API Response:", {
+        status: result.status,
+        errorMessage: result.error_message,
+        rows: result.rows?.length,
+        elements: result.rows?.[0]?.elements?.length,
+        elementStatus: result.rows?.[0]?.elements?.[0]?.status,
+      });
 
       if (result.status === "OK" && result.rows && result.rows.length > 0) {
         const elements = result.rows[0].elements;
@@ -205,15 +219,29 @@ export const calculateDistance = onCall(
           const distanceInMeters = elements[0].distance?.value ?? 0;
           const kilometers = distanceInMeters / 1000.0;
 
+          console.log("Distance calculated successfully:", {
+            kilometers,
+            distanceText: elements[0].distance?.text,
+          });
+
           return {
             kilometers,
             distanceText: elements[0].distance?.text ?? "",
             durationText: elements[0].duration?.text ?? "",
           };
+        } else if (elements && elements.length > 0) {
+          console.error("Distance Matrix element error:", {
+            elementStatus: elements[0].status,
+            elementData: elements[0],
+          });
         }
       }
 
-      console.error("Distance Matrix API error:", result.status);
+      console.error("Distance Matrix API error:", {
+        status: result.status,
+        errorMessage: result.error_message,
+        fullResponse: result,
+      });
       return {kilometers: 0.0, distanceText: "", durationText: ""};
     } catch (error) {
       console.error("Error calculant distància:", error);

@@ -109,6 +109,10 @@ class _DesignationsPageState extends State<DesignationsPage>
       int successCount = 0;
       int duplicateCount = 0;
 
+      // Map per rastrejar pavellons visitats el mateix dia per evitar duplicar desplaçaments
+      // Clau: locationAddress original, Valor: true si ja s'ha cobrat desplaçament
+      final Map<String, bool> venuesWithTravelPaid = {};
+
       for (final matchData in matches) {
         final date = PdfParserService.parseDate(
           matchData['date']!,
@@ -130,13 +134,82 @@ class _DesignationsPageState extends State<DesignationsPage>
 
         // Calcular quilometratge automàticament si tenim adreça de casa
         double kilometers = 0.0;
-        final venueAddress = matchData['locationAddress']!;
+        String venueAddress = matchData['locationAddress']!;
+
+        // Netejar l'adreça del pavelló per millorar la geocodificació
+        // 1. Eliminar "S/N" (sense número)
+        venueAddress = venueAddress
+            .replaceAll('S/N', '')
+            .replaceAll('s/n', '')
+            .replaceAll('S / N', '')
+            .replaceAll('s / n', '');
+
+        // 2. Convertir separadors "·" a comes
+        venueAddress = venueAddress
+            .replaceAll(' · ', ', ')
+            .replaceAll('·', ', ');
+
+        // 3. Netejar comes i espais múltiples
+        venueAddress = venueAddress
+            .replaceAll(RegExp(r'\s+,\s*'), ', ')  // Espais abans de comes
+            .replaceAll(RegExp(r',\s*,'), ',')     // Comes dobles
+            .replaceAll(RegExp(r'\s+'), ' ')       // Espais múltiples
+            .trim();
+
+        // 4. Si l'adreça comença amb coma, eliminar-la
+        if (venueAddress.startsWith(',')) {
+          venueAddress = venueAddress.substring(1).trim();
+        }
+
+        // 5. Si l'adreça acaba amb coma, eliminar-la
+        if (venueAddress.endsWith(',')) {
+          venueAddress = venueAddress.substring(0, venueAddress.length - 1).trim();
+        }
+
+        // 6. Afegir "Spain" al final si no hi és per millorar la geocodificació
+        if (!venueAddress.toUpperCase().contains('SPAIN') &&
+            !venueAddress.toUpperCase().contains('ESPAÑA') &&
+            !venueAddress.toUpperCase().contains('ESPANYA')) {
+          venueAddress = '$venueAddress, Spain';
+        }
+
+        print('==== DESIGNATION DEBUG ====');
+        print('Match #${matchData['matchNumber']}:');
+        print('  Category: "${matchData['category']}"');
+        print('  Role: "${matchData['role']}"');
+        print('  Date: $date');
+        print('  Time: ${matchData['time']}');
+        print('  User home address: "$userHomeAddress"');
+        print('  Venue address (original): "${matchData['locationAddress']}"');
+        print('  Venue address (cleaned): "$venueAddress"');
+
+        // Comprovar si ja s'ha cobrat desplaçament per aquest pavelló
+        final originalVenueAddress = matchData['locationAddress']!;
+        final bool shouldChargeTravel = !venuesWithTravelPaid.containsKey(originalVenueAddress);
 
         if (userHomeAddress.isNotEmpty && venueAddress.isNotEmpty) {
-          kilometers = await DistanceCalculatorService.calculateDistance(
-            originAddress: userHomeAddress,
-            destinationAddress: venueAddress,
-          );
+          if (shouldChargeTravel) {
+            // Primer partit en aquest pavelló: calcular distància
+            final oneWayKm = await DistanceCalculatorService.calculateDistance(
+              originAddress: userHomeAddress,
+              destinationAddress: venueAddress,
+            );
+
+            // Multiplicar per 2 per incloure anada i tornada
+            kilometers = oneWayKm * 2;
+
+            print('  Distance (one way): $oneWayKm km');
+            print('  Distance (round trip): $kilometers km');
+
+            // Marcar que ja s'ha cobrat desplaçament per aquest pavelló
+            venuesWithTravelPaid[originalVenueAddress] = true;
+          } else {
+            // Aquest pavelló ja ha tingut un partit amb desplaçament cobrat
+            print('  ⚠️ Travel already charged for this venue - setting kilometers to 0');
+            kilometers = 0.0;
+          }
+        } else {
+          print('  ⚠️ Skipping distance calculation (missing address)');
         }
 
         // Calcular ingressos amb quilometratge calculat
@@ -147,6 +220,13 @@ class _DesignationsPageState extends State<DesignationsPage>
           matchDate: date,
           matchTime: matchData['time']!,
         );
+
+        print('  EARNINGS CALCULATED:');
+        print('    Rights: ${earnings.rights}€');
+        print('    Kilometers amount: ${earnings.kilometersAmount}€');
+        print('    Allowance: ${earnings.allowance}€');
+        print('    TOTAL: ${earnings.total}€');
+        print('==========================');
 
         // Crear designació
         final designation = DesignationModel(

@@ -16,23 +16,29 @@ class DesignationDetailsSheet extends StatefulWidget {
   const DesignationDetailsSheet({super.key, required this.designation});
 
   @override
-  State<DesignationDetailsSheet> createState() => _DesignationDetailsSheetState();
+  State<DesignationDetailsSheet> createState() =>
+      _DesignationDetailsSheetState();
 }
 
 class _DesignationDetailsSheetState extends State<DesignationDetailsSheet> {
   late TextEditingController _notesController;
+  late TextEditingController _partnerNotesController;
   bool _isEditing = false;
   bool _isSaving = false;
+  bool _isEditingPartnerNotes = false;
+  bool _isSavingPartnerNotes = false;
 
   @override
   void initState() {
     super.initState();
     _notesController = TextEditingController(text: widget.designation.notes);
+    _partnerNotesController = TextEditingController(text: widget.designation.refereePartnerNotes);
   }
 
   @override
   void dispose() {
     _notesController.dispose();
+    _partnerNotesController.dispose();
     super.dispose();
   }
 
@@ -62,6 +68,39 @@ class _DesignationDetailsSheetState extends State<DesignationDetailsSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Error guardant els apunts'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _savePartnerNotes() async {
+    setState(() => _isSavingPartnerNotes = true);
+
+    final repository = DesignationsRepository();
+    final success = await repository.updateRefereePartnerNotes(
+      widget.designation.id,
+      _partnerNotesController.text,
+    );
+
+    if (mounted) {
+      setState(() {
+        _isSavingPartnerNotes = false;
+        _isEditingPartnerNotes = false;
+      });
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Anotacions del company/a guardades correctament'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error guardant les anotacions'),
             backgroundColor: Colors.red,
           ),
         );
@@ -158,57 +197,99 @@ class _DesignationDetailsSheetState extends State<DesignationDetailsSheet> {
     final currencyFormat = NumberFormat.currency(locale: 'ca_ES', symbol: '€');
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.75,
+      initialChildSize: 0.95,
       minChildSize: 0.5,
       maxChildSize: 0.95,
       expand: false,
       builder: (context, scrollController) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: Column(
-            children: [
-              // Handle bar
-              Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppTheme.grisBody.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+        return Stack(
+          children: [
+            // Contingut principal
+            Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
+              child: Column(
+                children: [
+                  // Handle bar
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Center(
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 12, bottom: 8),
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppTheme.grisBody.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                  ),
 
-              Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                  children: [
-                    // Hero Header amb gradient
-                    _buildHeroHeader(dateFormat, timeFormat),
-                    const SizedBox(height: 24),
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                      children: [
+                        // Hero Header amb gradient
+                        _buildHeroHeader(dateFormat, timeFormat),
+                        const SizedBox(height: 24),
 
-                    // Informació del partit
-                    _buildMatchInfo(),
-                    const SizedBox(height: 24),
+                        // Informació del partit
+                        _buildMatchInfo(),
+                        const SizedBox(height: 24),
 
-                    // Detall econòmic
-                    _buildEconomicDetails(currencyFormat),
-                    const SizedBox(height: 24),
+                        // Detall econòmic
+                        _buildEconomicDetails(currencyFormat),
+                        const SizedBox(height: 24),
 
-                    // Apunts personals
-                    _buildNotes(),
-                    const SizedBox(height: 32),
+                        // Apunts personals
+                        _buildNotes(),
 
-                    // Botons d'acció
-                    _buildActionButtons(context),
+                        // Company/companya àrbitre (només si existeix)
+                        if (widget.designation.refereePartner?.isNotEmpty == true) ...[
+                          const SizedBox(height: 24),
+                          _buildRefereePartnerSection(),
+                        ],
+
+                        const SizedBox(height: 32),
+
+                        // Botons d'acció
+                        _buildActionButtons(context),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Botó de tancar flotant (sempre visible per sobre de tot)
+            Positioned(
+              top: 8,
+              right: 16,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
                   ],
                 ),
+                child: IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                  color: AppTheme.grisPistacho,
+                  iconSize: 24,
+                  tooltip: 'Tancar',
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );
@@ -399,7 +480,9 @@ class _DesignationDetailsSheetState extends State<DesignationDetailsSheet> {
               ),
               _buildCompactChip(
                 Icons.sports_rounded,
-                widget.designation.role == 'principal' ? 'Principal' : 'Auxiliar',
+                widget.designation.role == 'principal'
+                    ? 'Principal'
+                    : 'Auxiliar',
                 AppTheme.lilaMitja,
               ),
             ],
@@ -431,33 +514,54 @@ class _DesignationDetailsSheetState extends State<DesignationDetailsSheet> {
           ),
           child: Column(
             children: [
-              _buildInfoRow(
-                Icons.category_rounded,
-                'Categoria',
-                widget.designation.category,
+              // Fila 1: Categoria i Competició
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _buildInfoRow(
+                      Icons.category_rounded,
+                      'Categoria',
+                      widget.designation.category,
+                    ),
+                  ),
+                  if (widget.designation.competition.isNotEmpty) ...[
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildInfoRow(
+                        Icons.emoji_events_rounded,
+                        'Competició',
+                        widget.designation.competition,
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              if (widget.designation.competition.isNotEmpty) ...[
-                const SizedBox(height: 14),
-                _buildInfoRow(
-                  Icons.emoji_events_rounded,
-                  'Competició',
-                  widget.designation.competition,
-                ),
-              ],
               const SizedBox(height: 14),
-              _buildInfoRow(
-                Icons.location_on_rounded,
-                'Pavelló',
-                widget.designation.location,
+              // Fila 2: Pavelló i Adreça
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _buildInfoRow(
+                      Icons.location_on_rounded,
+                      'Pavelló',
+                      widget.designation.location,
+                    ),
+                  ),
+                  if (widget.designation.locationAddress.isNotEmpty) ...[
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildInfoRow(
+                        Icons.map_rounded,
+                        'Adreça',
+                        widget.designation.locationAddress,
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              if (widget.designation.locationAddress.isNotEmpty) ...[
-                const SizedBox(height: 14),
-                _buildInfoRow(
-                  Icons.map_rounded,
-                  'Adreça',
-                  widget.designation.locationAddress,
-                ),
-              ],
+              // Fila 3: Distància (si existeix)
               if (widget.designation.kilometers > 0) ...[
                 const SizedBox(height: 14),
                 _buildInfoRow(
@@ -498,7 +602,9 @@ class _DesignationDetailsSheetState extends State<DesignationDetailsSheet> {
             Expanded(
               child: _buildEarningCard(
                 'Km',
-                currencyFormat.format(widget.designation.earnings.kilometersAmount),
+                currencyFormat.format(
+                  widget.designation.earnings.kilometersAmount,
+                ),
                 Icons.local_gas_station_rounded,
                 AppTheme.lilaClar,
               ),
@@ -551,7 +657,10 @@ class _DesignationDetailsSheetState extends State<DesignationDetailsSheet> {
                 label: const Text('Editar'),
                 style: TextButton.styleFrom(
                   foregroundColor: AppTheme.lilaMitja,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                 ),
               ),
           ],
@@ -583,7 +692,8 @@ class _DesignationDetailsSheetState extends State<DesignationDetailsSheet> {
                           : () {
                               setState(() {
                                 _isEditing = false;
-                                _notesController.text = widget.designation.notes ?? '';
+                                _notesController.text =
+                                    widget.designation.notes ?? '';
                               });
                             },
                       child: const Text('Cancel·lar'),
@@ -602,7 +712,9 @@ class _DesignationDetailsSheetState extends State<DesignationDetailsSheet> {
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
                               ),
                             )
                           : const Text('Guardar'),
@@ -614,6 +726,7 @@ class _DesignationDetailsSheetState extends State<DesignationDetailsSheet> {
           )
         else
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: AppTheme.grisPistacho.withValues(alpha: 0.1),
@@ -643,34 +756,204 @@ class _DesignationDetailsSheetState extends State<DesignationDetailsSheet> {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context) {
+  Widget _buildRefereePartnerSection() {
+    // Determinar títol segons el rol
+    final isReferee = widget.designation.role == 'principal' ||
+                      widget.designation.role == 'auxiliar';
+    final sectionTitle = isReferee
+        ? 'Company/companya àrbitre'
+        : 'Companys/companyes de taula';
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ElevatedButton.icon(
-          onPressed: () => _editDesignation(context),
-          icon: const Icon(Icons.edit_rounded),
-          label: const Text('Editar designació'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.lilaMitja,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        Row(
+          children: [
+            _buildSectionHeader(
+              Icons.people_rounded,
+              sectionTitle,
+              AppTheme.grisPistacho,
+            ),
+            const Spacer(),
+            if (!_isEditingPartnerNotes)
+              TextButton.icon(
+                onPressed: () => setState(() => _isEditingPartnerNotes = true),
+                icon: const Icon(Icons.edit_rounded, size: 16),
+                label: const Text('Editar'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.grisPistacho,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // Mostrar nom del company/companya
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.grisPistacho.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.grisPistacho.withValues(alpha: 0.3),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.grisPistacho.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.person_rounded,
+                  color: AppTheme.grisPistacho,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  widget.designation.refereePartner ?? '',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textBlackLow,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Anotacions editables
+        if (_isEditingPartnerNotes)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _partnerNotesController,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: 'Afegeix anotacions sobre el company/companya...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: AppTheme.grisPistacho.withValues(alpha: 0.05),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _isSavingPartnerNotes
+                          ? null
+                          : () {
+                              setState(() {
+                                _isEditingPartnerNotes = false;
+                                _partnerNotesController.text =
+                                    widget.designation.refereePartnerNotes ?? '';
+                              });
+                            },
+                      child: const Text('Cancel·lar'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isSavingPartnerNotes ? null : _savePartnerNotes,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.grisPistacho,
+                      ),
+                      child: _isSavingPartnerNotes
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Text('Guardar'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          )
+        else
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppTheme.grisPistacho.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppTheme.grisPistacho.withValues(alpha: 0.2),
+                width: 1.5,
+              ),
+            ),
+            child: Text(
+              widget.designation.refereePartnerNotes?.isEmpty ?? true
+                  ? 'Encara no hi ha anotacions sobre el company/companya'
+                  : widget.designation.refereePartnerNotes!,
+              style: TextStyle(
+                fontSize: 14,
+                color: widget.designation.refereePartnerNotes?.isEmpty ?? true
+                    ? AppTheme.grisBody.withValues(alpha: 0.6)
+                    : AppTheme.textBlackLow,
+                fontStyle: widget.designation.refereePartnerNotes?.isEmpty ?? true
+                    ? FontStyle.italic
+                    : FontStyle.normal,
+                height: 1.5,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: () => _editDesignation(context),
+            icon: const Icon(Icons.edit_rounded),
+            label: const Text('Editar designació'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.lilaMitja,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: () => _confirmDelete(context),
-          icon: const Icon(Icons.delete_outline),
-          label: const Text('Eliminar designació'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.red,
-            side: const BorderSide(color: Colors.red, width: 1.5),
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        const SizedBox(width: 12),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => _confirmDelete(context),
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Eliminar designació'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.lilaMitja,
+              side: const BorderSide(color: AppTheme.lilaMitja, width: 1.5),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ),
@@ -731,7 +1014,12 @@ class _DesignationDetailsSheetState extends State<DesignationDetailsSheet> {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value, {bool highlight = false}) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value, {
+    bool highlight = false,
+  }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

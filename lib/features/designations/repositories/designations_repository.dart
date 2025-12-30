@@ -115,6 +115,28 @@ class DesignationsRepository {
     }
   }
 
+  /// Actualitza només les anotacions del company/companya àrbitre
+  Future<bool> updateRefereePartnerNotes(String designationId, String partnerNotes) async {
+    try {
+      if (_currentUserId == null) return false;
+
+      await _firestore
+          .collection('users')
+          .doc(_currentUserId)
+          .collection('designations')
+          .doc(designationId)
+          .update({'refereePartnerNotes': partnerNotes});
+
+      developer.log('Referee partner notes updated for designation: $designationId',
+                    name: 'DesignationsRepository');
+      return true;
+    } catch (e) {
+      developer.log('Error updating referee partner notes: $e',
+                    name: 'DesignationsRepository');
+      return false;
+    }
+  }
+
   /// Elimina una designació
   Future<bool> deleteDesignation(String designationId) async {
     try {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/google_places_service.dart';
 import '../models/designation_model.dart';
 import '../repositories/designations_repository.dart';
 import '../services/distance_calculator_service.dart';
@@ -30,9 +31,22 @@ class _EditDesignationDialogState extends State<EditDesignationDialog> {
   late TextEditingController _venueAddressController;
   late TextEditingController _kilometersController;
   late TextEditingController _notesController;
+  late TextEditingController _refereePartnerController;
+  late TextEditingController _originSearchController;
+  late TextEditingController _venueSearchController;
 
   bool _isLoading = false;
   bool _useCustomOrigin = false;
+
+  // Estat per autocompletat d'origen
+  List<PlaceSuggestion> _originSuggestions = [];
+  bool _isOriginSearching = false;
+  bool _showOriginSuggestions = false;
+
+  // Estat per autocompletat de pavelló
+  List<PlaceSuggestion> _venueSuggestions = [];
+  bool _isVenueSearching = false;
+  bool _showVenueSuggestions = false;
 
   @override
   void initState() {
@@ -51,9 +65,18 @@ class _EditDesignationDialogState extends State<EditDesignationDialog> {
     _notesController = TextEditingController(
       text: widget.designation.notes ?? '',
     );
+    _refereePartnerController = TextEditingController(
+      text: widget.designation.refereePartner ?? '',
+    );
+    _originSearchController = TextEditingController();
+    _venueSearchController = TextEditingController();
 
     // Si hi ha una adreça d'origen personalitzada, marcar el checkbox
     _useCustomOrigin = widget.designation.originAddress != null;
+
+    // Listeners per autocompletat
+    _originSearchController.addListener(_onOriginSearchChanged);
+    _venueSearchController.addListener(_onVenueSearchChanged);
   }
 
   @override
@@ -62,7 +85,86 @@ class _EditDesignationDialogState extends State<EditDesignationDialog> {
     _venueAddressController.dispose();
     _kilometersController.dispose();
     _notesController.dispose();
+    _refereePartnerController.dispose();
+    _originSearchController.dispose();
+    _venueSearchController.dispose();
     super.dispose();
+  }
+
+  void _onOriginSearchChanged() async {
+    final query = _originSearchController.text;
+
+    if (query.length < 3) {
+      setState(() {
+        _originSuggestions = [];
+        _showOriginSuggestions = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isOriginSearching = true;
+      _showOriginSuggestions = true;
+    });
+
+    final suggestions = await GooglePlacesService.searchAddresses(query);
+
+    setState(() {
+      _originSuggestions = suggestions;
+      _isOriginSearching = false;
+    });
+  }
+
+  void _onVenueSearchChanged() async {
+    final query = _venueSearchController.text;
+
+    if (query.length < 3) {
+      setState(() {
+        _venueSuggestions = [];
+        _showVenueSuggestions = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isVenueSearching = true;
+      _showVenueSuggestions = true;
+    });
+
+    final suggestions = await GooglePlacesService.searchAddresses(query);
+
+    setState(() {
+      _venueSuggestions = suggestions;
+      _isVenueSearching = false;
+    });
+  }
+
+  Future<void> _selectOriginPlace(PlaceSuggestion suggestion) async {
+    setState(() {
+      _isOriginSearching = true;
+      _showOriginSuggestions = false;
+    });
+
+    // Per adreces, utilitzem directament la descripció completa
+    setState(() {
+      _originAddressController.text = suggestion.description;
+      _originSearchController.clear();
+      _isOriginSearching = false;
+    });
+  }
+
+  Future<void> _selectVenuePlace(PlaceSuggestion suggestion) async {
+    setState(() {
+      _isVenueSearching = true;
+      _showVenueSuggestions = false;
+    });
+
+    // Per adreces, utilitzem directament la descripció completa
+    setState(() {
+      _venueAddressController.text = suggestion.description;
+      _venueSearchController.clear();
+      _isVenueSearching = false;
+    });
   }
 
   Future<void> _recalculateDistance() async {
@@ -116,6 +218,7 @@ class _EditDesignationDialogState extends State<EditDesignationDialog> {
       final newVenueAddress = _venueAddressController.text;
       final newKilometers = double.parse(_kilometersController.text);
       final newNotes = _notesController.text.isEmpty ? null : _notesController.text;
+      final newRefereePartner = _refereePartnerController.text.isEmpty ? null : _refereePartnerController.text;
 
       // Recalcular ingressos amb els nous quilòmetres
       final newEarnings = TariffCalculatorService.calculateEarnings(
@@ -133,6 +236,7 @@ class _EditDesignationDialogState extends State<EditDesignationDialog> {
         kilometers: newKilometers,
         earnings: newEarnings,
         notes: newNotes,
+        refereePartner: newRefereePartner,
       );
 
       // Guardar a Firestore
@@ -205,8 +309,8 @@ class _EditDesignationDialogState extends State<EditDesignationDialog> {
                         'Editar designació',
                         style: TextStyle(
                           fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.porpraFosc,
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.grisPistacho,
                         ),
                       ),
                     ),
@@ -219,39 +323,52 @@ class _EditDesignationDialogState extends State<EditDesignationDialog> {
                 const SizedBox(height: 24),
 
                 // Info del partit
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppTheme.grisBody.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Partit #${widget.designation.matchNumber}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.porpraFosc,
-                        ),
+                SizedBox(
+                  width: double.infinity,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.grisPistacho.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.grisPistacho.withValues(alpha: 0.2),
+                        width: 1,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${widget.designation.localTeam} vs ${widget.designation.visitantTeam}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppTheme.textBlackLow,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Partit #${widget.designation.matchNumber}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.porpraFosc,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
-                      Text(
-                        widget.designation.category,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textBlackLow,
+                        const SizedBox(height: 6),
+                        Text(
+                          '${widget.designation.localTeam} vs ${widget.designation.visitantTeam}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.grisPistacho,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.designation.category,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            color: AppTheme.grisPistacho,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -278,37 +395,208 @@ class _EditDesignationDialogState extends State<EditDesignationDialog> {
                 ),
                 if (_useCustomOrigin) ...[
                   const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _originAddressController,
-                    decoration: const InputDecoration(
-                      labelText: 'Adreça d\'origen',
-                      hintText: 'Ex: Plaça Catalunya, Barcelona',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Introdueix una adreça d\'origen';
-                      }
-                      return null;
-                    },
+                  // Camp de cerca d'adreça d'origen
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: _originSearchController,
+                        decoration: InputDecoration(
+                          labelText: 'Cerca adreça d\'origen',
+                          hintText: 'Comença a escriure...',
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: _isOriginSearching
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                )
+                              : null,
+                        ),
+                      ),
+                      // Llista de suggeriments d'origen
+                      if (_showOriginSuggestions && _originSuggestions.isNotEmpty)
+                        Container(
+                          margin: const EdgeInsets.only(top: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: AppTheme.lilaMitja.withValues(alpha: 0.3),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          constraints: const BoxConstraints(maxHeight: 200),
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: _originSuggestions.length,
+                            itemBuilder: (context, index) {
+                              final suggestion = _originSuggestions[index];
+                              return InkWell(
+                                onTap: () => _selectOriginPlace(suggestion),
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    border: index < _originSuggestions.length - 1
+                                        ? Border(
+                                            bottom: BorderSide(
+                                              color: AppTheme.grisBody.withValues(alpha: 0.2),
+                                            ),
+                                          )
+                                        : null,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.location_on,
+                                        size: 18,
+                                        color: AppTheme.lilaMitja,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          suggestion.description,
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      const SizedBox(height: 12),
+                      // Camp amb l'adreça seleccionada
+                      TextFormField(
+                        controller: _originAddressController,
+                        decoration: const InputDecoration(
+                          labelText: 'Adreça d\'origen seleccionada',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.check_circle, color: AppTheme.lilaMitja),
+                        ),
+                        readOnly: true,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Cerca i selecciona una adreça d\'origen';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
                   ),
                 ],
                 const SizedBox(height: 16),
 
-                // Adreça del pavelló
-                TextFormField(
-                  controller: _venueAddressController,
-                  decoration: const InputDecoration(
-                    labelText: 'Adreça del pavelló',
-                    hintText: 'Ex: Carrer Faraday, 33, Terrassa',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Introdueix l\'adreça del pavelló';
-                    }
-                    return null;
-                  },
+                // Camp de cerca d'adreça del pavelló
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _venueSearchController,
+                      decoration: InputDecoration(
+                        labelText: 'Cerca adreça del pavelló',
+                        hintText: 'Comença a escriure...',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _isVenueSearching
+                            ? const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                    // Llista de suggeriments de pavelló
+                    if (_showVenueSuggestions && _venueSuggestions.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppTheme.lilaMitja.withValues(alpha: 0.3),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        constraints: const BoxConstraints(maxHeight: 200),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: _venueSuggestions.length,
+                          itemBuilder: (context, index) {
+                            final suggestion = _venueSuggestions[index];
+                            return InkWell(
+                              onTap: () => _selectVenuePlace(suggestion),
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  border: index < _venueSuggestions.length - 1
+                                      ? Border(
+                                          bottom: BorderSide(
+                                            color: AppTheme.grisBody.withValues(alpha: 0.2),
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.location_on,
+                                      size: 18,
+                                      color: AppTheme.lilaMitja,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        suggestion.description,
+                                        style: const TextStyle(fontSize: 13),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    const SizedBox(height: 12),
+                    // Camp amb l'adreça del pavelló seleccionada
+                    TextFormField(
+                      controller: _venueAddressController,
+                      decoration: const InputDecoration(
+                        labelText: 'Adreça del pavelló seleccionada',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.check_circle, color: AppTheme.lilaMitja),
+                      ),
+                      readOnly: true,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Cerca i selecciona l\'adreça del pavelló';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
 
@@ -358,6 +646,18 @@ class _EditDesignationDialogState extends State<EditDesignationDialog> {
                 ),
                 const SizedBox(height: 16),
 
+                // Company/companya àrbitre
+                TextFormField(
+                  controller: _refereePartnerController,
+                  decoration: const InputDecoration(
+                    labelText: 'Company/companya àrbitre (opcional)',
+                    hintText: 'Nom del company/companya si és arbitratge a dobles',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.people_rounded),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
                 // Notes
                 TextFormField(
                   controller: _notesController,
@@ -376,7 +676,15 @@ class _EditDesignationDialogState extends State<EditDesignationDialog> {
                   children: [
                     TextButton(
                       onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-                      child: const Text('Cancel·lar'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppTheme.grisPistacho,
+                      ),
+                      child: const Text(
+                        'Cancel·lar',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(

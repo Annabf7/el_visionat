@@ -17,6 +17,8 @@ class DesignationModel {
   final EarningsModel earnings;
   final String? pdfUrl;
   final String? notes;
+  final String? refereePartner; // Nom del company/companya àrbitre (arbitratge a dobles)
+  final String? refereePartnerNotes; // Anotacions sobre el company/companya àrbitre
   final DateTime createdAt;
 
   DesignationModel({
@@ -35,6 +37,8 @@ class DesignationModel {
     required this.earnings,
     this.pdfUrl,
     this.notes,
+    this.refereePartner,
+    this.refereePartnerNotes,
     required this.createdAt,
   });
 
@@ -55,6 +59,8 @@ class DesignationModel {
       'earnings': earnings.toMap(),
       'pdfUrl': pdfUrl,
       'notes': notes,
+      'refereePartner': refereePartner,
+      'refereePartnerNotes': refereePartnerNotes,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -78,6 +84,8 @@ class DesignationModel {
       earnings: EarningsModel.fromMap(data['earnings'] ?? {}),
       pdfUrl: data['pdfUrl'],
       notes: data['notes'],
+      refereePartner: data['refereePartner'],
+      refereePartnerNotes: data['refereePartnerNotes'],
       createdAt: (data['createdAt'] as Timestamp).toDate(),
     );
   }
@@ -99,6 +107,8 @@ class DesignationModel {
     EarningsModel? earnings,
     String? pdfUrl,
     String? notes,
+    String? refereePartner,
+    String? refereePartnerNotes,
     DateTime? createdAt,
   }) {
     return DesignationModel(
@@ -117,6 +127,8 @@ class DesignationModel {
       earnings: earnings ?? this.earnings,
       pdfUrl: pdfUrl ?? this.pdfUrl,
       notes: notes ?? this.notes,
+      refereePartner: refereePartner ?? this.refereePartner,
+      refereePartnerNotes: refereePartnerNotes ?? this.refereePartnerNotes,
       createdAt: createdAt ?? this.createdAt,
     );
   }

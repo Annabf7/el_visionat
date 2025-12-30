@@ -47,9 +47,6 @@ class PdfParserService {
     final List<Map<String, String>> matches = [];
 
     developer.log('Starting to parse PDF text', name: 'PdfParserService');
-    print('PDF TEXT START ==================');
-    print(text);
-    print('PDF TEXT END ====================');
 
     // Dividir el text en línies
     final lines = text.split('\n');
@@ -65,6 +62,8 @@ class PdfParserService {
     String? currentRole;
     String? currentLocation;
     String? currentLocationAddress;
+    String? currentRefereePartner;
+    List<Map<String, String>>? currentAllMembers; // Emmagatzemar membres fins tenir currentRole
 
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i].trim();
@@ -84,16 +83,45 @@ class PdfParserService {
       if (line.contains('NÚM') && line.contains('PARTIT')) {
         final match = RegExp(r'(\d+)').firstMatch(line);
         if (match != null) {
-          currentMatchNumber = match.group(1);
+          final newMatchNumber = match.group(1);
+
+          // IMPORTANT: Abans de començar un nou partit, guardar l'anterior si existeix
+          if (currentDate != null &&
+              currentMatchNumber != null &&
+              currentTime != null &&
+              currentLocal != null &&
+              currentVisitant != null &&
+              currentCategory != null &&
+              currentRole != null) {
+
+            _saveMatch(
+              matches,
+              currentDate,
+              currentMatchNumber,
+              currentTime,
+              currentLocal,
+              currentVisitant,
+              currentCategory,
+              currentCompetition,
+              currentRole,
+              currentLocation,
+              currentLocationAddress,
+              currentRefereePartner,
+              currentAllMembers,
+            );
+          }
+
+          currentMatchNumber = newMatchNumber;
           developer.log('Found match number: $currentMatchNumber', name: 'PdfParserService');
 
-          // IMPORTANT: Reset equips quan comencem un nou partit
-          // Això evita que s'arrosseguin valors del partit anterior
+          // Reset variables per al nou partit
           currentLocal = null;
           currentVisitant = null;
           currentCategory = null;
           currentCompetition = null;
           currentRole = null;
+          currentAllMembers = null;
+          currentRefereePartner = null;
         }
       }
 
@@ -152,19 +180,58 @@ class PdfParserService {
         }
       }
 
-      // Extreure categoria - cas especial: CATEGORIA i COMPETICIÓ en línies consecutives
+      // Extreure categoria i competició - cas especial: poden estar en la mateixa línia o en línies adjacents
       if (line.toUpperCase() == 'CATEGORIA' && i + 1 < lines.length) {
         final nextLine = lines[i + 1].trim().toUpperCase();
 
-        // Si la següent línia és COMPETICIÓ, la categoria està 2 línies més avall
+        // Si la següent línia és COMPETICIÓ, categoria i competició estan en format taula
         if (nextLine == 'COMPETICIÓ') {
-          // Buscar la categoria a partir de la línia i+2
-          for (int j = i + 2; j < lines.length && j < i + 5; j++) {
-            final catLine = lines[j].trim();
-            if (catLine.isNotEmpty && !_isHeaderLine(catLine)) {
-              currentCategory = catLine;
-              print('Found category (after COMPETICIÓ): $currentCategory');
-              break;
+          // Buscar la línia amb els valors (línia i+2)
+          if (i + 2 < lines.length) {
+            final valuesLine = lines[i + 2].trim();
+
+            // Intentar separar categoria i competició
+            // Format típic: "C.C. PRIMERA CATEGORIA MASCULINA FASE PRÈVIA - 04"
+            // O poden estar en línies separades
+
+            // Primer, buscar si hi ha múltiples línies amb valors
+            final categoryLine = valuesLine;
+            String? competitionLine;
+
+            if (i + 3 < lines.length) {
+              final possibleCompLine = lines[i + 3].trim();
+              if (possibleCompLine.isNotEmpty &&
+                  !_isHeaderLine(possibleCompLine) &&
+                  !possibleCompLine.contains('FUNCIÓ') &&
+                  !possibleCompLine.contains('JORNADA')) {
+                competitionLine = possibleCompLine;
+              }
+            }
+
+            // Si no hi ha línia separada, intentar dividir la línia
+            if (competitionLine == null && categoryLine.isNotEmpty) {
+              // Buscar patrons comuns de competició: "FASE", "GRUP", "RONDA", etc.
+              final faseMatch = RegExp(r'(FASE[^A-Z]*(?:PRÈVIA|REGULAR|FINAL)[^A-Z]*-[^A-Z]*\d+)', caseSensitive: false).firstMatch(categoryLine);
+              final grupMatch = RegExp(r'(GRUP[^A-Z]*\d+)', caseSensitive: false).firstMatch(categoryLine);
+
+              if (faseMatch != null) {
+                currentCompetition = faseMatch.group(1)!.trim();
+                currentCategory = categoryLine.substring(0, faseMatch.start).trim();
+                developer.log('Found category and competition (split): $currentCategory | $currentCompetition', name: 'PdfParserService');
+              } else if (grupMatch != null) {
+                currentCompetition = grupMatch.group(1)!.trim();
+                currentCategory = categoryLine.substring(0, grupMatch.start).trim();
+                developer.log('Found category and competition (split): $currentCategory | $currentCompetition', name: 'PdfParserService');
+              } else {
+                // No s'ha pogut separar, assignar tot a categoria
+                currentCategory = categoryLine;
+                developer.log('Found category only: $currentCategory', name: 'PdfParserService');
+              }
+            } else if (competitionLine != null) {
+              // Hi ha línies separades
+              currentCategory = categoryLine;
+              currentCompetition = competitionLine;
+              developer.log('Found category and competition (separate lines): $currentCategory | $currentCompetition', name: 'PdfParserService');
             }
           }
         }
@@ -174,20 +241,20 @@ class PdfParserService {
             final catLine = lines[j].trim();
             if (catLine.isNotEmpty && !_isHeaderLine(catLine)) {
               currentCategory = catLine;
-              print('Found category: $currentCategory');
+              developer.log('Found category: $currentCategory', name: 'PdfParserService');
               break;
             }
           }
         }
       }
 
-      // Extreure competició
-      if (line.toUpperCase() == 'COMPETICIÓ') {
+      // Extreure competició (si no s'ha extret abans)
+      if (line.toUpperCase() == 'COMPETICIÓ' && currentCompetition == null) {
         for (int j = i + 1; j < lines.length && j < i + 3; j++) {
           final compLine = lines[j].trim();
           if (compLine.isNotEmpty && !compLine.contains('FUNCIÓ') && !compLine.contains('JORNADA')) {
             currentCompetition = compLine;
-            developer.log('Found competition: $currentCompetition', name: 'PdfParserService');
+            developer.log('Found competition (standalone): $currentCompetition', name: 'PdfParserService');
             break;
           }
         }
@@ -221,44 +288,252 @@ class PdfParserService {
         }
       }
 
-      // Quan tenim tota la informació mínima d'un partit, el guardem
-      if (currentDate != null &&
-          currentMatchNumber != null &&
-          currentTime != null &&
-          currentLocal != null &&
-          currentVisitant != null &&
-          currentCategory != null &&
-          currentRole != null) {
+      // Extreure companys/companyes (DADES COMPANYS/ES)
+      if (line.toUpperCase().contains('DADES') &&
+          (line.toUpperCase().contains('COMPAN') || line.toUpperCase().contains('COMPANY'))) {
 
-        developer.log('Saving match: #$currentMatchNumber', name: 'PdfParserService');
+        // Llista de tots els membres (àrbitres i auxiliars de taula)
+        List<Map<String, String>> allMembers = [];
 
-        matches.add({
-          'date': currentDate,
-          'matchNumber': currentMatchNumber,
-          'time': currentTime,
-          'localTeam': currentLocal,
-          'visitantTeam': currentVisitant,
-          'category': currentCategory,
-          'competition': currentCompetition ?? '',
-          'role': currentRole,
-          'location': currentLocation ?? '',
-          'locationAddress': currentLocationAddress ?? '',
-        });
+        developer.log('Found DADES COMPANYS/ES section', name: 'PdfParserService');
 
-        // Reset variables per al següent partit (mantenim data i ubicació)
-        currentMatchNumber = null;
-        currentTime = null;
-        currentLocal = null;
-        currentVisitant = null;
-        currentCategory = null;
-        currentCompetition = null;
-        currentRole = null;
+        // Buscar tots els membres a les línies següents
+        for (int j = i + 1; j < lines.length && j < i + 40; j++) {
+          final memberLine = lines[j].trim();
+
+          // Si arribem a la secció de substituts, sortir
+          if (memberLine.toUpperCase().contains('ÀRBITRES') && memberLine.toUpperCase().contains('SUBSTITUTS')) {
+            break;
+          }
+
+          // Detectar PRINCIPAL o AUXILIAR directament
+          if (memberLine.toUpperCase() == 'PRINCIPAL' || memberLine.toUpperCase() == 'AUXILIAR') {
+            final role = memberLine.toUpperCase() == 'PRINCIPAL' ? 'principal' : 'auxiliar';
+
+            // Buscar el nom a la línia següent
+            if (j + 1 < lines.length) {
+              for (int k = j + 1; k < lines.length && k < j + 5; k++) {
+                final nameLine = lines[k].trim();
+
+                // Saltar línies buides i capçaleres
+                if (nameLine.isEmpty ||
+                    nameLine.toUpperCase().contains('TELÈFON') ||
+                    nameLine.toUpperCase().contains('POBLACIÓ') ||
+                    nameLine.toUpperCase().contains('FUNCIÓ') ||
+                    nameLine.toUpperCase().contains('NOM I COGNOMS') ||
+                    RegExp(r'^\d{9}$').hasMatch(nameLine)) {
+                  continue;
+                }
+
+                // Extreure nom (amb o sense llicència)
+                final nameMatch = RegExp(r'^([A-ZÀ-Ÿ][A-Za-zÀ-ÿ\s,]+)\s*(?:\(\d+\))?$').firstMatch(nameLine);
+
+                if (nameMatch != null) {
+                  final cleanName = nameMatch.group(1)!.trim();
+
+                  if (cleanName.split(' ').length >= 2 || cleanName.contains(',')) {
+                    allMembers.add({
+                      'role': role,
+                      'name': cleanName,
+                    });
+                    developer.log('Found referee $role: $cleanName', name: 'PdfParserService');
+                    break;
+                  }
+                }
+              }
+            }
+          }
+          // Detectar ANOTADOR/A
+          else if (memberLine.toUpperCase().contains('ANOTADOR/A')) {
+            for (int k = j + 1; k < lines.length && k < j + 4; k++) {
+              final nameLine = lines[k].trim();
+
+              if (nameLine.isEmpty ||
+                  nameLine.toUpperCase().contains('TELÈFON') ||
+                  nameLine.toUpperCase().contains('POBLACIÓ') ||
+                  nameLine.toUpperCase().contains('FUNCIÓ') ||
+                  RegExp(r'^\d{9}$').hasMatch(nameLine)) {
+                continue;
+              }
+
+              final nameMatch = RegExp(r'^([A-ZÀ-Ÿ][A-Za-zÀ-ÿ\s,]+)\s*(?:\(\d+\))?$').firstMatch(nameLine);
+              if (nameMatch != null) {
+                final cleanName = nameMatch.group(1)!.trim();
+                if (cleanName.split(' ').length >= 2 || cleanName.contains(',')) {
+                  allMembers.add({
+                    'role': 'anotador',
+                    'name': cleanName,
+                  });
+                  developer.log('Found anotador: $cleanName', name: 'PdfParserService');
+                  break;
+                }
+              }
+            }
+          }
+          // Detectar CRONOMETRADOR/A
+          else if (memberLine.toUpperCase().contains('CRONOMETRADOR')) {
+            for (int k = j + 1; k < lines.length && k < j + 4; k++) {
+              final nameLine = lines[k].trim();
+
+              if (nameLine.isEmpty ||
+                  nameLine.toUpperCase().contains('TELÈFON') ||
+                  nameLine.toUpperCase().contains('POBLACIÓ') ||
+                  nameLine.toUpperCase().contains('FUNCIÓ') ||
+                  RegExp(r'^\d{9}$').hasMatch(nameLine)) {
+                continue;
+              }
+
+              final nameMatch = RegExp(r'^([A-ZÀ-Ÿ][A-Za-zÀ-ÿ\s,]+)\s*(?:\(\d+\))?$').firstMatch(nameLine);
+              if (nameMatch != null) {
+                final cleanName = nameMatch.group(1)!.trim();
+                if (cleanName.split(' ').length >= 2 || cleanName.contains(',')) {
+                  allMembers.add({
+                    'role': 'cronometrador',
+                    'name': cleanName,
+                  });
+                  developer.log('Found cronometrador: $cleanName', name: 'PdfParserService');
+                  break;
+                }
+              }
+            }
+          }
+          // Detectar OPERADOR/A RLL
+          else if (memberLine.toUpperCase().contains('OPERADOR')) {
+            for (int k = j + 1; k < lines.length && k < j + 4; k++) {
+              final nameLine = lines[k].trim();
+
+              if (nameLine.isEmpty ||
+                  nameLine.toUpperCase().contains('TELÈFON') ||
+                  nameLine.toUpperCase().contains('POBLACIÓ') ||
+                  nameLine.toUpperCase().contains('FUNCIÓ') ||
+                  RegExp(r'^\d{9}$').hasMatch(nameLine)) {
+                continue;
+              }
+
+              final nameMatch = RegExp(r'^([A-ZÀ-Ÿ][A-Za-zÀ-ÿ\s,]+)\s*(?:\s*\(\d+\))?$').firstMatch(nameLine);
+              if (nameMatch != null) {
+                final cleanName = nameMatch.group(1)!.trim();
+                if (cleanName.split(' ').length >= 2 || cleanName.contains(',')) {
+                  allMembers.add({
+                    'role': 'operador',
+                    'name': cleanName,
+                  });
+                  developer.log('Found operador: $cleanName', name: 'PdfParserService');
+                  break;
+                }
+              }
+            }
+          }
+        }
+
+        // Emmagatzemar els membres per processar-los després (quan tinguem currentRole)
+        currentAllMembers = allMembers;
+        developer.log('Stored ${allMembers.length} members for later processing', name: 'PdfParserService');
       }
+
+    }
+
+    // Guardar l'últim partit si existeix
+    if (currentDate != null &&
+        currentMatchNumber != null &&
+        currentTime != null &&
+        currentLocal != null &&
+        currentVisitant != null &&
+        currentCategory != null &&
+        currentRole != null) {
+      _saveMatch(
+        matches,
+        currentDate,
+        currentMatchNumber,
+        currentTime,
+        currentLocal,
+        currentVisitant,
+        currentCategory,
+        currentCompetition,
+        currentRole,
+        currentLocation,
+        currentLocationAddress,
+        currentRefereePartner,
+        currentAllMembers,
+      );
     }
 
     developer.log('Parsed ${matches.length} matches from PDF',
                   name: 'PdfParserService');
     return matches;
+  }
+
+  /// Guarda un partit a la llista de partits
+  static void _saveMatch(
+    List<Map<String, String>> matches,
+    String currentDate,
+    String currentMatchNumber,
+    String currentTime,
+    String currentLocal,
+    String currentVisitant,
+    String currentCategory,
+    String? currentCompetition,
+    String currentRole,
+    String? currentLocation,
+    String? currentLocationAddress,
+    String? currentRefereePartner,
+    List<Map<String, String>>? currentAllMembers,
+  ) {
+    developer.log('Saving match: #$currentMatchNumber', name: 'PdfParserService');
+
+    // Processar els companys si existeixen
+    String? finalRefereePartner = currentRefereePartner;
+
+    if (currentAllMembers != null && currentAllMembers.isNotEmpty) {
+      List<String> partners = [];
+
+      developer.log('Processing ${currentAllMembers.length} members with role: $currentRole', name: 'PdfParserService');
+
+      if (currentRole == 'principal' || currentRole == 'auxiliar') {
+        // Si ets àrbitre, afegir l'altre àrbitre
+        for (var member in currentAllMembers) {
+          if (member['role'] != currentRole &&
+              (member['role'] == 'principal' || member['role'] == 'auxiliar')) {
+            String roleLabel = member['role'] == 'principal' ? 'Principal' : 'Auxiliar';
+            partners.add('${member['name']} ($roleLabel)');
+            developer.log('Added referee partner: ${member['name']} ($roleLabel)', name: 'PdfParserService');
+          }
+        }
+      } else if (currentRole == 'anotador' || currentRole == 'cronometrador' || currentRole == 'operador') {
+        // Si ets auxiliar de taula, afegir els altres membres de taula
+        for (var member in currentAllMembers) {
+          if (member['role'] != currentRole &&
+              (member['role'] == 'anotador' ||
+               member['role'] == 'cronometrador' ||
+               member['role'] == 'operador')) {
+            String roleLabel = member['role'] == 'anotador' ? 'Anotador/a' :
+                              member['role'] == 'cronometrador' ? 'Cronometrador/a' :
+                              'Operador/a';
+            partners.add('${member['name']} ($roleLabel)');
+            developer.log('Added table partner: ${member['name']} ($roleLabel)', name: 'PdfParserService');
+          }
+        }
+      }
+
+      if (partners.isNotEmpty) {
+        finalRefereePartner = partners.join(', ');
+        developer.log('Final partners: $finalRefereePartner', name: 'PdfParserService');
+      }
+    }
+
+    matches.add({
+      'date': currentDate,
+      'matchNumber': currentMatchNumber,
+      'time': currentTime,
+      'localTeam': currentLocal,
+      'visitantTeam': currentVisitant,
+      'category': currentCategory,
+      'competition': currentCompetition ?? '',
+      'role': currentRole,
+      'location': currentLocation ?? '',
+      'locationAddress': currentLocationAddress ?? '',
+      'refereePartner': finalRefereePartner ?? '',
+    });
   }
 
   /// Comprova si una línia conté una data vàlida

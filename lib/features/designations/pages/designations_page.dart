@@ -242,6 +242,7 @@ class _DesignationsPageState extends State<DesignationsPage>
           locationAddress: matchData['locationAddress']!,
           kilometers: kilometers,
           earnings: earnings,
+          refereePartner: matchData['refereePartner']?.isNotEmpty == true ? matchData['refereePartner'] : null,
           createdAt: DateTime.now(),
         );
 

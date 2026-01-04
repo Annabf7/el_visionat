@@ -350,7 +350,8 @@ class PdfParserService {
       }
 
       // Extreure funció (rol) - buscar ÀRBITRE
-      if (line.contains('ÀRBITRE')) {
+      // Només assignar el rol si encara no en tenim un (evitar sobreescriure)
+      if (line.contains('ÀRBITRE') && currentRole == null) {
         if (line.contains('AUXILIAR')) {
           currentRole = 'auxiliar';
           print('🔵 PDF PARSER: Found role AUXILIAR for match #$currentMatchNumber');

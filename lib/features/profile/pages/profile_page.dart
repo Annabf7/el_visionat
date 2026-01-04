@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:el_visionat/core/widgets/global_header.dart';
 import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
+import 'package:el_visionat/core/theme/app_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:el_visionat/features/profile/widgets/edit_profile_dialog.dart';
@@ -111,6 +112,12 @@ class _ProfilePageState extends State<ProfilePage> {
       key: ValueKey(_profileRefreshKey),
       future: _fetchProfileInfo(),
       builder: (context, snapshot) {
+        // Mostrar loading mentre es carreguen les dades
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppTheme.mostassa),
+          );
+        }
         final data = snapshot.data;
         final profile = ProfileModel.fromMap(data);
         return Row(
@@ -208,6 +215,15 @@ class _ProfilePageState extends State<ProfilePage> {
       key: ValueKey(_profileRefreshKey),
       future: _fetchProfileInfo(),
       builder: (context, snapshot) {
+        // Mostrar loading mentre es carreguen les dades
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(40.0),
+              child: CircularProgressIndicator(color: AppTheme.mostassa),
+            ),
+          );
+        }
         final data = snapshot.data;
         final profile = ProfileModel.fromMap(data);
         return Column(

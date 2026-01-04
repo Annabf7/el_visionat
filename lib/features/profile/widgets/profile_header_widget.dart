@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 
 /// 🔥 PROFILE HEADER WIDGET - EL VISIONAT
@@ -142,21 +143,18 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
     final imageFit = isDesktop ? BoxFit.cover : BoxFit.contain;
 
     final imageWidget = widget.imageUrl != null && widget.imageUrl!.isNotEmpty
-        ? Image.network(
-            widget.imageUrl!,
+        ? CachedNetworkImage(
+            imageUrl: widget.imageUrl!,
             fit: imageFit,
             width: double.infinity,
             height: double.infinity,
-            errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return Container(
-                color: AppTheme.grisPistacho.withValues(alpha: 0.3),
-                child: const Center(
-                  child: CircularProgressIndicator(color: AppTheme.mostassa),
-                ),
-              );
-            },
+            placeholder: (context, url) => Container(
+              color: AppTheme.grisPistacho.withValues(alpha: 0.2),
+              child: const Center(
+                child: CircularProgressIndicator(color: AppTheme.mostassa),
+              ),
+            ),
+            errorWidget: (context, url, error) => _buildFallbackImage(),
           )
         : Image.asset(
             'assets/images/profile/profile_header.webp',

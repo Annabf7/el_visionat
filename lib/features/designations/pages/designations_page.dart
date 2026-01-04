@@ -428,7 +428,7 @@ class _DesignationsPageState extends State<DesignationsPage>
               tabs: const [
                 Tab(text: 'Setmana'),
                 Tab(text: 'Mes'),
-                Tab(text: 'Any'),
+                Tab(text: 'Temporada'),
                 Tab(text: 'Tot'),
               ],
             ),
@@ -514,7 +514,7 @@ class _DesignationsPageState extends State<DesignationsPage>
               tabs: const [
                 Tab(text: 'Setmana'),
                 Tab(text: 'Mes'),
-                Tab(text: 'Any'),
+                Tab(text: 'Temporada'),
                 Tab(text: 'Tot'),
               ],
             ),

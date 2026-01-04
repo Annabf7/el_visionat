@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/google_places_service.dart';
 import '../models/designation_model.dart';
+import '../models/referee_from_registry.dart';
 import '../repositories/designations_repository.dart';
 import '../services/distance_calculator_service.dart';
 import '../services/tariff_calculator_service.dart';
+import '../services/referee_registry_service.dart';
 
 /// Diàleg per editar una designació existent
 class EditDesignationDialog extends StatefulWidget {
@@ -48,6 +51,11 @@ class _EditDesignationDialogState extends State<EditDesignationDialog> {
   bool _isVenueSearching = false;
   bool _showVenueSuggestions = false;
 
+  // Estat per autocompletat d'àrbitres
+  final _refereeRegistryService = RefereeRegistryService();
+  List<RefereeFromRegistry> _allReferees = [];
+  bool _isLoadingReferees = true;
+
   @override
   void initState() {
     super.initState();
@@ -77,6 +85,17 @@ class _EditDesignationDialogState extends State<EditDesignationDialog> {
     // Listeners per autocompletat
     _originSearchController.addListener(_onOriginSearchChanged);
     _venueSearchController.addListener(_onVenueSearchChanged);
+
+    // Carregar àrbitres del registre
+    _loadReferees();
+  }
+
+  Future<void> _loadReferees() async {
+    final referees = await _refereeRegistryService.getAllReferees();
+    setState(() {
+      _allReferees = referees;
+      _isLoadingReferees = false;
+    });
   }
 
   @override
@@ -646,15 +665,85 @@ class _EditDesignationDialogState extends State<EditDesignationDialog> {
                 ),
                 const SizedBox(height: 16),
 
-                // Company/companya àrbitre
-                TextFormField(
+                // Company/companya àrbitre amb autocompletat
+                TypeAheadField<RefereeFromRegistry>(
                   controller: _refereePartnerController,
-                  decoration: const InputDecoration(
-                    labelText: 'Company/companya àrbitre (opcional)',
-                    hintText: 'Nom del company/companya si és arbitratge a dobles',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.people_rounded),
+                  builder: (context, controller, focusNode) {
+                    return TextFormField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      decoration: InputDecoration(
+                        labelText: 'Company/companya àrbitre (opcional)',
+                        hintText: _isLoadingReferees
+                            ? 'Carregant àrbitres...'
+                            : 'Escriu el nom o número de llicència',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.people_rounded),
+                        suffixIcon: _isLoadingReferees
+                            ? const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              )
+                            : null,
+                      ),
+                    );
+                  },
+                  suggestionsCallback: (search) {
+                    if (_isLoadingReferees) return [];
+
+                    final matches = _refereeRegistryService.searchReferees(
+                      _allReferees,
+                      search,
+                    );
+
+                    // Limitar a 15 resultats
+                    return matches.take(15).toList();
+                  },
+                  itemBuilder: (context, referee) {
+                    return ListTile(
+                      leading: const Icon(
+                        Icons.person,
+                        color: AppTheme.lilaMitja,
+                      ),
+                      title: Text(
+                        referee.fullName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Llicència: ${referee.llissenciaId}${referee.categoriaRrtt != null ? ' • ${referee.categoriaRrtt}' : ''}',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    );
+                  },
+                  onSelected: (referee) {
+                    // Només guardar el nom complet, sense el rol
+                    // El rol ja està guardat al camp refereePartner amb format "Nom (Rol)"
+                    // Aquí només actualitzem el nom
+                    _refereePartnerController.text = referee.fullName;
+                  },
+                  emptyBuilder: (context) => const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      'No s\'han trobat àrbitres. Pots escriure el nom manualment.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.grisPistacho,
+                      ),
+                    ),
                   ),
+                  decorationBuilder: (context, child) {
+                    return Material(
+                      elevation: 4,
+                      borderRadius: BorderRadius.circular(8),
+                      child: child,
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
 

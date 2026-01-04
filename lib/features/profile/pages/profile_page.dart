@@ -17,6 +17,7 @@ import '../widgets/profile_banner_widget.dart';
 import '../widgets/profile_visibility_dialog.dart';
 import '../widgets/my_clips_widget.dart';
 import '../widgets/accounting_summary_widget.dart';
+import '../widgets/match_history_search_widget.dart';
 
 /// Pàgina de perfil d'usuari amb layout responsiu
 /// Segueix el prototip Figma amb la paleta de colors Visionat
@@ -266,9 +267,15 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(width: 24),
           Expanded(
             flex: 5,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 56),
-              child: ProfileFootprintWidget(profile: profile),
+            child: Column(
+              children: [
+                const MatchHistorySearchWidget(),
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.only(top: 56),
+                  child: ProfileFootprintWidget(profile: profile),
+                ),
+              ],
             ),
           ),
         ],
@@ -278,6 +285,8 @@ class _ProfilePageState extends State<ProfilePage> {
       return Column(
         children: [
           AccountingSummaryWidget(profile: profile),
+          const SizedBox(height: 24),
+          const MatchHistorySearchWidget(),
           const SizedBox(height: 24),
           ProfileFootprintWidget(profile: profile),
         ],

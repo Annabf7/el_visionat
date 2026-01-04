@@ -79,6 +79,8 @@ dependencies:
   fl_chart: ^0.69.0
   # Collection utilities
   collection: ^1.18.0
+  # Autocomplete for referee partner
+  flutter_typeahead: ^5.2.0
 
 dev_dependencies:
   flutter_test:

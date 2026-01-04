@@ -103,11 +103,11 @@ class GlobalHeader extends StatelessWidget implements PreferredSizeWidget {
           },
         ),
 
-        // Icona de comptabilitat
+        // Icona de designacions
         IconButton(
-          onPressed: () => Navigator.pushNamed(context, '/accounting'),
+          onPressed: () => Navigator.pushNamed(context, '/designations'),
           icon: const Icon(Icons.euro_outlined, color: AppTheme.mostassa),
-          tooltip: 'Comptabilitat',
+          tooltip: 'Designacions',
         ),
 
         // Icona campana (notificacions)
@@ -150,7 +150,7 @@ class GlobalHeader extends StatelessWidget implements PreferredSizeWidget {
                 debugPrint('historial placeholder');
                 break;
               case 'accounting':
-                Navigator.pushNamed(context, '/accounting');
+                Navigator.pushNamed(context, '/designations');
                 break;
               case 'logout':
                 _handleLogout(context);
@@ -191,7 +191,7 @@ class GlobalHeader extends StatelessWidget implements PreferredSizeWidget {
                   Icon(Icons.account_balance, color: AppTheme.white, size: 20),
                   const SizedBox(width: 12),
                   Text(
-                    'Comptabilitat',
+                    'Designacions',
                     style: TextStyle(color: AppTheme.white, fontSize: 14),
                   ),
                 ],

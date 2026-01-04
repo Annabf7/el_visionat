@@ -761,8 +761,8 @@ class _DesignationDetailsSheetState extends State<DesignationDetailsSheet> {
     final isReferee = widget.designation.role == 'principal' ||
                       widget.designation.role == 'auxiliar';
     final sectionTitle = isReferee
-        ? 'Company/companya àrbitre'
-        : 'Companys/companyes de taula';
+        ? 'Company/a àrbitre'
+        : 'Companys/es de taula';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

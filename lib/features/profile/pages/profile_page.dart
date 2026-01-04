@@ -31,11 +31,14 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  int _profileRefreshKey = 0; // Força re-fetch de dades després de canvis
+  late Future<Map<String, dynamic>?> _profileFuture;
 
   @override
   void initState() {
     super.initState();
+    // Inicialitzar el Future una sola vegada
+    _profileFuture = _fetchProfileInfo();
+
     // Inicialitzar el PersonalAnalysisProvider amb l'usuari actual
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = FirebaseAuth.instance.currentUser;
@@ -43,6 +46,13 @@ class _ProfilePageState extends State<ProfilePage> {
         final provider = context.read<PersonalAnalysisProvider>();
         provider.setUser(user.uid);
       }
+    });
+  }
+
+  /// Refresca les dades del perfil creant un nou Future
+  void _refreshProfile() {
+    setState(() {
+      _profileFuture = _fetchProfileInfo();
     });
   }
 
@@ -108,10 +118,11 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildDesktopLayout() {
+    debugPrint('🔄 _buildDesktopLayout() called');
     return FutureBuilder<Map<String, dynamic>?>(
-      key: ValueKey(_profileRefreshKey),
-      future: _fetchProfileInfo(),
+      future: _profileFuture,
       builder: (context, snapshot) {
+        debugPrint('🔄 FutureBuilder builder called - connectionState: ${snapshot.connectionState}');
         // Mostrar loading mentre es carreguen les dades
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -211,10 +222,11 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildMobileLayout() {
+    debugPrint('📱 _buildMobileLayout() called');
     return FutureBuilder<Map<String, dynamic>?>(
-      key: ValueKey(_profileRefreshKey),
-      future: _fetchProfileInfo(),
+      future: _profileFuture,
       builder: (context, snapshot) {
+        debugPrint('📱 FutureBuilder builder called - connectionState: ${snapshot.connectionState}');
         // Mostrar loading mentre es carreguen les dades
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -284,9 +296,7 @@ class _ProfilePageState extends State<ProfilePage> {
               profile: profile,
               onAddressUpdated: () {
                 debugPrint('🔄 Refrescant perfil després d\'actualitzar adreça...');
-                setState(() {
-                  _profileRefreshKey++;
-                });
+                _refreshProfile();
               },
             ),
           ),
@@ -310,9 +320,8 @@ class _ProfilePageState extends State<ProfilePage> {
           AccountingSummaryWidget(
             profile: profile,
             onAddressUpdated: () {
-              setState(() {
-                _profileRefreshKey++;
-              });
+              debugPrint('🔄 Refrescant perfil després d\'actualitzar adreça (mobile)...');
+              _refreshProfile();
             },
           ),
           const SizedBox(height: 24),
@@ -384,9 +393,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (result == 'header_success' ||
         result == 'portrait_success' ||
         result == 'profile_success') {
-      setState(() {
-        _profileRefreshKey++;
-      });
+      _refreshProfile();
 
       String msg;
       if (result == 'header_success') {
@@ -431,9 +438,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
 
     if (result == 'success' && mounted) {
-      setState(() {
-        _profileRefreshKey++;
-      });
+      _refreshProfile();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Visibilitat actualitzada!')),
       );

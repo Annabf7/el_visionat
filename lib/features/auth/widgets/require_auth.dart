@@ -10,12 +10,18 @@ class RequireAuth extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
+    // Només escoltem els canvis d'autenticació, no tots els canvis del provider
+    final isAuthenticated = context.select<AuthProvider, bool>(
+      (auth) => auth.isAuthenticated,
+    );
+    final isInitialized = context.select<AuthProvider, bool>(
+      (auth) => auth.isInitialized,
+    );
     // Logging to help diagnose routing/build decisions during auth transitions.
     debugPrint(
-      'RequireAuth.build — isInitialized=${auth.isInitialized} isAuthenticated=${auth.isAuthenticated}',
+      'RequireAuth.build — isInitialized=$isInitialized isAuthenticated=$isAuthenticated',
     );
-    if (!auth.isAuthenticated) {
+    if (!isAuthenticated) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!context.mounted) return;
         debugPrint('RequireAuth redirecting to /login');

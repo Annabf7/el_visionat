@@ -24,8 +24,6 @@ class _MatchHistorySearchWidgetState extends State<MatchHistorySearchWidget>
   late TabController _tabController;
   MatchHistoryResult? _searchResult;
   bool _isSearching = false;
-  String _lastQuery = '';
-  int _lastTab = 0;
 
   @override
   void initState() {
@@ -45,8 +43,6 @@ class _MatchHistorySearchWidgetState extends State<MatchHistorySearchWidget>
     final query = value.trim();
     if (query.isEmpty) return;
 
-    _lastQuery = query;
-    _lastTab = _tabController.index;
     _performSearch(query);
   }
 
@@ -195,7 +191,6 @@ class _MatchHistorySearchWidgetState extends State<MatchHistorySearchWidget>
                             _searchController.clear();
                             setState(() {
                               _searchResult = null;
-                              _lastQuery = '';
                             });
                           },
                         )

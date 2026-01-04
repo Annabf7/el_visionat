@@ -96,11 +96,15 @@ class _MatchHistorySearchWidgetState extends State<MatchHistorySearchWidget>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.grisPistacho.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: AppTheme.porpraFosc.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -110,42 +114,46 @@ class _MatchHistorySearchWidgetState extends State<MatchHistorySearchWidget>
         children: [
           // Títol
           const Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Icon(
                 Icons.search,
-                color: AppTheme.lilaMitja,
-                size: 24,
+                color: AppTheme.grisPistacho,
+                size: 20,
               ),
-              SizedBox(width: 12),
+              SizedBox(width: 10),
               Text(
                 'Cerca el teu historial',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontFamily: 'Geist',
+                  fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.grisPistacho,
+                  color: AppTheme.textBlackLow,
+                  letterSpacing: -0.3,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           // Tabs
           Container(
             decoration: BoxDecoration(
-              color: AppTheme.grisBody.withValues(alpha: 0.1),
+              color: AppTheme.grisPistacho.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: TabBar(
               controller: _tabController,
               indicator: BoxDecoration(
-                color: AppTheme.lilaMitja,
+                color: AppTheme.grisPistacho,
                 borderRadius: BorderRadius.circular(10),
               ),
               indicatorSize: TabBarIndicatorSize.tab,
               labelColor: Colors.white,
-              unselectedLabelColor: AppTheme.grisPistacho,
+              unselectedLabelColor: AppTheme.textBlackLow.withValues(alpha: 0.6),
               labelStyle: const TextStyle(
-                fontSize: 14,
+                fontFamily: 'Geist',
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
               tabs: const [

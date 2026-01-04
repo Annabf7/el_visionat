@@ -167,7 +167,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 35),
+                          const SizedBox(height: 80),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 24),
                             child: _buildEmpremtaVisionat(profile),
@@ -277,20 +277,17 @@ class _ProfilePageState extends State<ProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            flex: 4,
+            flex: 5,
             child: AccountingSummaryWidget(profile: profile),
           ),
           const SizedBox(width: 24),
           Expanded(
-            flex: 5,
+            flex: 6,
             child: Column(
               children: [
                 const MatchHistorySearchWidget(),
                 const SizedBox(height: 24),
-                Padding(
-                  padding: const EdgeInsets.only(top: 56),
-                  child: ProfileFootprintWidget(profile: profile),
-                ),
+                ProfileFootprintWidget(profile: profile),
               ],
             ),
           ),

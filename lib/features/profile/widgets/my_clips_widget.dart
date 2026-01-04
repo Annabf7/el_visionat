@@ -29,39 +29,20 @@ class MyClipsWidget extends StatelessWidget {
         final isLoading = snapshot.connectionState == ConnectionState.waiting;
         final hasError = snapshot.hasError;
         final docs = snapshot.data?.docs ?? [];
-        final hasClips = !isLoading && !hasError && docs.isNotEmpty;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header amb títol (i botó només si ja té clips)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Els meus clips',
-                  style: TextStyle(
-                    fontFamily: 'Geist',
-                    color: AppTheme.textBlackLow,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 24,
-                  ),
-                ),
-                if (hasClips)
-                  ElevatedButton.icon(
-                    onPressed: () => _showAddClipDialog(context),
-                    icon: const Icon(Icons.add, size: 20),
-                    label: const Text('Afegir clip'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.mostassa,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-                    ),
-                  ),
-              ],
+            // Títol
+            const Text(
+              'Els meus clips',
+              style: TextStyle(
+                fontFamily: 'Geist',
+                color: AppTheme.textBlackLow,
+                fontWeight: FontWeight.w600,
+                fontSize: 18,
+                letterSpacing: -0.3,
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -75,13 +56,32 @@ class MyClipsWidget extends StatelessWidget {
               )
             else if (hasError || docs.isEmpty)
               _buildEmptyState(context)
-            else
+            else ...[
               Column(
                 children: docs.map((doc) {
                   final clip = VideoClip.fromFirestore(doc);
                   return _buildClipCard(context, clip);
                 }).toList(),
               ),
+              const SizedBox(height: 16),
+              // Botó afegir clip a sota de les targetes
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton.icon(
+                  onPressed: () => _showAddClipDialog(context),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Afegir clip'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.mostassa,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         );
       },

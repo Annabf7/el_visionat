@@ -24,11 +24,12 @@ class PersonalNotesTableWidget extends StatelessWidget {
               style: TextStyle(
                 fontFamily: 'Geist',
                 color: AppTheme.textBlackLow,
-                fontWeight: FontWeight.w700,
-                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                fontSize: 18,
+                letterSpacing: -0.3,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // Taula d'apunts: sempre ocupa tot l'espai disponible
             Column(
@@ -232,12 +233,12 @@ class PersonalNotesTableWidget extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.purple.withValues(alpha: 0.2),
+                    color: AppTheme.lilaMitja.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Icon(
                     Icons.menu_book,
-                    color: Colors.purple,
+                    color: AppTheme.lilaMitja,
                     size: 14,
                   ),
                 ),
@@ -269,12 +270,12 @@ class PersonalNotesTableWidget extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.2),
+                    color: AppTheme.grisPistacho.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Icon(
                     Icons.access_time,
-                    color: Colors.grey,
+                    color: AppTheme.grisPistacho,
                     size: 14,
                   ),
                 ),
@@ -308,10 +309,10 @@ class PersonalNotesTableWidget extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: Colors.yellow.withValues(alpha: 0.2),
+                        color: AppTheme.mostassa.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: const Icon(Icons.edit, color: Colors.orange, size: 14),
+                      child: const Icon(Icons.edit, color: AppTheme.mostassa, size: 14),
                     ),
                     const SizedBox(width: 6),
                     const Expanded(
@@ -394,7 +395,7 @@ class PersonalNotesTableWidget extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange),
+            Icon(Icons.warning_amber_rounded, color: AppTheme.mostassa),
             SizedBox(width: 12),
             Text('Eliminar apunt'),
           ],
@@ -473,11 +474,11 @@ class PersonalNotesTableWidget extends StatelessWidget {
   Color _getSourceColor(AnalysisSource source) {
     switch (source) {
       case AnalysisSource.match:
-        return Colors.orange;
+        return AppTheme.mostassa;
       case AnalysisSource.test:
-        return Colors.blue;
+        return AppTheme.lilaMitja;
       case AnalysisSource.training:
-        return Colors.green;
+        return AppTheme.grisPistacho;
     }
   }
 }

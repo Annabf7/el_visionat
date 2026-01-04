@@ -28,12 +28,13 @@ class ProfileFootprintWidget extends StatelessWidget {
             style: TextStyle(
               fontFamily: 'Geist',
               color: AppTheme.textBlackLow,
-              fontWeight: FontWeight.w700,
-              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              fontSize: 18,
+              letterSpacing: -0.3,
             ),
           ),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 16),
 
         // Taula d'estadístiques
         Container(

@@ -7,16 +7,16 @@ class ProfileBannerWidget extends StatelessWidget {
 
   // Imatge fixa del banner (NO editable)
   static const String _fixedBannerImageUrl =
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/grandma_gemini.webp?alt=media&token=c2531356-518a-45b5-8c08-480326b06337';
+      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/grandma.png?alt=media&token=4da82d98-f378-44b3-94ad-dbd45a008b8e';
 
   @override
   Widget build(BuildContext context) {
     return Image.network(
       _fixedBannerImageUrl,
-      fit: BoxFit.cover,
+      fit: BoxFit.contain,
       width: double.infinity,
       height: double.infinity,
-      alignment: const Alignment(0, 1), // Centrada cap amunt
+      alignment: Alignment.center,
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) return child;
         return Container(

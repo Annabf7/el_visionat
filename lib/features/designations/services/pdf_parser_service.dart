@@ -625,6 +625,24 @@ class PdfParserService {
       print('   ⚠️ No members to process for match #$currentMatchNumber');
     }
 
+    // Determinar si és arbitratge individual o a dobles
+    bool isDoubleReferee = false;
+    if (currentAllMembers != null && currentAllMembers.isNotEmpty) {
+      // Comprovar si hi ha TANT principal COM auxiliar (arbitratge a dobles)
+      bool hasPrincipal = currentAllMembers.any((m) => m['role'] == 'principal');
+      bool hasAuxiliar = currentAllMembers.any((m) => m['role'] == 'auxiliar');
+
+      // Només és arbitratge a dobles si hi ha TOTS DOS rols
+      isDoubleReferee = hasPrincipal && hasAuxiliar;
+
+      print('   📊 Referee type: ${isDoubleReferee ? "DOUBLE (principal + auxiliar)" : "INDIVIDUAL (only ${currentRole})"}');
+      developer.log('Referee type: ${isDoubleReferee ? "double" : "individual"}', name: 'PdfParserService');
+    } else {
+      // Si no hi ha membres, és arbitratge individual
+      print('   �� Referee type: INDIVIDUAL (no members list)');
+      developer.log('Referee type: individual (no members)', name: 'PdfParserService');
+    }
+
     matches.add({
       'date': currentDate,
       'matchNumber': currentMatchNumber,
@@ -637,6 +655,7 @@ class PdfParserService {
       'location': currentLocation ?? '',
       'locationAddress': currentLocationAddress ?? '',
       'refereePartner': finalRefereePartner ?? '',
+      'isDoubleReferee': isDoubleReferee.toString(),  // Guardar com a string per compatibilitat amb Map<String, String>
     });
   }
 

@@ -51,7 +51,9 @@ class _EarningsSummaryWidgetState extends State<EarningsSummaryWidget> {
       margin: widget.inRow
           ? EdgeInsets.zero
           : const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(24),
+      padding: widget.inRow
+          ? const EdgeInsets.all(24)
+          : const EdgeInsets.all(16),
       constraints: widget.inRow ? const BoxConstraints(minHeight: 400, maxHeight: 400) : null,
       decoration: BoxDecoration(
         color: AppTheme.white,
@@ -117,7 +119,7 @@ class _EarningsSummaryWidgetState extends State<EarningsSummaryWidget> {
                   },
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: widget.inRow ? 12 : 8),
               Expanded(
                 child: StreamBuilder<double>(
                   stream: repository.getTotalEarningsStream(
@@ -157,7 +159,7 @@ class _EarningsSummaryWidgetState extends State<EarningsSummaryWidget> {
                   },
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: widget.inRow ? 12 : 8),
               Expanded(
                 child: StreamBuilder<double>(
                   stream: repository.getTotalEarningsStream(),

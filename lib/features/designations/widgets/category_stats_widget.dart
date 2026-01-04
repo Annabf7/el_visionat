@@ -18,7 +18,9 @@ class CategoryStatsWidget extends StatelessWidget {
       margin: inRow
           ? EdgeInsets.zero
           : const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(24),
+      padding: inRow
+          ? const EdgeInsets.all(24)
+          : const EdgeInsets.all(16),
       constraints: inRow ? const BoxConstraints(minHeight: 400, maxHeight: 400) : null,
       decoration: BoxDecoration(
         color: AppTheme.white,

@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -57,17 +60,38 @@ class _DesignationsPageState extends State<DesignationsPage>
 
       setState(() => _isUploading = true);
 
-      final fileBytes = result.files.single.bytes;
+      // Obtenir bytes del fitxer (web/desktop usen bytes, mòbil pot usar path)
+      Uint8List? fileBytes = result.files.single.bytes;
+
+      // Si bytes és null, intentar llegir des del path (mòbil)
       if (fileBytes == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No s\'ha pogut llegir el fitxer'),
-              backgroundColor: Colors.red,
-            ),
-          );
+        final filePath = result.files.single.path;
+        if (filePath != null) {
+          try {
+            final file = File(filePath);
+            fileBytes = await file.readAsBytes();
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error llegint el fitxer: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            return;
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('No s\'ha pogut accedir al fitxer'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
         }
-        return;
       }
 
       // Parsejar el PDF
@@ -502,13 +526,15 @@ class _DesignationsPageState extends State<DesignationsPage>
               indicatorWeight: 3,
               labelColor: Colors.white,
               unselectedLabelColor: Colors.white70,
+              isScrollable: true,
+              tabAlignment: TabAlignment.center,
               labelStyle: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
-                letterSpacing: 0.2,
+                letterSpacing: 0,
               ),
               unselectedLabelStyle: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),
               tabs: const [
@@ -521,32 +547,37 @@ class _DesignationsPageState extends State<DesignationsPage>
           ),
 
           // Resum econòmic i estadístiques en columna (mòbil)
-          const Column(
-            children: [
-              EarningsSummaryWidget(inRow: false),
-              CategoryStatsWidget(inRow: false),
-            ],
-          ),
-
-          // Historial de partits
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                DesignationsTabView(
-                  startDate: weekStart,
-                  endDate: weekEnd,
-                ),
-                DesignationsTabView(
-                  startDate: monthStart,
-                  endDate: monthEnd,
-                ),
-                DesignationsTabView(
-                  startDate: yearStart,
-                  endDate: yearEnd,
-                ),
-                const DesignationsTabView(),
-              ],
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const EarningsSummaryWidget(inRow: false),
+                  const CategoryStatsWidget(inRow: false),
+                  const SizedBox(height: 16),
+                  // Historial de partits dins del scroll
+                  SizedBox(
+                    height: 600, // Altura suficient per veure els partits
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        DesignationsTabView(
+                          startDate: weekStart,
+                          endDate: weekEnd,
+                        ),
+                        DesignationsTabView(
+                          startDate: monthStart,
+                          endDate: monthEnd,
+                        ),
+                        DesignationsTabView(
+                          startDate: yearStart,
+                          endDate: yearEnd,
+                        ),
+                        const DesignationsTabView(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

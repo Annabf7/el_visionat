@@ -226,35 +226,37 @@ class _ProfilePageState extends State<ProfilePage> {
         }
         final data = snapshot.data;
         final profile = ProfileModel.fromMap(data);
-        return Column(
-          children: [
-            ProfileHeaderWidget(
-              imageUrl: profile.resolvedHeaderUrl,
-              onEditProfile: () => _handleEditProfile(),
-              onChangeVisibility: () => _handleChangeVisibility(),
-              onCompareProfileEvolution: () => _handleCompareEvolution(),
-            ),
-            const SizedBox(height: 0),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: [
-                  _buildPersonalInfo(profile),
-                  const SizedBox(height: 24),
-                  _buildEmpremtaVisionat(profile),
-                  const SizedBox(height: 24),
-                  _buildMeusClips(),
-                  const SizedBox(height: 24),
-                  _buildApuntsPersonals(),
-                  const SizedBox(height: 24),
-                  _buildObjectiusTemporada(profile),
-                  const SizedBox(height: 24),
-                  _buildBadges(profile),
-                  const SizedBox(height: 32),
-                ],
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              ProfileHeaderWidget(
+                imageUrl: profile.resolvedHeaderUrl,
+                onEditProfile: () => _handleEditProfile(),
+                onChangeVisibility: () => _handleChangeVisibility(),
+                onCompareProfileEvolution: () => _handleCompareEvolution(),
               ),
-            ),
-          ],
+              const SizedBox(height: 0),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    _buildPersonalInfo(profile),
+                    const SizedBox(height: 24),
+                    _buildEmpremtaVisionat(profile),
+                    const SizedBox(height: 24),
+                    _buildMeusClips(),
+                    const SizedBox(height: 24),
+                    _buildApuntsPersonals(),
+                    const SizedBox(height: 24),
+                    _buildObjectiusTemporada(profile),
+                    const SizedBox(height: 24),
+                    _buildBadges(profile),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -278,7 +280,15 @@ class _ProfilePageState extends State<ProfilePage> {
         children: [
           Expanded(
             flex: 5,
-            child: AccountingSummaryWidget(profile: profile),
+            child: AccountingSummaryWidget(
+              profile: profile,
+              onAddressUpdated: () {
+                debugPrint('🔄 Refrescant perfil després d\'actualitzar adreça...');
+                setState(() {
+                  _profileRefreshKey++;
+                });
+              },
+            ),
           ),
           const SizedBox(width: 24),
           Expanded(
@@ -297,7 +307,14 @@ class _ProfilePageState extends State<ProfilePage> {
       // Layout en Column per mòbil
       return Column(
         children: [
-          AccountingSummaryWidget(profile: profile),
+          AccountingSummaryWidget(
+            profile: profile,
+            onAddressUpdated: () {
+              setState(() {
+                _profileRefreshKey++;
+              });
+            },
+          ),
           const SizedBox(height: 24),
           const MatchHistorySearchWidget(),
           const SizedBox(height: 24),

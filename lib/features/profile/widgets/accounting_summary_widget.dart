@@ -10,10 +10,12 @@ import 'edit_home_address_dialog.dart';
 /// Permet a l'usuari penjar PDFs de designacions i calcula automàticament els cobraments
 class AccountingSummaryWidget extends StatelessWidget {
   final ProfileModel profile;
+  final VoidCallback? onAddressUpdated;
 
   const AccountingSummaryWidget({
     super.key,
     required this.profile,
+    this.onAddressUpdated,
   });
 
   @override
@@ -292,6 +294,10 @@ class AccountingSummaryWidget extends StatelessWidget {
               duration: Duration(seconds: 2),
             ),
           );
+
+          // Notificar a la pàgina pare per refrescar les dades
+          debugPrint('🏠 Adreça guardada, refrescant pàgina...');
+          onAddressUpdated?.call();
         }
       }
     }

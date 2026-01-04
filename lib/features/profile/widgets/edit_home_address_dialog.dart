@@ -123,10 +123,11 @@ class _EditHomeAddressDialogState extends State<EditHomeAddressDialog> {
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // Títol
               Row(
                 children: [
@@ -444,6 +445,7 @@ class _EditHomeAddressDialogState extends State<EditHomeAddressDialog> {
                 ],
               ),
             ],
+            ),
           ),
         ),
       ),

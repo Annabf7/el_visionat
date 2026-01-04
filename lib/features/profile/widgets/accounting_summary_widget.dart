@@ -268,6 +268,8 @@ class AccountingSummaryWidget extends StatelessWidget {
 
   /// Obre el diàleg per editar l'adreça de casa
   Future<void> _editHomeAddress(BuildContext context) async {
+    debugPrint('📍 Obrint diàleg per editar adreça de casa...');
+
     final result = await showDialog<HomeAddress>(
       context: context,
       builder: (context) => EditHomeAddressDialog(
@@ -275,16 +277,39 @@ class AccountingSummaryWidget extends StatelessWidget {
       ),
     );
 
-    if (result != null && context.mounted) {
-      // Guardar l'adreça a Firestore
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
+    debugPrint('📍 Resultat del diàleg: ${result?.toString() ?? "null (cancelat)"}');
+
+    if (result == null) {
+      debugPrint('⚠️ Result és null - usuari ha cancel·lat');
+      return;
+    }
+
+    debugPrint('📍 Comprovant context.mounted: ${context.mounted}');
+
+    if (!context.mounted) {
+      debugPrint('❌ Context no està muntat - no es pot guardar');
+      return;
+    }
+
+    debugPrint('✅ Context està muntat, procedint a guardar...');
+
+    // Guardar l'adreça a Firestore
+    final user = FirebaseAuth.instance.currentUser;
+    debugPrint('📍 User ID: ${user?.uid ?? "NO USER"}');
+
+    if (user != null) {
+      final addressData = result.toFirestore();
+      debugPrint('📍 Dades a guardar a Firestore: $addressData');
+
+      try {
         await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
             .update({
-          'homeAddress': result.toFirestore(),
+          'homeAddress': addressData,
         });
+
+        debugPrint('✅ Adreça guardada correctament a Firestore!');
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -296,8 +321,20 @@ class AccountingSummaryWidget extends StatelessWidget {
           );
 
           // Notificar a la pàgina pare per refrescar les dades
-          debugPrint('🏠 Adreça guardada, refrescant pàgina...');
+          debugPrint('🔄 Cridant callback onAddressUpdated...');
           onAddressUpdated?.call();
+          debugPrint('🔄 Callback executat!');
+        }
+      } catch (e) {
+        debugPrint('❌ ERROR guardant adreça a Firestore: $e');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error guardant adreça: $e'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
         }
       }
     }

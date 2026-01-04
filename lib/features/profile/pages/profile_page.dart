@@ -295,7 +295,7 @@ class _ProfilePageState extends State<ProfilePage> {
             flex: 6,
             child: Column(
               children: [
-                const MatchHistorySearchWidget(),
+                const MatchHistorySearchWidget(key: ValueKey('match_history_search')),
                 const SizedBox(height: 24),
                 ProfileFootprintWidget(profile: profile),
               ],
@@ -316,7 +316,7 @@ class _ProfilePageState extends State<ProfilePage> {
             },
           ),
           const SizedBox(height: 24),
-          const MatchHistorySearchWidget(),
+          const MatchHistorySearchWidget(key: ValueKey('match_history_search')),
           const SizedBox(height: 24),
           ProfileFootprintWidget(profile: profile),
         ],

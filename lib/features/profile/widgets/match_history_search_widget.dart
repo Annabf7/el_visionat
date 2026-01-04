@@ -25,12 +25,13 @@ class _MatchHistorySearchWidgetState extends State<MatchHistorySearchWidget>
   MatchHistoryResult? _searchResult;
   bool _isSearching = false;
   String _lastQuery = '';
+  int _lastTab = 0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _searchController.addListener(_onSearchChanged);
+    // NO afegim listener aquí per evitar reconstruccions constants
   }
 
   @override
@@ -40,19 +41,13 @@ class _MatchHistorySearchWidgetState extends State<MatchHistorySearchWidget>
     super.dispose();
   }
 
-  void _onSearchChanged() {
-    final query = _searchController.text.trim();
+  void _onSearchSubmitted(String value) {
+    final query = value.trim();
+    if (query.isEmpty) return;
 
-    // Evitar cerques repetides
-    if (query == _lastQuery) return;
     _lastQuery = query;
-
-    // Esperar 500ms abans de cercar (debounce)
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (_searchController.text.trim() == query) {
-        _performSearch(query);
-      }
-    });
+    _lastTab = _tabController.index;
+    _performSearch(query);
   }
 
   Future<void> _performSearch(String query) async {
@@ -173,6 +168,8 @@ class _MatchHistorySearchWidgetState extends State<MatchHistorySearchWidget>
           // Camp de cerca
           TextField(
             controller: _searchController,
+            onSubmitted: _onSearchSubmitted,
+            textInputAction: TextInputAction.search,
             decoration: InputDecoration(
               hintText: _tabController.index == 0
                   ? 'Cerca per nom d\'àrbitre...'
@@ -196,7 +193,10 @@ class _MatchHistorySearchWidgetState extends State<MatchHistorySearchWidget>
                           icon: const Icon(Icons.clear),
                           onPressed: () {
                             _searchController.clear();
-                            setState(() => _searchResult = null);
+                            setState(() {
+                              _searchResult = null;
+                              _lastQuery = '';
+                            });
                           },
                         )
                       : null,

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 import 'package:el_visionat/core/services/google_places_service.dart';
 import '../models/home_address_model.dart';
@@ -101,7 +103,9 @@ class _EditHomeAddressDialogState extends State<EditHomeAddressDialog> {
     }
   }
 
-  void _saveAddress() {
+  Future<void> _saveAddress() async {
+    debugPrint('💾 Intent de guardar adreça...');
+
     if (_formKey.currentState!.validate()) {
       final newAddress = HomeAddress(
         street: _streetController.text.trim(),
@@ -109,7 +113,49 @@ class _EditHomeAddressDialogState extends State<EditHomeAddressDialog> {
         city: _cityController.text.trim(),
         province: _provinceController.text.trim(),
       );
-      Navigator.of(context).pop(newAddress);
+
+      debugPrint('💾 Adreça vàlida: ${newAddress.toString()}');
+
+      // Guardar directament a Firestore ABANS de tancar el diàleg
+      final user = FirebaseAuth.instance.currentUser;
+      debugPrint('📍 User ID: ${user?.uid ?? "NO USER"}');
+
+      if (user != null) {
+        final addressData = newAddress.toFirestore();
+        debugPrint('📍 Dades a guardar a Firestore: $addressData');
+
+        try {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .update({
+            'homeAddress': addressData,
+          });
+
+          debugPrint('✅ Adreça guardada correctament a Firestore!');
+
+          if (mounted) {
+            // Tancar el diàleg i retornar l'adreça per notificar el pare
+            debugPrint('💾 Tancant diàleg i retornant adreça...');
+            Navigator.of(context).pop(newAddress);
+          }
+        } catch (e) {
+          debugPrint('❌ ERROR guardant adreça a Firestore: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error guardant adreça: $e'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+      } else {
+        debugPrint('❌ No hi ha usuari autenticat');
+      }
+    } else {
+      debugPrint('❌ Formulari NO vàlid - adreça no guardada');
     }
   }
 

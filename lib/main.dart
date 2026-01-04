@@ -198,7 +198,6 @@ class MyApp extends StatelessWidget {
         '/home': (context) => RequireAuth(child: const HomePage()),
         '/all-matches': (context) => RequireAuth(child: const AllMatchesPage()),
         '/profile': (context) => RequireAuth(child: const ProfilePage()),
-        '/accounting': (context) => RequireAuth(child: const AccountingPage()),
         '/teams': (context) => RequireAuth(child: const TeamsPage()),
         '/visionat': (context) => RequireAuth(child: const VisionatMatchPage()),
         '/designations': (context) => RequireAuth(child: const DesignationsPage()),

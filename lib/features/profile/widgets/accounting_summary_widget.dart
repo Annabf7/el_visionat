@@ -144,13 +144,12 @@ class AccountingSummaryWidget extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // Botó per penjar PDF
+          // Botó per anar a designacions
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () {
-                // TODO: Implementar pujada de PDF
-                Navigator.pushNamed(context, '/accounting');
+                Navigator.pushNamed(context, '/designations');
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.mostassa,

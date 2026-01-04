@@ -3,7 +3,6 @@
 
 // Pages
 export 'pages/profile_page.dart';
-export 'pages/accounting_page.dart';
 export 'pages/user_profile_page.dart';
 
 // Widgets

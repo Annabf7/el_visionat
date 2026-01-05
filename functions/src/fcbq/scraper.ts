@@ -69,6 +69,18 @@ export function parseMatches(
   const $ = cheerio.load(html);
   const matches: MatchData[] = [];
 
+  // Primer, extraiem tots els enllaços d'acta disponibles
+  const actaLinks: string[] = [];
+  $("a[href*='/acta/']").each((_, el) => {
+    const href = $(el).attr("href");
+    if (href) {
+      // Normalitzem la URL (afegim domini si falta)
+      const fullUrl = href.startsWith("http") ? href : `https://www.basquetcatala.cat${href}`;
+      actaLinks.push(fullUrl);
+    }
+  });
+  console.log(`[parseMatches] Trobats ${actaLinks.length} enllaços d'acta a la pàgina`);
+
   // Busquem tots els enllaços d'equips amb classe .teamNameLink
   const teamLinks = $("a.teamNameLink");
 
@@ -157,9 +169,21 @@ export function parseMatches(
     }
 
     // Busquem URL de l'acta oficial
+    // Primer intentem dins del contenidor
     const actaLink = homeContainer.find("a[href*='/acta/']").first();
     if (actaLink.length) {
-      match.actaUrl = actaLink.attr("href");
+      const href = actaLink.attr("href");
+      if (href) {
+        match.actaUrl = href.startsWith("http") ? href : `https://www.basquetcatala.cat${href}`;
+      }
+    } else {
+      // Si no trobem l'acta dins del contenidor, busquem per proximitat al text dels equips
+      // Utilitzem l'índex del partit per assignar l'acta corresponent
+      const matchIndex = Math.floor(i / 2);
+      if (actaLinks[matchIndex]) {
+        match.actaUrl = actaLinks[matchIndex];
+        console.log(`[parseMatches] Assignant acta per proximitat: ${match.actaUrl} al partit ${homeName} vs ${awayName}`);
+      }
     }
 
     matches.push(match);
@@ -397,6 +421,27 @@ export function parseActa(html: string, actaUrl?: string): RefereeInfo {
   if (officials.cronometrador) info.cronometrador = officials.cronometrador;
   if (officials.operadorRll) info.operadorRll = officials.operadorRll;
   if (officials.caller1) info.caller1 = officials.caller1;
+
+  // Construïm l'array tableOfficials per compatibilitat amb Flutter
+  const tableOfficials: Array<{role: string; name: string}> = [];
+  if (officials.anotador) {
+    tableOfficials.push({role: "Anotador", name: officials.anotador});
+  }
+  if (officials.cronometrador) {
+    tableOfficials.push({role: "Cronometrador", name: officials.cronometrador});
+  }
+  if (officials.operadorRll) {
+    tableOfficials.push({role: "Operador RLL", name: officials.operadorRll});
+  }
+  if (officials.caller1) {
+    tableOfficials.push({role: "Caller", name: officials.caller1});
+  }
+  if (tableOfficials.length > 0) {
+    info.tableOfficials = tableOfficials;
+  }
+
+  // Afegim source
+  info.source = "fcbq-acta";
 
   // Extraiem la instal·lació (nom del pavelló i adreça)
   // Format típic a l'acta FCBQ:

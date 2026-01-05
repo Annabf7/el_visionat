@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -24,22 +26,46 @@ class _MatchHistorySearchWidgetState extends State<MatchHistorySearchWidget>
   late TabController _tabController;
   MatchHistoryResult? _searchResult;
   bool _isSearching = false;
+  Timer? _debounceTimer;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    // NO afegim listener aquí per evitar reconstruccions constants
+    // Afegim listener amb debounce per cerca en temps real
+    _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
+    _searchController.removeListener(_onSearchChanged);
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
+  void _onSearchChanged() {
+    // Cancel·lar el timer anterior si existeix
+    _debounceTimer?.cancel();
+
+    // Crear un nou timer que esperarà 500ms abans de fer la cerca
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      final query = _searchController.text.trim();
+      if (query.isNotEmpty) {
+        _performSearch(query);
+      } else {
+        setState(() {
+          _searchResult = null;
+          _isSearching = false;
+        });
+      }
+    });
+  }
+
   void _onSearchSubmitted(String value) {
+    // Cancel·lem el debounce i fem la cerca immediatament quan l'usuari prem Enter
+    _debounceTimer?.cancel();
     final query = value.trim();
     if (query.isEmpty) return;
 
@@ -140,8 +166,8 @@ class _MatchHistorySearchWidgetState extends State<MatchHistorySearchWidget>
                 borderRadius: BorderRadius.circular(10),
               ),
               indicatorSize: TabBarIndicatorSize.tab,
-              labelColor: Colors.white,
-              unselectedLabelColor: AppTheme.textBlackLow.withValues(alpha: 0.6),
+              labelColor: AppTheme.porpraFosc,
+              unselectedLabelColor: AppTheme.porpraFosc,
               labelStyle: const TextStyle(
                 fontFamily: 'Geist',
                 fontSize: 13,
@@ -231,6 +257,152 @@ class _MatchHistorySearchWidgetState extends State<MatchHistorySearchWidget>
     if (_searchResult == null) return const SizedBox.shrink();
 
     if (_searchResult!.isEmpty) {
+      // Si es cerca d'àrbitre i tenim info, mostrar-la
+      if (_tabController.index == 0 && _searchResult!.refereeInfo != null) {
+        final referee = _searchResult!.refereeInfo!;
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              children: [
+                // Avatar de l'àrbitre
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppTheme.mostassa.withValues(alpha: 0.15),
+                  ),
+                  child: Icon(
+                    Icons.person,
+                    size: 40,
+                    color: AppTheme.porpraFosc,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Nom complet de l'àrbitre
+                Text(
+                  referee.fullName,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textBlackLow.withValues(alpha: 0.8),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                // Número de llicència
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.mostassa.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppTheme.mostassa.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.badge_outlined,
+                        size: 16,
+                        color: AppTheme.textBlackLow.withValues(alpha: 0.8),
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          'Llicència #${referee.llissenciaId}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textBlackLow.withValues(alpha: 0.8),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (referee.categoriaRrtt != null) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.grisPistacho.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.grisPistacho.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.workspace_premium_outlined,
+                          size: 16,
+                          color: AppTheme.textBlackLow.withValues(alpha: 0.8),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            'Categoria ${referee.categoriaRrtt}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textBlackLow.withValues(alpha: 0.8),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                // Missatge informatiu
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.grisPistacho.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppTheme.grisPistacho.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 18,
+                        color: AppTheme.grisPistacho,
+                      ),
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: Text(
+                          'Encara no has arbitrat cap partit amb aquest/a àrbitre',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.grisPistacho,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      // Missatge genèric per equips o quan no hi ha info d'àrbitre
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -252,9 +424,7 @@ class _MatchHistorySearchWidgetState extends State<MatchHistorySearchWidget>
               ),
               const SizedBox(height: 8),
               Text(
-                _tabController.index == 0
-                    ? 'No has arbitrat cap partit amb "${_searchResult!.searchTerm}"'
-                    : 'No has arbitrat cap partit de "${_searchResult!.searchTerm}"',
+                'No has arbitrat cap partit de "${_searchResult!.searchTerm}"',
                 style: TextStyle(
                   fontSize: 14,
                   color: AppTheme.grisPistacho.withValues(alpha: 0.5),
@@ -281,7 +451,7 @@ class _MatchHistorySearchWidgetState extends State<MatchHistorySearchWidget>
             children: [
               Icon(
                 _tabController.index == 0 ? Icons.person : Icons.sports_basketball,
-                color: AppTheme.lilaMitja,
+                color: AppTheme.textBlackLow.withValues(alpha: 0.8),
                 size: 24,
               ),
               const SizedBox(width: 12),
@@ -291,10 +461,10 @@ class _MatchHistorySearchWidgetState extends State<MatchHistorySearchWidget>
                   children: [
                     Text(
                       _searchResult!.searchTerm,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.grisPistacho,
+                        color: AppTheme.textBlackLow.withValues(alpha: 0.8),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -302,7 +472,7 @@ class _MatchHistorySearchWidgetState extends State<MatchHistorySearchWidget>
                       '${_searchResult!.totalMatches} ${_searchResult!.totalMatches == 1 ? 'partit' : 'partits'}${_searchResult!.lastMatchDate != null ? ' • Última vegada: ${DateFormat('dd/MM/yyyy').format(_searchResult!.lastMatchDate!)}' : ''}',
                       style: TextStyle(
                         fontSize: 13,
-                        color: AppTheme.grisPistacho.withValues(alpha: 0.7),
+                        color: AppTheme.textBlackLow.withValues(alpha: 0.8),
                       ),
                     ),
                   ],

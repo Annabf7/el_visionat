@@ -501,21 +501,67 @@ async function processVotingWinner(previousJornada: number): Promise<void> {
   // Fem un scraping ràpid per obtenir-la
   try {
     const scrapedData = await scrapeJornada(previousJornada);
+
+    // Normalitzem els noms dels equips per fer una cerca més robusta
+    const targetHomeNorm = normalizeForSignature(winningMatch.home.teamNameRaw);
+    const targetAwayNorm = normalizeForSignature(winningMatch.away.teamNameRaw);
+
+    console.log(`[processVotingWinner] 🔍 Buscant partit: ${targetHomeNorm} vs ${targetAwayNorm}`);
+    console.log(`[processVotingWinner] Data esperada: ${winningMatch.dateTime}`);
+
     const originalMatch = scrapedData.matches.find((m) => {
-      // Comparem per equips (el matchId es genera diferent)
-      const homeMatch = m.home.name.toLowerCase().includes(winningMatch.home.teamNameRaw.toLowerCase().split(" ")[0]) ||
-                        winningMatch.home.teamNameRaw.toLowerCase().includes(m.home.name.toLowerCase().split(" ")[0]);
-      const awayMatch = m.away.name.toLowerCase().includes(winningMatch.away.teamNameRaw.toLowerCase().split(" ")[0]) ||
-                        winningMatch.away.teamNameRaw.toLowerCase().includes(m.away.name.toLowerCase().split(" ")[0]);
-      return homeMatch && awayMatch;
+      const homeNorm = normalizeForSignature(m.home.name);
+      const awayNorm = normalizeForSignature(m.away.name);
+      const dateMatch = m.dateTime === winningMatch.dateTime;
+
+      console.log(`  └─ Comparant amb: ${homeNorm} vs ${awayNorm} (${m.dateTime})`);
+
+      // Primer intentem match exacte amb data
+      if (homeNorm === targetHomeNorm && awayNorm === targetAwayNorm && dateMatch) {
+        console.log("  └─ ✅ Match exacte trobat!");
+        return true;
+      }
+
+      // Si no, intentem match només per equips (pot haver-hi diferències mínimes de data)
+      if (homeNorm === targetHomeNorm && awayNorm === targetAwayNorm) {
+        console.log("  └─ ✅ Match per equips trobat (data diferent)");
+        return true;
+      }
+
+      return false;
     });
 
     if (originalMatch?.actaUrl) {
-      console.log(`[processVotingWinner] 📋 Obtenint àrbitres de: ${originalMatch.actaUrl}`);
+      console.log(`[processVotingWinner] 📋 Partit trobat! Obtenint àrbitres de: ${originalMatch.actaUrl}`);
       refereeInfo = await fetchActaInfo(originalMatch.actaUrl);
       console.log(`[processVotingWinner] ✅ Àrbitre principal: ${refereeInfo.principal || "no trobat"}`);
+      console.log(`[processVotingWinner] ✅ Àrbitre auxiliar: ${refereeInfo.auxiliar || "no trobat"}`);
+      if (refereeInfo.anotador) console.log(`[processVotingWinner] 📝 Anotador: ${refereeInfo.anotador}`);
+      if (refereeInfo.cronometrador) console.log(`[processVotingWinner] ⏱️ Cronometrador: ${refereeInfo.cronometrador}`);
+    } else if (originalMatch) {
+      // Partit trobat però sense actaUrl - busquem qualsevol altre partit amb els mateixos equips que tingui acta
+      console.log("[processVotingWinner] ⚠️ Partit trobat però sense actaUrl. Buscant actes alternatives...");
+      const alternativeMatch = scrapedData.matches.find((m) => {
+        const homeNorm = normalizeForSignature(m.home.name);
+        const awayNorm = normalizeForSignature(m.away.name);
+        return (homeNorm === targetHomeNorm && awayNorm === targetAwayNorm && m.actaUrl) ||
+               (awayNorm === targetHomeNorm && homeNorm === targetAwayNorm && m.actaUrl); // També invertit
+      });
+
+      if (alternativeMatch?.actaUrl) {
+        console.log(`[processVotingWinner] 📋 Acta alternativa trobada: ${alternativeMatch.actaUrl}`);
+        refereeInfo = await fetchActaInfo(alternativeMatch.actaUrl);
+        console.log(`[processVotingWinner] ✅ Àrbitre principal: ${refereeInfo.principal || "no trobat"}`);
+        console.log(`[processVotingWinner] ✅ Àrbitre auxiliar: ${refereeInfo.auxiliar || "no trobat"}`);
+      } else {
+        console.log("[processVotingWinner] ⚠️ No s'ha trobat cap acta disponible per aquest partit");
+      }
     } else {
-      console.log("[processVotingWinner] ⚠️ No s'ha trobat l'URL de l'acta pel partit guanyador");
+      console.log("[processVotingWinner] ⚠️ No s'ha trobat el partit a la jornada");
+      console.log(`[processVotingWinner] 🔍 Partits disponibles a la jornada ${previousJornada}:`);
+      scrapedData.matches.forEach((m) => {
+        console.log(`  └─ ${m.home.name} vs ${m.away.name} (${m.dateTime}) - actaUrl: ${m.actaUrl || "no disponible"}`);
+      });
     }
   } catch (error) {
     console.error("[processVotingWinner] ❌ Error obtenint àrbitres:", error);

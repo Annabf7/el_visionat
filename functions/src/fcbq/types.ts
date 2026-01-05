@@ -39,11 +39,22 @@ export interface MatchData {
 }
 
 /**
+ * Oficial de taula individual
+ */
+export interface TableOfficial {
+  role: string; // Ex: "Anotador", "Cronometrador", "Operador RLL", "Caller"
+  name: string;
+}
+
+/**
  * Informació dels àrbitres i oficials d'un partit (extret de l'acta)
  */
 export interface RefereeInfo {
   principal?: string; // Àrbitre/a Principal
   auxiliar?: string; // Àrbitre/a Auxiliar
+  // Oficials de taula com array per compatibilitat amb Flutter
+  tableOfficials?: TableOfficial[];
+  // També mantenim els camps individuals per compatibilitat
   anotador?: string; // Anotador/a
   cronometrador?: string; // Cronometrador/a
   operadorRll?: string; // Operador/a RLL (replay)
@@ -58,6 +69,7 @@ export interface RefereeInfo {
   homeScore?: number;
   awayScore?: number;
   actaUrl?: string;
+  source?: string; // "fcbq-acta"
 }
 
 /**

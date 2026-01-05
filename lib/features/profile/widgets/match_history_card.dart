@@ -78,10 +78,10 @@ class MatchHistoryCard extends StatelessWidget {
                   // Equips
                   Text(
                     '${designation.localTeam} vs ${designation.visitantTeam}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.grisPistacho,
+                      color: AppTheme.textBlackLow.withValues(alpha: 0.8),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -91,31 +91,31 @@ class MatchHistoryCard extends StatelessWidget {
                   // Partit número i hora
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.sports_basketball,
                         size: 14,
-                        color: AppTheme.grisPistacho,
+                        color: AppTheme.textBlackLow.withValues(alpha: 0.8),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         'Partit #${designation.matchNumber}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppTheme.grisPistacho.withValues(alpha: 0.7),
+                          color: AppTheme.textBlackLow.withValues(alpha: 0.8),
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Icon(
+                      Icon(
                         Icons.access_time,
                         size: 14,
-                        color: AppTheme.grisPistacho,
+                        color: AppTheme.textBlackLow.withValues(alpha: 0.8),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         DateFormat('HH:mm').format(designation.date),
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppTheme.grisPistacho.withValues(alpha: 0.7),
+                          color: AppTheme.textBlackLow.withValues(alpha: 0.8),
                         ),
                       ),
                     ],
@@ -126,10 +126,10 @@ class MatchHistoryCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.note,
                           size: 14,
-                          color: AppTheme.lilaMitja,
+                          color: AppTheme.textBlackLow.withValues(alpha: 0.8),
                         ),
                         const SizedBox(width: 4),
                         Expanded(
@@ -137,7 +137,7 @@ class MatchHistoryCard extends StatelessWidget {
                             designation.notes!,
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.grisPistacho.withValues(alpha: 0.6),
+                              color: AppTheme.textBlackLow.withValues(alpha: 0.8),
                               fontStyle: FontStyle.italic,
                             ),
                             maxLines: 1,
@@ -152,9 +152,9 @@ class MatchHistoryCard extends StatelessWidget {
             ),
 
             // Icona de fletxa
-            const Icon(
+            Icon(
               Icons.chevron_right,
-              color: AppTheme.grisPistacho,
+              color: AppTheme.textBlackLow.withValues(alpha: 0.8),
             ),
           ],
         ),

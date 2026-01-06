@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/highlight_entry.dart';
+import '../models/highlight_play.dart';
 
 /// Servei per gestionar highlights de partits a Firestore
 ///
@@ -12,20 +13,20 @@ class HighlightService {
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
   /// Referència a la col·lecció d'highlights d'un partit específic
-  CollectionReference<HighlightEntry> _highlightsCollection(String matchId) {
+  CollectionReference<HighlightPlay> _highlightsCollection(String matchId) {
     return _firestore
-        .collection('highlights')
+        .collection('entries')
         .doc(matchId)
         .collection('entries')
-        .withConverter<HighlightEntry>(
-          fromFirestore: HighlightEntry.fromFirestore,
-          toFirestore: HighlightEntry.toFirestore,
+        .withConverter<HighlightPlay>(
+          fromFirestore: HighlightPlay.fromFirestore,
+          toFirestore: HighlightPlay.toFirestore,
         );
   }
 
   /// Stream d'highlights en temps real per un partit específic
   /// Ordenats per createdAt ascendent (cronològic)
-  Stream<List<HighlightEntry>> streamHighlights(String matchId) {
+  Stream<List<HighlightPlay>> streamHighlights(String matchId) {
     return _highlightsCollection(
       matchId,
     ).orderBy('createdAt', descending: false).snapshots().map((snapshot) {
@@ -35,19 +36,35 @@ class HighlightService {
 
   /// Afegeix un nou highlight a Firestore
   /// Si entry.id està buit, genera un ID automàticament
+  /// Afegeix automàticament els camps per reaccions i comentaris
   Future<void> addHighlight(HighlightEntry entry) async {
     try {
       final collection = _highlightsCollection(entry.matchId);
 
       // Si no té ID, generar-ne un automàticament
-      if (entry.id.isEmpty) {
-        final docRef = collection.doc();
-        final entryWithId = entry.copyWith(id: docRef.id);
-        await docRef.set(entryWithId);
-      } else {
-        // Usar l'ID existent
-        await collection.doc(entry.id).set(entry);
-      }
+      final docRef = entry.id.isEmpty ? collection.doc() : collection.doc(entry.id);
+      final entryWithId = entry.id.isEmpty ? entry.copyWith(id: docRef.id) : entry;
+
+      // Afegir camps de HighlightPlay per suportar reaccions
+      final dataWithReactions = {
+        ...entryWithId.toJson(),
+        'reactions': [],
+        'reactionsSummary': {
+          'likeCount': 0,
+          'importantCount': 0,
+          'controversialCount': 0,
+          'totalCount': 0,
+        },
+        'commentCount': 0,
+        'status': 'open',
+      };
+
+      await _firestore
+          .collection('entries')
+          .doc(entry.matchId)
+          .collection('entries')
+          .doc(docRef.id)
+          .set(dataWithReactions);
     } catch (e) {
       throw Exception('Error afegint highlight: $e');
     }
@@ -76,7 +93,7 @@ class HighlightService {
   }
 
   /// Obté tots els highlights d'un partit (snapshot únic, no stream)
-  Future<List<HighlightEntry>> getHighlights(String matchId) async {
+  Future<List<HighlightPlay>> getHighlights(String matchId) async {
     try {
       final snapshot = await _highlightsCollection(
         matchId,

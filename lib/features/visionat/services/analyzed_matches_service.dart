@@ -22,7 +22,7 @@ class AnalyzedMatchesService {
     return _firestore
         .collection('analyzed_matches')
         .doc(userId)
-        .collection('matches');
+        .collection('entries');
   }
 
   /// Marca un partit com analitzat per l'usuari

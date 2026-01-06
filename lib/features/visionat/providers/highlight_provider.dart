@@ -1,7 +1,14 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/highlight_entry.dart';
+import '../models/highlight_play.dart';
+import '../models/highlight_reaction.dart';
+import '../models/referee_comment.dart';
 import '../services/highlight_service.dart';
+import '../services/highlight_reaction_service.dart';
+import '../services/referee_comment_service.dart';
+import 'package:el_visionat/core/constants/referee_category_colors.dart';
 
 /// Provider per gestionar l'estat dels highlights d'un partit
 ///
@@ -10,17 +17,25 @@ import '../services/highlight_service.dart';
 /// - Gestió de streams en temps real
 /// - Interfície amb HighlightService
 /// - Loading states i error handling
+/// - Gestió de reaccions i comentaris d'àrbitres
 class VisionatHighlightProvider extends ChangeNotifier {
   final HighlightService _service;
+  final HighlightReactionService _reactionService;
+  final RefereeCommentService _commentService;
 
-  VisionatHighlightProvider(this._service);
+  VisionatHighlightProvider(
+    this._service, {
+    HighlightReactionService? reactionService,
+    RefereeCommentService? commentService,
+  })  : _reactionService = reactionService ?? HighlightReactionService(),
+        _commentService = commentService ?? RefereeCommentService();
 
   // --- Camps d'estat privats ---
   String? _matchId;
   bool _isLoading = false;
   String? _errorMessage;
-  List<HighlightEntry> _highlights = [];
-  StreamSubscription<List<HighlightEntry>>? _streamSubscription;
+  List<HighlightPlay> _highlights = [];
+  StreamSubscription<List<HighlightPlay>>? _streamSubscription;
   String? _selectedCategory;
 
   // --- Getters públics ---
@@ -35,13 +50,13 @@ class VisionatHighlightProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   /// Llista d'highlights ordenats cronològicament
-  List<HighlightEntry> get highlights => List.unmodifiable(_highlights);
+  List<HighlightPlay> get highlights => List.unmodifiable(_highlights);
 
   /// Categoria seleccionada per filtrar
   String? get selectedCategory => _selectedCategory;
 
   /// Llista d'highlights filtrats per categoria
-  List<HighlightEntry> get filteredHighlights {
+  List<HighlightPlay> get filteredHighlights {
     if (_selectedCategory == null) return highlights;
     return _highlights.where((h) => h.category == _selectedCategory).toList();
   }
@@ -213,6 +228,143 @@ class VisionatHighlightProvider extends ChangeNotifier {
     }
   }
 
+  // --- Mètodes de reaccions ---
+
+  /// Alterna una reacció de l'usuari actual en un highlight
+  Future<void> toggleReaction(String highlightId, ReactionType type) async {
+    if (_matchId == null) {
+      _setError('No s\'ha especificat un partit');
+      return;
+    }
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      _setError('Cal iniciar sessió per reaccionar');
+      return;
+    }
+
+    // Validar que no sigui el creador del highlight
+    final highlight = _highlights.firstWhere(
+      (h) => h.id == highlightId,
+      orElse: () => _highlights.first,
+    );
+
+    if (highlight.createdBy == currentUser.uid) {
+      _setError('No pots reaccionar al teu propi highlight');
+      return;
+    }
+
+    if (!hasListeners) return;
+
+    try {
+      await _reactionService.toggleReaction(
+        matchId: _matchId!,
+        highlightId: highlightId,
+        userId: currentUser.uid,
+        type: type,
+      );
+      // El stream s'actualitzarà automàticament
+    } catch (e) {
+      if (hasListeners) {
+        _setError('Error gestionant reacció: ${e.toString()}');
+      }
+    }
+  }
+
+  /// Obté les reaccions de l'usuari actual per un highlight
+  Set<ReactionType> getUserReactions(String highlightId) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return {};
+
+    final highlight = _highlights.firstWhere(
+      (h) => h.id == highlightId,
+      orElse: () => _highlights.first,
+    );
+
+    return highlight.reactions
+        .where((r) => r.userId == currentUser.uid)
+        .map((r) => r.type)
+        .toSet();
+  }
+
+  // --- Mètodes de comentaris d'àrbitres ---
+
+  /// Afegeix un comentari d'àrbitre
+  Future<void> addRefereeComment({
+    required String highlightId,
+    required String comment,
+    required bool isAnonymous,
+    bool isOfficial = false,
+  }) async {
+    if (_matchId == null) {
+      _setError('No s\'ha especificat un partit');
+      return;
+    }
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      _setError('Cal iniciar sessió per comentar');
+      return;
+    }
+
+    if (!hasListeners) return;
+
+    _setLoading(true);
+    _clearError();
+
+    try {
+      // Obtenir categoria de l'usuari actual
+      final category = await getCurrentUserCategory();
+      if (category == null) {
+        throw Exception('No s\'ha pogut verificar la categoria d\'àrbitre');
+      }
+
+      await _commentService.addComment(
+        matchId: _matchId!,
+        highlightId: highlightId,
+        userId: currentUser.uid,
+        category: category,
+        comment: comment,
+        isAnonymous: isAnonymous,
+        isOfficial: isOfficial,
+      );
+      // Èxit - el stream s'actualitzarà automàticament
+    } catch (e) {
+      if (hasListeners) {
+        _setError('Error afegint comentari: ${e.toString()}');
+      }
+    } finally {
+      if (hasListeners) {
+        _setLoading(false);
+      }
+    }
+  }
+
+  /// Stream de comentaris d'un highlight
+  Stream<List<RefereeComment>> watchComments(String highlightId) {
+    if (_matchId == null) {
+      return Stream.value([]);
+    }
+
+    return _commentService.watchComments(
+      matchId: _matchId!,
+      highlightId: highlightId,
+    );
+  }
+
+  /// Obté la categoria d'àrbitre de l'usuari actual
+  Future<RefereeCategory?> getCurrentUserCategory() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return null;
+
+    try {
+      return await _commentService.getUserCategory(currentUser.uid);
+    } catch (e) {
+      debugPrint('[HighlightProvider] Error obtenint categoria: $e');
+      return null;
+    }
+  }
+
   // --- Mètodes privats de gestió d'estat ---
 
   void _setLoading(bool loading) {
@@ -247,8 +399,8 @@ class VisionatHighlightProvider extends ChangeNotifier {
   }
 
   /// Ordena els highlights cronològicament (per timestamp)
-  List<HighlightEntry> _sortHighlights(List<HighlightEntry> highlights) {
-    final sorted = List<HighlightEntry>.from(highlights);
+  List<HighlightPlay> _sortHighlights(List<HighlightPlay> highlights) {
+    final sorted = List<HighlightPlay>.from(highlights);
     sorted.sort((a, b) => a.timestamp.compareTo(b.timestamp));
     return sorted;
   }

@@ -1,11 +1,15 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../designations/repositories/designations_repository.dart';
+import '../../designations/models/referee_from_registry.dart';
 import '../models/match_history_result.dart';
 
 /// Service per buscar i filtrar l'historial de partits
 class MatchHistoryService {
   final _repository = DesignationsRepository();
+  final _firestore = FirebaseFirestore.instance;
 
   /// Cerca partits per nom d'àrbitre
+  /// Busca a TOTS els àrbitres de referees_registry i retorna els partits amb ells
   Future<MatchHistoryResult> searchByReferee({
     required String refereeName,
   }) async {
@@ -13,18 +17,44 @@ class MatchHistoryService {
       return MatchHistoryResult.empty('');
     }
 
-    // Obtenir totes les designacions de l'usuari (agafem la primera emissió del stream)
+    // 1. Cercar àrbitres que coincideixin amb la query a referees_registry
+    final refereesSnapshot = await _firestore
+        .collection('referees_registry')
+        .get();
+
+    final matchingReferees = refereesSnapshot.docs
+        .map((doc) => RefereeFromRegistry.fromFirestore(doc.data()))
+        .where((referee) => referee.matchesSearch(refereeName))
+        .toList();
+
+    if (matchingReferees.isEmpty) {
+      return MatchHistoryResult.empty(refereeName);
+    }
+
+    // Agafem el primer àrbitre trobat per mostrar la seva info
+    final refereeInfo = matchingReferees.first;
+
+    // 2. Obtenir totes les designacions de l'usuari
     final allDesignations = await _repository.getDesignations().first;
 
-    // Filtrar per àrbitre
-    final queryLower = refereeName.toLowerCase().trim();
+    // 3. Filtrar designacions que continguin qualsevol dels àrbitres trobats
     final matches = allDesignations.where((designation) {
-      if (designation.refereePartner == null) return false;
+      if (designation.refereePartner == null) {
+        return false;
+      }
 
-      // Buscar al camp refereePartner
-      // Format: "Nom Cognoms (Rol)" o "Nom1 (Rol1), Nom2 (Rol2)"
       final partnerLower = designation.refereePartner!.toLowerCase();
-      return partnerLower.contains(queryLower);
+
+      // Comprovar si algún dels àrbitres trobats apareix en el camp refereePartner
+      return matchingReferees.any((referee) {
+        final refereeFullName = referee.fullName.toLowerCase();
+        final refereeCognoms = referee.cognoms.toLowerCase();
+        final refereeNom = referee.nom.toLowerCase();
+
+        return partnerLower.contains(refereeFullName) ||
+               partnerLower.contains(refereeCognoms) ||
+               partnerLower.contains(refereeNom);
+      });
     }).toList();
 
     // Ordenar per data (més recent primer)
@@ -38,6 +68,7 @@ class MatchHistoryService {
       totalMatches: matches.length,
       lastMatchDate: lastMatchDate,
       matches: matches,
+      refereeInfo: refereeInfo,
     );
   }
 

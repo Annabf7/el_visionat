@@ -45,97 +45,6 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // 🎯 Regles per Highlights de la feature Visionat
-    // Col·lecció: highlights/{matchId}/entries/{highlightId}
-    match /highlights/{matchId}/entries/{highlightId} {
-      
-      // 🔐 1. Requisit general: Totes les operacions requereixen autenticació
-      // 🟩 2. Permisos de lectura: Qualsevol usuari autenticat pot llegir highlights
-      allow read: if request.auth != null;
-
-      // 🟧 3. Permisos de creació: Només el creador pot afegir highlights
-      allow create: if request.auth != null
-        && request.auth.uid == request.resource.data.createdBy
-        && request.time == request.resource.data.createdAt
-        && isValidHighlightCreate(request.resource.data, matchId);
-
-      // 🟥 4. Permisos d'actualització: Només el creador pot modificar els seus highlights
-      allow update: if request.auth != null
-        && request.auth.uid == resource.data.createdBy
-        && isValidHighlightUpdate(request.resource.data, resource.data);
-
-      // ❌ 5. Permisos d'eliminació: Només el creador pot eliminar els seus highlights
-      allow delete: if request.auth != null
-        && request.auth.uid == resource.data.createdBy;
-    }
-
-    // 📦 Funcions auxiliars per validació de highlights
-    function isValidHighlightCreate(data, matchId) {
-      return hasRequiredFieldsCreate(data)
-        && hasCorrectTypesCreate(data)
-        && data.matchId == matchId;
-    }
-
-    function isValidHighlightUpdate(newData, oldData) {
-      return hasRequiredFieldsUpdate(newData)
-        && hasCorrectTypesUpdate(newData)
-        && isImmutableFieldsPreserved(newData, oldData);
-    }
-
-    // Validació de camps obligatoris per creació
-    function hasRequiredFieldsCreate(data) {
-      return data.keys().hasAll([
-        'id', 'matchId', 'timestamp', 'title', 'tag', 'category',
-        'tagId', 'tagLabel', 'description', 'createdBy', 'createdAt'
-      ]);
-    }
-
-    // Validació de camps obligatoris per actualització
-    function hasRequiredFieldsUpdate(data) {
-      return data.keys().hasAll([
-        'id', 'matchId', 'timestamp', 'title', 'tag', 'category',
-        'tagId', 'tagLabel', 'description', 'createdBy', 'createdAt'
-      ]);
-    }
-
-    // Validació de tipus correctes per creació
-    function hasCorrectTypesCreate(data) {
-      return data.id is string
-        && data.matchId is string
-        && data.timestamp is number
-        && data.title is string
-        && data.tag is string
-        && data.category is string
-        && data.tagId is string
-        && data.tagLabel is string
-        && data.description is string
-        && data.createdBy is string
-        && data.createdAt is timestamp;
-    }
-
-    // Validació de tipus correctes per actualització
-    function hasCorrectTypesUpdate(data) {
-      return data.id is string
-        && data.matchId is string
-        && data.timestamp is number
-        && data.title is string
-        && data.tag is string
-        && data.category is string
-        && data.tagId is string
-        && data.tagLabel is string
-        && data.description is string
-        && data.createdBy is string
-        && data.createdAt is timestamp;
-    }
-
-    // Validació que els camps immutables no es modifiquin
-    function isImmutableFieldsPreserved(newData, oldData) {
-      return newData.createdBy == oldData.createdBy
-        && newData.createdAt == oldData.createdAt
-        && newData.matchId == oldData.matchId
-        && newData.id == oldData.id;
-    }
-
     // 🗨️ Regles per Comentaris Col·lectius de la feature Visionat
     // Col·lecció: collective_comments/{matchId}/comments/{commentId}
     match /collective_comments/{matchId}/comments/{commentId} {
@@ -361,6 +270,149 @@ service cloud.firestore {
         && newData.jornadaId == oldData.jornadaId
         && newData.createdAt == oldData.createdAt
         && newData.userDisplayName == oldData.userDisplayName;
+    }
+
+    // 🎮 Regles per Highlights amb Sistema de Reaccions i Comentaris
+    // Col·lecció: entries/{matchId}/entries/{highlightId}
+    match /entries/{matchId}/entries/{highlightId} {
+
+      // 🔐 1. Requisit general: Totes les operacions requereixen autenticació
+      // 🟩 2. Permisos de lectura: Qualsevol usuari autenticat pot llegir highlights
+      allow read: if request.auth != null;
+
+      // 🟧 3. Permisos de creació: Qualsevol àrbitre autenticat pot crear highlights
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.createdBy
+        && isValidHighlightPlayCreate(request.resource.data, matchId);
+
+      // 🟥 4. Permisos d'actualització:
+      // - Qualsevol pot afegir/treure reaccions
+      // - Només creador pot modificar contingut
+      // - Cloud Functions poden canviar status
+      allow update: if request.auth != null
+        && (
+          // Usuaris poden toggle reaccions
+          isValidReactionToggle(request.resource.data, resource.data, request.auth.uid)
+          ||
+          // Creador pot modificar el highlight
+          (request.auth.uid == resource.data.createdBy
+           && isValidHighlightPlayUpdate(request.resource.data, resource.data))
+          ||
+          // Cloud Functions poden canviar status (server-side)
+          isServerSideStatusUpdate(request.resource.data, resource.data)
+        );
+
+      // ❌ 5. Permisos d'eliminació: Només el creador pot eliminar
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.createdBy;
+
+      // Subcoŀlecció de comentaris d'àrbitres
+      match /referee_comments/{commentId} {
+        // Qualsevol autenticat pot llegir comentaris
+        allow read: if request.auth != null;
+
+        // Només àrbitres registrats poden crear comentaris
+        allow create: if request.auth != null
+          && request.auth.uid == request.resource.data.userId
+          && isValidRefereeComment(request.resource.data, commentId);
+
+        // Només el creador pot editar (si no és oficial)
+        allow update: if request.auth != null
+          && request.auth.uid == resource.data.userId
+          && !resource.data.isOfficial
+          && isValidCommentEdit(request.resource.data, resource.data);
+
+        // Només el creador pot eliminar (si no és oficial)
+        allow delete: if request.auth != null
+          && request.auth.uid == resource.data.userId
+          && !resource.data.isOfficial;
+      }
+    }
+
+    // 📦 Funcions auxiliars per validació de highlights amb reaccions
+    function isValidHighlightPlayCreate(data, matchId) {
+      return data.matchId == matchId
+        && data.createdBy is string
+        && data.createdAt is timestamp
+        && data.title is string
+        && data.timestamp is number;
+    }
+
+    function isValidHighlightPlayUpdate(newData, oldData) {
+      return newData.createdBy == oldData.createdBy
+        && newData.createdAt == oldData.createdAt
+        && newData.matchId == oldData.matchId
+        && newData.id == oldData.id;
+    }
+
+    function isValidReactionToggle(newData, oldData, userId) {
+      // Només canvien reactions i reactionsSummary
+      let unchangedFields = newData.diff(oldData).unchangedKeys();
+      let requiredUnchanged = [
+        'id', 'matchId', 'title', 'timestamp', 'createdBy', 'createdAt'
+      ];
+      return unchangedFields.hasAll(requiredUnchanged)
+        && newData.reactions is list
+        && newData.reactionsSummary is map;
+    }
+
+    function isServerSideStatusUpdate(newData, oldData) {
+      // Només canvia status, reviewNotifiedAt, resolvedAt, officialCommentId
+      // Aquest check és relaxat perquè les Cloud Functions usen Admin SDK
+      return newData.status is string
+        && newData.status in ['open', 'under_review', 'resolved'];
+    }
+
+    function isValidRefereeComment(data, commentId) {
+      return data.id == commentId
+        && data.userId is string
+        && data.category is string
+        && data.comment is string
+        && data.comment.size() >= 50
+        && data.isAnonymous is bool
+        && data.isOfficial is bool
+        && data.createdAt is timestamp;
+    }
+
+    function isValidCommentEdit(newData, oldData) {
+      return newData.userId == oldData.userId
+        && newData.id == oldData.id
+        && newData.createdAt == oldData.createdAt
+        && newData.category == oldData.category
+        && newData.isOfficial == oldData.isOfficial
+        && newData.comment is string
+        && newData.comment.size() >= 50;
+    }
+
+    // 🔔 Regles per Notificacions In-App
+    // Col·lecció: notifications/{notificationId}
+    match /notifications/{notificationId} {
+      // Només el destinatari pot llegir les seves notificacions
+      allow read: if request.auth != null
+        && request.auth.uid == resource.data.userId;
+
+      // Només Cloud Functions poden crear notificacions (client-side NO)
+      allow create: if false;
+
+      // El destinatari pot marcar com llegida
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.userId
+        && request.resource.data.userId == resource.data.userId
+        && isValidNotificationUpdate(request.resource.data, resource.data);
+
+      // El destinatari pot eliminar les seves notificacions
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.userId;
+    }
+
+    function isValidNotificationUpdate(newData, oldData) {
+      // Només pot canviar isRead
+      let unchangedFields = newData.diff(oldData).unchangedKeys();
+      let requiredUnchanged = [
+        'id', 'userId', 'type', 'title', 'message', 'data', 'createdAt', 'expiresAt'
+      ];
+      return unchangedFields.hasAll(requiredUnchanged)
+        && newData.isRead is bool;
     }
 
     match /{document=**} {

@@ -118,11 +118,9 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildDesktopLayout() {
-    debugPrint('🔄 _buildDesktopLayout() called');
     return FutureBuilder<Map<String, dynamic>?>(
       future: _profileFuture,
       builder: (context, snapshot) {
-        debugPrint('🔄 FutureBuilder builder called - connectionState: ${snapshot.connectionState}');
         // Mostrar loading mentre es carreguen les dades
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -222,11 +220,9 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildMobileLayout() {
-    debugPrint('📱 _buildMobileLayout() called');
     return FutureBuilder<Map<String, dynamic>?>(
       future: _profileFuture,
       builder: (context, snapshot) {
-        debugPrint('📱 FutureBuilder builder called - connectionState: ${snapshot.connectionState}');
         // Mostrar loading mentre es carreguen les dades
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(

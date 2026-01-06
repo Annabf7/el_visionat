@@ -381,6 +381,10 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
                     return HighlightsTimeline(
                       entries: provider.filteredHighlights,
                       selectedCategory: provider.selectedCategory,
+                      onReactionTap: (highlightId, type) {
+                        provider.toggleReaction(highlightId, type);
+                      },
+                      currentUserId: FirebaseAuth.instance.currentUser?.uid,
                     );
                   },
                 ),
@@ -463,6 +467,10 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
               return HighlightsTimeline(
                 entries: provider.filteredHighlights,
                 selectedCategory: provider.selectedCategory,
+                onReactionTap: (highlightId, type) {
+                  provider.toggleReaction(highlightId, type);
+                },
+                currentUserId: FirebaseAuth.instance.currentUser?.uid,
               );
             },
           ),

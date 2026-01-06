@@ -42,6 +42,10 @@ import {
   setupWeeklyFocus,
 } from "./fcbq";
 
+// Visionat - Sistema de jugades destacades amb votació
+import {notifyRefereesOnThreshold} from "./visionat/notify_referees_on_threshold";
+import {closeDebateOnOfficialComment} from "./visionat/close_debate_on_official_comment";
+
 // Export functions with the exact names expected by the client
 exports.lookupLicense = lookupLicense;
 exports.requestRegistration = requestRegistration;
@@ -72,5 +76,6 @@ exports.closeSuggestions = closeSuggestions;
 exports.forceProcessWinner = forceProcessWinner;
 exports.setupWeeklyFocus = setupWeeklyFocus;
 
-// --- ALTRES FUNCIONS (si n'hi ha en el futur) ---
-// Aquí podríem afegir altres tipus de funcions (ex: triggers de Firestore, etc.)
+// Visionat - Sistema de jugades destacades exports
+exports.notifyRefereesOnThreshold = notifyRefereesOnThreshold;
+exports.closeDebateOnOfficialComment = closeDebateOnOfficialComment;

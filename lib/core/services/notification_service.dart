@@ -51,6 +51,8 @@ class NotificationService {
     required String userId,
     bool onlyUnread = false,
   }) {
+    debugPrint('[NotificationService] watchNotifications called for userId: $userId');
+
     Query query = _firestore
         .collection('notifications')
         .where('userId', isEqualTo: userId)
@@ -62,10 +64,24 @@ class NotificationService {
     }
 
     return query.snapshots().map((snapshot) {
-      return snapshot.docs
-          .map((doc) => AppNotification.fromJson(doc.data() as Map<String, dynamic>))
-          .where((notif) => !notif.isExpired)
+      debugPrint('[NotificationService] Stream update - ${snapshot.docs.length} documents');
+
+      final notifications = snapshot.docs
+          .map((doc) {
+            debugPrint('[NotificationService] Doc: ${doc.id}, data: ${doc.data()}');
+            return AppNotification.fromJson(doc.data() as Map<String, dynamic>);
+          })
+          .where((notif) {
+            final expired = notif.isExpired;
+            if (expired) {
+              debugPrint('[NotificationService] Filtering out expired notification: ${notif.id}');
+            }
+            return !expired;
+          })
           .toList();
+
+      debugPrint('[NotificationService] Returning ${notifications.length} notifications');
+      return notifications;
     });
   }
 

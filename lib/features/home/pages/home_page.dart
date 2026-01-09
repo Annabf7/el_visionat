@@ -8,6 +8,8 @@ import '../widgets/referee_team_card.dart';
 import 'package:el_visionat/features/voting/index.dart';
 import '../providers/home_provider.dart';
 import 'package:el_visionat/features/training/index.dart';
+import 'package:el_visionat/features/auth/providers/auth_provider.dart';
+import 'package:el_visionat/features/notifications/providers/notification_provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,6 +20,24 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Inicialitzar NotificationProvider després que el widget estigui creat
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      final notificationProvider = context.read<NotificationProvider>();
+
+      if (auth.isAuthenticated && auth.currentUserUid != null) {
+        debugPrint('[HomePage] Inicialitzant NotificationProvider amb UID: ${auth.currentUserUid}');
+        notificationProvider.initialize(auth.currentUserUid!);
+      } else {
+        debugPrint('[HomePage] Usuari no autenticat, no s\'inicialitza NotificationProvider');
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

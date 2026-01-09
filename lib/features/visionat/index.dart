@@ -10,6 +10,7 @@ export 'models/collective_comment.dart';
 export 'models/personal_analysis.dart';
 export 'models/match_models.dart';
 export 'models/youtube_video.dart';
+export 'models/comment.dart';
 
 // Widgets
 export 'widgets/analysis_section_card.dart';
@@ -24,12 +25,14 @@ export 'widgets/tag_filter_bar.dart';
 export 'widgets/tag_selector/index.dart';
 export 'widgets/personal_analysis_modal.dart';
 export 'widgets/clips_section.dart';
+export 'widgets/comments/index.dart';
 
 // Services
 export 'services/highlight_service.dart';
 export 'services/collective_comment_service.dart';
 export 'services/personal_analysis_service.dart';
 export 'services/youtube_service.dart';
+export 'services/comment_service.dart';
 
 // Providers
 export 'providers/highlight_provider.dart';
@@ -37,3 +40,4 @@ export 'providers/collective_comment_provider.dart';
 export 'providers/personal_analysis_provider.dart';
 export 'providers/youtube_provider.dart';
 export 'providers/weekly_match_provider.dart';
+export 'providers/comment_provider.dart';

@@ -75,9 +75,9 @@ async function getHighCategoryReferees(): Promise<RefereeProfile[]> {
       const category = extractCategory(data.categoriaRrtt as string);
 
       if (isHighCategoryReferee(category)) {
-        // Buscar l'usuari corresponent a app_users
+        // Buscar l'usuari corresponent a users
         const userSnapshot = await db
-          .collection("app_users")
+          .collection("users")
           .where("llissenciaId", "==", data.llissenciaId)
           .limit(1)
           .get();

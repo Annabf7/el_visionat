@@ -45,6 +45,10 @@ import {
 // Visionat - Sistema de jugades destacades amb votació
 import {notifyRefereesOnThreshold} from "./visionat/notify_referees_on_threshold";
 import {closeDebateOnOfficialComment} from "./visionat/close_debate_on_official_comment";
+import {
+  notifyCommentReply,
+  notifyCommentLike,
+} from "./visionat/notify_comment_interactions";
 
 // Export functions with the exact names expected by the client
 exports.lookupLicense = lookupLicense;
@@ -79,3 +83,5 @@ exports.setupWeeklyFocus = setupWeeklyFocus;
 // Visionat - Sistema de jugades destacades exports
 exports.notifyRefereesOnThreshold = notifyRefereesOnThreshold;
 exports.closeDebateOnOfficialComment = closeDebateOnOfficialComment;
+exports.notifyCommentReply = notifyCommentReply;
+exports.notifyCommentLike = notifyCommentLike;

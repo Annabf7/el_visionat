@@ -306,7 +306,7 @@ service cloud.firestore {
       allow delete: if request.auth != null
         && request.auth.uid == resource.data.createdBy;
 
-      // Subcoŀlecció de comentaris d'àrbitres
+      // Subcoŀlecció de comentaris d'àrbitres (sistema antic)
       match /referee_comments/{commentId} {
         // Qualsevol autenticat pot llegir comentaris
         allow read: if request.auth != null;
@@ -326,6 +326,36 @@ service cloud.firestore {
         allow delete: if request.auth != null
           && request.auth.uid == resource.data.userId
           && !resource.data.isOfficial;
+      }
+
+      // Subcoŀlecció de comentaris amb debat (sistema nou)
+      match /comments/{commentId} {
+        // Qualsevol autenticat pot llegir comentaris
+        allow read: if request.auth != null;
+
+        // Qualsevol autenticat pot crear comentaris
+        allow create: if request.auth != null
+          && request.auth.uid == request.resource.data.userId
+          && isValidDebateCommentCreate(request.resource.data);
+
+        // El creador pot editar el seu comentari (només el text)
+        allow update: if request.auth != null
+          && request.auth.uid == resource.data.userId
+          && isValidDebateCommentUpdate(request.resource.data, resource.data);
+
+        // El creador pot eliminar el seu comentari
+        allow delete: if request.auth != null
+          && request.auth.uid == resource.data.userId;
+
+        // Subcoŀlecció de likes
+        match /likes/{likeId} {
+          allow read: if request.auth != null;
+          allow create: if request.auth != null
+            && likeId == request.auth.uid
+            && request.resource.data.userId == request.auth.uid;
+          allow delete: if request.auth != null
+            && likeId == request.auth.uid;
+        }
       }
     }
 
@@ -413,6 +443,70 @@ service cloud.firestore {
       ];
       return unchangedFields.hasAll(requiredUnchanged)
         && newData.isRead is bool;
+    }
+
+    // 📦 Funcions auxiliars per validació de comentaris de debat
+    function isValidDebateCommentCreate(data) {
+      return data.keys().hasAll([
+        'id', 'matchId', 'highlightId', 'userId', 'userName',
+        'userCategory', 'text', 'isOfficial', 'likesCount',
+        'repliesCount', 'createdAt'
+      ])
+      && data.id is string
+      && data.matchId is string
+      && data.highlightId is string
+      && data.userId is string
+      && data.userName is string
+      && data.userCategory is string
+      && data.text is string
+      && data.text.size() > 0
+      && data.isOfficial is bool
+      && data.likesCount == 0
+      && data.repliesCount == 0
+      && data.createdAt is timestamp;
+    }
+
+    function isValidDebateCommentUpdate(newData, oldData) {
+      // Només pot canviar el text i updatedAt
+      return newData.id == oldData.id
+        && newData.matchId == oldData.matchId
+        && newData.highlightId == oldData.highlightId
+        && newData.userId == oldData.userId
+        && newData.userName == oldData.userName
+        && newData.userCategory == oldData.userCategory
+        && newData.isOfficial == oldData.isOfficial
+        && newData.createdAt == oldData.createdAt
+        && newData.text is string
+        && newData.text.size() > 0;
+    }
+
+    // 📺 Regles per Tracking de Clips Vistos de YouTube
+    // Col·lecció: watched_clips/{userId_videoId}
+    match /watched_clips/{clipId} {
+      // Només l'usuari propietari pot llegir els seus clips vistos
+      allow read: if request.auth != null
+        && request.auth.uid == resource.data.userId;
+
+      // Només l'usuari pot marcar els seus propis clips com a vistos
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.userId
+        && isValidWatchedClipCreate(request.resource.data, clipId);
+
+      // No es permet actualització (només creació i eliminació)
+      allow update: if false;
+
+      // Només l'usuari propietari pot desmarcar els seus clips vistos
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.userId;
+    }
+
+    // 📦 Funcions auxiliars per validació de clips vistos
+    function isValidWatchedClipCreate(data, clipId) {
+      return data.keys().hasAll(['userId', 'videoId', 'watchedAt'])
+        && data.userId is string
+        && data.videoId is string
+        && data.watchedAt is timestamp
+        && clipId == data.userId + '_' + data.videoId; // Validar format del document ID
     }
 
     match /{document=**} {

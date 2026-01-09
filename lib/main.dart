@@ -7,6 +7,7 @@ import 'package:el_visionat/features/voting/index.dart';
 import 'package:el_visionat/features/teams/index.dart';
 import 'package:el_visionat/features/profile/index.dart';
 import 'package:el_visionat/features/designations/pages/designations_page.dart';
+import 'package:el_visionat/features/notifications/providers/notification_provider.dart';
 import 'package:el_visionat/core/index.dart';
 import 'package:el_visionat/core/services/team_mapping_service.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
@@ -22,6 +23,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 /// Escalfa les Cloud Functions en mode debug per evitar cold start
 Future<void> _warmUpFunctions() async {
@@ -107,6 +109,10 @@ void main() async {
   await initializeDateFormatting('ca_ES');
   Intl.defaultLocale = 'ca_ES';
 
+  // Configurem timeago per usar català
+  timeago.setLocaleMessages('ca', timeago.CaMessages());
+  timeago.setDefaultLocale('ca');
+
   runApp(
     // --- Configuració dels Providers ---
     MultiProvider(
@@ -156,6 +162,14 @@ void main() async {
         ),
         ChangeNotifierProvider(
           create: (_) => YouTubeProvider(YouTubeService()),
+        ),
+        // Notification provider
+        ChangeNotifierProvider(
+          create: (_) => NotificationProvider(),
+        ),
+        // Comment provider for highlights
+        ChangeNotifierProvider(
+          create: (_) => CommentProvider(),
         ),
       ],
       child: const MyApp(), // L'aplicació principal
@@ -225,17 +239,30 @@ class MyApp extends StatelessWidget {
 }
 
 // --- Auth Wrapper: Decideix la Pantalla Inicial ---
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
   @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final notificationProvider = context.read<NotificationProvider>();
+
     // Show a short loading gate while the AuthProvider receives the initial
     // auth state from Firebase. This prevents a flash of the profile/login
     // UI while the SDK initializes.
     if (!auth.isInitialized) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    // Inicialitzar NotificationProvider quan l'usuari està autenticat
+    if (auth.isAuthenticated && auth.currentUserUid != null) {
+      debugPrint('[AuthWrapper] build - Autenticat! UID: ${auth.currentUserUid}');
+      notificationProvider.initialize(auth.currentUserUid!);
     }
 
     // If auth is initialized, decide between Login and Home. RequireAuth will

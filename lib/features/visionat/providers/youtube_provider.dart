@@ -1,23 +1,33 @@
 import 'package:flutter/foundation.dart';
 import '../models/youtube_video.dart';
 import '../services/youtube_service.dart';
+import '../services/watched_clip_service.dart';
+import 'dart:async';
 
 /// Provider per gestionar l'estat dels vídeos de YouTube
 ///
 /// Responsable de:
 /// - Carregar vídeos del canal Club del Árbitro
 /// - Gestionar estats de càrrega i errors
+/// - Tracking de clips vistos per l'usuari
 /// - Proporcionar interfície reactiva per la UI
 class YouTubeProvider extends ChangeNotifier {
   final YouTubeService _service;
+  final WatchedClipService _watchedClipService;
 
-  YouTubeProvider(this._service);
+  YouTubeProvider(this._service)
+      : _watchedClipService = WatchedClipService();
 
   // --- Camps d'estat privats ---
   bool _isLoading = false;
   String? _errorMessage;
   List<YouTubeVideo> _videos = [];
   DateTime? _lastLoadTime;
+
+  // Tracking de clips vistos
+  String? _currentUserId;
+  Set<String> _watchedVideoIds = {};
+  StreamSubscription<List<String>>? _watchedVideosSubscription;
 
   // --- Getters públics ---
 
@@ -49,6 +59,14 @@ class YouTubeProvider extends ChangeNotifier {
     final difference = now.difference(_lastLoadTime!);
     return difference.inMinutes > 5;
   }
+
+  /// Comprova si un vídeo ha estat vist per l'usuari actual
+  bool isVideoWatched(String videoId) {
+    return _watchedVideoIds.contains(videoId);
+  }
+
+  /// Nombre de vídeos vistos per l'usuari actual
+  int get watchedVideosCount => _watchedVideoIds.length;
 
   // --- Mètodes públics ---
 
@@ -132,6 +150,7 @@ class YouTubeProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _watchedVideosSubscription?.cancel();
     _service.dispose();
     super.dispose();
   }
@@ -140,6 +159,94 @@ class YouTubeProvider extends ChangeNotifier {
   Future<void> ensureInitialized() async {
     if (!hasLoadedOnce && !isLoading) {
       await loadVideos();
+    }
+  }
+
+  // --- Mètodes de tracking de clips vistos ---
+
+  /// Inicialitza el tracking de clips vistos per un usuari específic
+  ///
+  /// Comença a escoltar en temps real els clips vistos per l'usuari.
+  /// Si ja s'està fent tracking per aquest usuari, no fa res.
+  Future<void> initializeWatchedTracking(String userId) async {
+    // Si ja estem fent tracking per aquest usuari, no fer res
+    if (_currentUserId == userId && _watchedVideosSubscription != null) {
+      return;
+    }
+
+    // Cancel·lar subscripció anterior si n'hi ha
+    await _watchedVideosSubscription?.cancel();
+
+    // Actualitzar l'usuari actual
+    _currentUserId = userId;
+    _watchedVideoIds.clear();
+
+    // Començar a escoltar clips vistos en temps real
+    _watchedVideosSubscription = _watchedClipService
+        .watchWatchedVideoIds(userId)
+        .listen((watchedIds) {
+      _watchedVideoIds = watchedIds.toSet();
+      notifyListeners();
+
+      if (kDebugMode) {
+        print('YouTubeProvider: Actualitzats ${_watchedVideoIds.length} clips vistos');
+      }
+    }, onError: (error) {
+      if (kDebugMode) {
+        print('YouTubeProvider: Error escoltant clips vistos: $error');
+      }
+    });
+
+    if (kDebugMode) {
+      print('YouTubeProvider: Tracking inicialitzat per usuari $userId');
+    }
+  }
+
+  /// Marca un vídeo com a vist o no vist
+  Future<void> toggleWatchedStatus(String videoId) async {
+    if (_currentUserId == null) {
+      if (kDebugMode) {
+        print('YouTubeProvider: No hi ha usuari per fer tracking');
+      }
+      return;
+    }
+
+    try {
+      final isWatched = _watchedVideoIds.contains(videoId);
+
+      if (isWatched) {
+        await _watchedClipService.unmarkAsWatched(
+          userId: _currentUserId!,
+          videoId: videoId,
+        );
+      } else {
+        await _watchedClipService.markAsWatched(
+          userId: _currentUserId!,
+          videoId: videoId,
+        );
+      }
+
+      if (kDebugMode) {
+        print('YouTubeProvider: Vídeo $videoId marcat com ${isWatched ? 'no vist' : 'vist'}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('YouTubeProvider: Error togglejant estat vist: $e');
+      }
+      rethrow;
+    }
+  }
+
+  /// Atura el tracking de clips vistos
+  Future<void> stopWatchedTracking() async {
+    await _watchedVideosSubscription?.cancel();
+    _watchedVideosSubscription = null;
+    _currentUserId = null;
+    _watchedVideoIds.clear();
+    notifyListeners();
+
+    if (kDebugMode) {
+      print('YouTubeProvider: Tracking aturat');
     }
   }
 }

@@ -379,6 +379,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
                       );
                     }
                     return HighlightsTimeline(
+                      matchId: _mockMatchId,
                       entries: provider.filteredHighlights,
                       selectedCategory: provider.selectedCategory,
                       onReactionTap: (highlightId, type) {
@@ -465,6 +466,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
                 );
               }
               return HighlightsTimeline(
+                matchId: _mockMatchId,
                 entries: provider.filteredHighlights,
                 selectedCategory: provider.selectedCategory,
                 onReactionTap: (highlightId, type) {

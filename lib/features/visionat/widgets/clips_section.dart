@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/youtube_provider.dart';
 import '../models/youtube_video.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../../core/theme/app_theme.dart';
 
 /// Widget que mostra clips de vídeo de YouTube del canal Club del Árbitro
 ///
@@ -23,7 +25,17 @@ class _ClipsSectionState extends State<ClipsSection> {
     // Inicialització lazy per evitar càrregues innecessàries
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<YouTubeProvider>().ensureInitialized();
+        final youtubeProvider = context.read<YouTubeProvider>();
+        final authProvider = context.read<AuthProvider>();
+
+        // Inicialitzar vídeos
+        youtubeProvider.ensureInitialized();
+
+        // Inicialitzar tracking de clips vistos si hi ha usuari autenticat
+        final userId = authProvider.currentUserUid;
+        if (userId != null) {
+          youtubeProvider.initializeWatchedTracking(userId);
+        }
       }
     });
   }
@@ -190,26 +202,66 @@ class _ClipsSectionState extends State<ClipsSection> {
   Widget _buildVideoTile(BuildContext context, YouTubeVideo video) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    return InkWell(
-      onTap: () => _openVideo(video.youtubeUrl),
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
+    return Consumer<YouTubeProvider>(
+      builder: (context, youtubeProvider, child) {
+        final isWatched = youtubeProvider.isVideoWatched(video.videoId);
+
+        return InkWell(
+          onTap: () {
+            // Marcar com a vist quan es clica per veure'l
+            _markAsWatchedAndOpen(context, video.videoId, video.youtubeUrl);
+          },
+          onLongPress: () => _toggleWatchedStatus(context, video.videoId),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant,
-            width: 1,
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isWatched
+                    ? AppTheme.mostassa
+                    : Theme.of(context).colorScheme.outlineVariant,
+                width: isWatched ? 2 : 1,
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildThumbnail(context, video, isMobile, isWatched),
+                const SizedBox(width: 12),
+                Expanded(child: _buildVideoInfo(context, video, isMobile)),
+              ],
+            ),
           ),
+        );
+      },
+    );
+  }
+
+  void _markAsWatchedAndOpen(BuildContext context, String videoId, String videoUrl) {
+    final youtubeProvider = context.read<YouTubeProvider>();
+
+    // Marcar com a vist si no ho està ja
+    if (!youtubeProvider.isVideoWatched(videoId)) {
+      youtubeProvider.toggleWatchedStatus(videoId);
+    }
+
+    // Obrir el vídeo
+    _openVideo(videoUrl);
+  }
+
+  void _toggleWatchedStatus(BuildContext context, String videoId) {
+    final youtubeProvider = context.read<YouTubeProvider>();
+    youtubeProvider.toggleWatchedStatus(videoId);
+
+    // Mostrar feedback visual
+    final isWatched = youtubeProvider.isVideoWatched(videoId);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isWatched ? 'Clip marcat com a vist' : 'Clip marcat com a no vist',
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildThumbnail(context, video, isMobile),
-            const SizedBox(width: 12),
-            Expanded(child: _buildVideoInfo(context, video, isMobile)),
-          ],
-        ),
+        duration: const Duration(seconds: 1),
       ),
     );
   }
@@ -218,6 +270,7 @@ class _ClipsSectionState extends State<ClipsSection> {
     BuildContext context,
     YouTubeVideo video,
     bool isMobile,
+    bool isWatched,
   ) {
     final size = isMobile ? 80.0 : 100.0;
 
@@ -260,8 +313,12 @@ class _ClipsSectionState extends State<ClipsSection> {
                 color: Colors.black.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Center(
-                child: Icon(Icons.play_arrow, color: Colors.white, size: 24),
+              child: Center(
+                child: Icon(
+                  isWatched ? Icons.check_circle : Icons.play_arrow,
+                  color: isWatched ? AppTheme.mostassa : Colors.white,
+                  size: isWatched ? 32 : 24,
+                ),
               ),
             ),
           ),

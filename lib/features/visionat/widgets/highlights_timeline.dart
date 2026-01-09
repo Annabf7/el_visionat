@@ -4,8 +4,10 @@ import '../models/highlight_reaction.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import '../providers/highlight_provider.dart';
+import 'comments/comment_list.dart';
 
 class HighlightsTimeline extends StatelessWidget {
+  final String matchId;
   final List<HighlightPlay> entries;
   final String? selectedCategory;
   final VoidCallback? onHighlightTap;
@@ -14,6 +16,7 @@ class HighlightsTimeline extends StatelessWidget {
 
   const HighlightsTimeline({
     super.key,
+    required this.matchId,
     required this.entries,
     this.selectedCategory,
     this.onHighlightTap,
@@ -151,6 +154,41 @@ class HighlightsTimeline extends StatelessWidget {
                       const SizedBox(width: 16),
                       _buildCompactReactions(highlightPlay),
                     ],
+
+                    const SizedBox(width: 12),
+
+                    // Botó de comentaris (desktop i mòbil)
+                    GestureDetector(
+                      onTap: () => _showCommentsModal(context, highlightPlay),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.lilaMitja.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.comment_outlined,
+                              color: AppTheme.lilaMitja,
+                              size: 18,
+                            ),
+                            if (highlightPlay.commentCount > 0) ...[
+                              const SizedBox(width: 4),
+                              Text(
+                                '${highlightPlay.commentCount}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.lilaMitja,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
 
                     const SizedBox(width: 12),
 
@@ -498,20 +536,46 @@ class HighlightsTimeline extends StatelessWidget {
                     _buildStatusBadge(currentPlay.status),
                   ],
 
-                  // Botó per reproduir
+                  // Botons d'acció
                   const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      onHighlightTap?.call();
-                    },
-                    icon: const Icon(Icons.play_arrow),
-                    label: const Text('Reproduir jugada'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.lilaMitja,
-                      side: BorderSide(color: AppTheme.lilaMitja, width: 2),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            onHighlightTap?.call();
+                          },
+                          icon: const Icon(Icons.play_arrow),
+                          label: const Text('Reproduir'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.lilaMitja,
+                            side: BorderSide(color: AppTheme.lilaMitja, width: 2),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _showCommentsModal(context, currentPlay);
+                          },
+                          icon: const Icon(Icons.comment_outlined),
+                          label: Text(
+                            currentPlay.commentCount > 0
+                                ? 'Comentaris (${currentPlay.commentCount})'
+                                : 'Comentaris',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.lilaMitja,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -635,6 +699,83 @@ class HighlightsTimeline extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Obre el modal de comentaris per un highlight
+  void _showCommentsModal(BuildContext context, HighlightPlay play) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Handle per arrossegar
+              Container(
+                margin: const EdgeInsets.only(top: 8, bottom: 4),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            play.title,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.porpraFosc,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Comentaris i debat',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(height: 1, color: Colors.grey[300]),
+              // Llista de comentaris
+              Expanded(
+                child: CommentList(
+                  matchId: matchId,
+                  highlightId: play.id,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -10,15 +10,18 @@
 import * as functions from "firebase-functions/v2";
 import * as admin from "firebase-admin";
 
-interface RefereeCommentData {
+interface CommentData {
   id: string;
   highlightId: string;
   matchId: string;
   userId: string;
-  category: string;
-  comment: string;
-  isAnonymous: boolean;
+  userName: string;
+  userCategory: string;
+  text: string;
   isOfficial: boolean;
+  parentCommentId?: string;
+  likesCount: number;
+  repliesCount: number;
   createdAt: admin.firestore.Timestamp;
 }
 
@@ -26,7 +29,8 @@ interface RefereeCommentData {
  * Comprova si una categoria pot tancar debats
  */
 function canCloseDebate(category: string): boolean {
-  return category === "ACB" || category === "FEB_GRUP_1";
+  const upperCategory = category.toUpperCase();
+  return upperCategory.includes("ACB") || upperCategory.includes("FEB GRUP 1");
 }
 
 /**
@@ -65,13 +69,13 @@ async function getDebateParticipants(
       }
     }
 
-    // 3. Obtenir usuaris amb comentaris
+    // 3. Obtenir usuaris amb comentaris (ara a la col·lecció "comments")
     const commentsSnapshot = await db
       .collection("entries")
       .doc(matchId)
       .collection("entries")
       .doc(highlightId)
-      .collection("referee_comments")
+      .collection("comments")
       .get();
 
     for (const doc of commentsSnapshot.docs) {
@@ -141,12 +145,12 @@ async function notifyParticipants(
  */
 export const closeDebateOnOfficialComment = functions.firestore.onDocumentCreated(
   {
-    document: "entries/{matchId}/entries/{highlightId}/referee_comments/{commentId}",
+    document: "entries/{matchId}/entries/{highlightId}/comments/{commentId}",
     region: "europe-west1",
     memory: "256MiB",
   },
   async (event) => {
-    const commentData = event.data?.data() as RefereeCommentData | undefined;
+    const commentData = event.data?.data() as CommentData | undefined;
 
     if (!commentData) {
       console.log("[closeDebate] Dades no vàlides");
@@ -167,9 +171,9 @@ export const closeDebateOnOfficialComment = functions.firestore.onDocumentCreate
     );
 
     // Validar que l'àrbitre té autoritat
-    if (!canCloseDebate(commentData.category)) {
+    if (!canCloseDebate(commentData.userCategory)) {
       console.error(
-        `[closeDebate] ⚠️ Àrbitre ${commentData.category} no té autoritat per tancar debats`
+        `[closeDebate] ⚠️ Àrbitre ${commentData.userCategory} no té autoritat per tancar debats`
       );
       // Revertir isOfficial a false
       const db = admin.firestore();
@@ -178,7 +182,7 @@ export const closeDebateOnOfficialComment = functions.firestore.onDocumentCreate
         .doc(matchId)
         .collection("entries")
         .doc(highlightId)
-        .collection("referee_comments")
+        .collection("comments")
         .doc(commentId)
         .update({
           isOfficial: false,
@@ -228,7 +232,7 @@ export const closeDebateOnOfficialComment = functions.firestore.onDocumentCreate
           matchId,
           highlightId,
           highlightData.title as string,
-          commentData.category
+          commentData.userCategory
         );
       }
 

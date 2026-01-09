@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:el_visionat/features/auth/providers/auth_provider.dart';
+import 'package:el_visionat/features/notifications/providers/notification_provider.dart';
+import 'package:el_visionat/features/notifications/widgets/notification_badge.dart';
+import 'package:el_visionat/features/notifications/widgets/notification_dropdown.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 
 /// Header global reutilitzable per a tota l'aplicació
@@ -33,6 +36,41 @@ class GlobalHeader extends StatelessWidget implements PreferredSizeWidget {
     } catch (e) {
       debugPrint('Error durant logout: $e');
     }
+  }
+
+  void _showNotificationsModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        decoration: BoxDecoration(
+          color: AppTheme.white,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(20),
+          ),
+        ),
+        child: Column(
+          children: [
+            // Handle per arrossegar
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppTheme.grisPistacho.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Dropdown de notificacions
+            const Expanded(
+              child: NotificationDropdown(),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -111,29 +149,49 @@ class GlobalHeader extends StatelessWidget implements PreferredSizeWidget {
         ),
 
         // Icona campana (notificacions)
-        IconButton(
-          onPressed: () {
-            // TODO: Implementar notificacions
-            debugPrint('Notificacions');
-          },
-          icon: Stack(
-            children: [
-              const Icon(Icons.notifications_outlined, color: AppTheme.white),
-              // Punt roig per indicar notificacions noves
-              Positioned(
-                right: 0,
-                top: 0,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
+        Consumer<NotificationProvider>(
+          builder: (context, notificationProvider, child) {
+            final isMobile = MediaQuery.of(context).size.width < 600;
+
+            if (isMobile) {
+              // Mobile: Clic directe per obrir modal
+              return IconButton(
+                onPressed: () => _showNotificationsModal(context),
+                icon: NotificationBadge(
+                  count: notificationProvider.unreadCount,
+                  child: const Icon(
+                    Icons.notifications_outlined,
+                    color: AppTheme.white,
                   ),
                 ),
-              ),
-            ],
-          ),
+              );
+            } else {
+              // Desktop: Hover per mostrar dropdown
+              return PopupMenuButton(
+                offset: const Offset(0, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                color: Colors.transparent,
+                elevation: 0,
+                padding: EdgeInsets.zero,
+                icon: NotificationBadge(
+                  count: notificationProvider.unreadCount,
+                  child: const Icon(
+                    Icons.notifications_outlined,
+                    color: AppTheme.white,
+                  ),
+                ),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    enabled: false,
+                    padding: EdgeInsets.zero,
+                    child: const NotificationDropdown(),
+                  ),
+                ],
+              );
+            }
+          },
         ),
 
         // Menú desplegable de configuració

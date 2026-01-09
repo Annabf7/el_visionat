@@ -149,6 +149,8 @@ class NotificationItem extends StatelessWidget {
         return Icons.comment;
       case NotificationType.newReaction:
         return Icons.thumb_up_outlined;
+      case NotificationType.unwatchedClipsReminder:
+        return Icons.video_library_outlined;
       default:
         return Icons.notifications;
     }
@@ -165,6 +167,8 @@ class NotificationItem extends StatelessWidget {
         return AppTheme.lilaMitja;
       case NotificationType.newReaction:
         return AppTheme.porpraFosc;
+      case NotificationType.unwatchedClipsReminder:
+        return AppTheme.mostassa;
       default:
         return AppTheme.grisBody;
     }
@@ -181,6 +185,8 @@ class NotificationItem extends StatelessWidget {
         return AppTheme.lilaMitja.withValues(alpha: 0.15);
       case NotificationType.newReaction:
         return AppTheme.porpraFosc.withValues(alpha: 0.15);
+      case NotificationType.unwatchedClipsReminder:
+        return AppTheme.mostassa.withValues(alpha: 0.15);
       default:
         return AppTheme.grisPistacho.withValues(alpha: 0.1);
     }

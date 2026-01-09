@@ -49,6 +49,10 @@ import {
   notifyCommentReply,
   notifyCommentLike,
 } from "./visionat/notify_comment_interactions";
+import {
+  notifyUnwatchedClips,
+  checkUnwatchedClipsHttp,
+} from "./visionat/notify_unwatched_clips";
 
 // Export functions with the exact names expected by the client
 exports.lookupLicense = lookupLicense;
@@ -85,3 +89,5 @@ exports.notifyRefereesOnThreshold = notifyRefereesOnThreshold;
 exports.closeDebateOnOfficialComment = closeDebateOnOfficialComment;
 exports.notifyCommentReply = notifyCommentReply;
 exports.notifyCommentLike = notifyCommentLike;
+exports.notifyUnwatchedClips = notifyUnwatchedClips;
+exports.checkUnwatchedClipsHttp = checkUnwatchedClipsHttp;

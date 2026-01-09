@@ -237,6 +237,12 @@ class NotificationDropdown extends StatelessWidget {
         }
         break;
 
+      case NotificationType.unwatchedClipsReminder:
+        // Navegar a la secció de clips del Club de l'Àrbitre
+        Navigator.pushNamed(context, '/visionat');
+        debugPrint('[NotificationDropdown] Navegació a clips del Club de l\'Àrbitre');
+        break;
+
       case NotificationType.other:
         // Gestionar altres tipus en el futur
         debugPrint('[NotificationDropdown] Tipus "other", no hi ha navegació definida');

@@ -12,6 +12,7 @@ enum NotificationType {
   debateClosed, // Veredicte oficial, debat tancat
   commentReply, // Algú ha respost al teu comentari
   newReaction, // Algú ha reaccionat a la teva jugada
+  unwatchedClipsReminder, // Recordatori de clips pendents de veure
   other, // Altres tipus
 }
 
@@ -26,6 +27,8 @@ extension NotificationTypeExtension on NotificationType {
         return 'comment_reply';
       case NotificationType.newReaction:
         return 'new_reaction';
+      case NotificationType.unwatchedClipsReminder:
+        return 'unwatched_clips_reminder';
       case NotificationType.other:
         return 'other';
     }
@@ -41,6 +44,8 @@ extension NotificationTypeExtension on NotificationType {
         return NotificationType.commentReply;
       case 'new_reaction':
         return NotificationType.newReaction;
+      case 'unwatched_clips_reminder':
+        return NotificationType.unwatchedClipsReminder;
       default:
         return NotificationType.other;
     }

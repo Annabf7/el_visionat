@@ -54,6 +54,9 @@ import {
   checkUnwatchedClipsHttp,
 } from "./visionat/notify_unwatched_clips";
 
+// Reports - Sistema de processament de PDFs amb IA
+import {processPdfOnUpload} from "./reports/process_pdf";
+
 // Export functions with the exact names expected by the client
 exports.lookupLicense = lookupLicense;
 exports.requestRegistration = requestRegistration;
@@ -91,3 +94,6 @@ exports.notifyCommentReply = notifyCommentReply;
 exports.notifyCommentLike = notifyCommentLike;
 exports.notifyUnwatchedClips = notifyUnwatchedClips;
 exports.checkUnwatchedClipsHttp = checkUnwatchedClipsHttp;
+
+// Reports - Sistema de processament de PDFs exports
+exports.processPdfOnUpload = processPdfOnUpload;

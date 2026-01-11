@@ -85,6 +85,7 @@ class _ReportsPageState extends State<ReportsPage> {
                 ),
               ],
             ),
+            floatingActionButton: const PdfUploadButton(),
           );
         } else {
           // Layout mòbil: comportament tradicional
@@ -106,6 +107,7 @@ class _ReportsPageState extends State<ReportsPage> {
                 ),
               ],
             ),
+            floatingActionButton: const PdfUploadButton(),
           );
         }
       },

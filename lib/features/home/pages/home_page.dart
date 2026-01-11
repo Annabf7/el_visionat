@@ -31,10 +31,14 @@ class _HomePageState extends State<HomePage> {
       final notificationProvider = context.read<NotificationProvider>();
 
       if (auth.isAuthenticated && auth.currentUserUid != null) {
-        debugPrint('[HomePage] Inicialitzant NotificationProvider amb UID: ${auth.currentUserUid}');
+        debugPrint(
+          '[HomePage] Inicialitzant NotificationProvider amb UID: ${auth.currentUserUid}',
+        );
         notificationProvider.initialize(auth.currentUserUid!);
       } else {
-        debugPrint('[HomePage] Usuari no autenticat, no s\'inicialitza NotificationProvider');
+        debugPrint(
+          '[HomePage] Usuari no autenticat, no s\'inicialitza NotificationProvider',
+        );
       }
     });
   }
@@ -166,59 +170,75 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 16),
             // Fila: Votacions i Activitats de formació, 50% - 50%
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Secció de Votacions (esquerra)
-                const Expanded(flex: 1, child: VotingSection()),
-                const SizedBox(width: 16),
-                // Activitats de formació (dreta)
-                Expanded(
-                  flex: 1,
-                  child: ChangeNotifierProvider(
-                    create: (_) =>
-                        ActivityControllerProvider(activities: mockActivities),
-                    child: Card(
-                      elevation: 3,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 24,
-                          horizontal: 20,
+            // Amb alçada fixa i scroll vertical per mantenir equilibri visual
+            SizedBox(
+              height: 1000, // Alçada fixa per ambdues columnes
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Secció de Votacions (esquerra) amb scroll
+                  Expanded(
+                    flex: 1,
+                    child: SingleChildScrollView(child: const VotingSection()),
+                  ),
+                  const SizedBox(width: 16),
+                  // Activitats de formació (dreta) amb scroll
+                  Expanded(
+                    flex: 1,
+                    child: SingleChildScrollView(
+                      child: ChangeNotifierProvider(
+                        create: (_) => ActivityControllerProvider(
+                          activities: mockActivities,
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+                        child: Card(
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 24,
+                              horizontal: 20,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(
-                                  Icons.school_outlined,
-                                  color: Theme.of(context).colorScheme.primary,
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.school_outlined,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      'Activitats de formació',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 10),
+                                const SizedBox(height: 8),
                                 Text(
-                                  'Activitats de formació',
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                  'Autoavaluació interactiva: mira el vídeo, respon les preguntes i comprova el teu progrés!',
+                                  style: Theme.of(context).textTheme.bodyMedium,
                                 ),
+                                const SizedBox(height: 20),
+                                TrainingActivitiesWidget(),
                               ],
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Autoavaluació interactiva: mira el vídeo, respon les preguntes i comprova el teu progrés!',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                            const SizedBox(height: 20),
-                            TrainingActivitiesWidget(),
-                          ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 32), // Padding final professional
           ],

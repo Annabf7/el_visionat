@@ -72,7 +72,7 @@ class NotificationDropdown extends StatelessWidget {
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: Text(
-                          'Marcar totes com llegides',
+                          'Llegir tot',
                           style: TextStyle(
                             fontSize: 12,
                             color: AppTheme.lilaMitja,
@@ -112,9 +112,11 @@ class NotificationDropdown extends StatelessWidget {
                   ),
                 )
               else
-                Flexible(
+                Expanded(
                   child: ListView.builder(
                     shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    physics: const AlwaysScrollableScrollPhysics(),
                     itemCount: notifications.length,
                     itemBuilder: (context, index) {
                       final notification = notifications[index];

@@ -160,7 +160,7 @@ class NotificationItem extends StatelessWidget {
   Color _getIconColor() {
     switch (notification.type) {
       case NotificationType.highlightReviewRequested:
-        return AppTheme.mostassa;
+        return AppTheme.porpraFosc;
       case NotificationType.debateClosed:
         return const Color(0xFF50C878); // Verd
       case NotificationType.commentReply:
@@ -168,7 +168,7 @@ class NotificationItem extends StatelessWidget {
       case NotificationType.newReaction:
         return AppTheme.porpraFosc;
       case NotificationType.unwatchedClipsReminder:
-        return AppTheme.mostassa;
+        return AppTheme.porpraFosc;
       default:
         return AppTheme.grisBody;
     }
@@ -178,7 +178,7 @@ class NotificationItem extends StatelessWidget {
   Color _getIconBackgroundColor() {
     switch (notification.type) {
       case NotificationType.highlightReviewRequested:
-        return AppTheme.mostassa.withValues(alpha: 0.15);
+        return AppTheme.porpraFosc.withValues(alpha: 0.15);
       case NotificationType.debateClosed:
         return const Color(0xFF50C878).withValues(alpha: 0.15);
       case NotificationType.commentReply:
@@ -186,7 +186,7 @@ class NotificationItem extends StatelessWidget {
       case NotificationType.newReaction:
         return AppTheme.porpraFosc.withValues(alpha: 0.15);
       case NotificationType.unwatchedClipsReminder:
-        return AppTheme.mostassa.withValues(alpha: 0.15);
+        return AppTheme.porpraFosc.withValues(alpha: 0.15);
       default:
         return AppTheme.grisPistacho.withValues(alpha: 0.1);
     }

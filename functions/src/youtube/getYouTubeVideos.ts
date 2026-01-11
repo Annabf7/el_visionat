@@ -7,6 +7,7 @@
 
 import {onRequest} from "firebase-functions/v2/https";
 import {logger} from "firebase-functions";
+import * as admin from "firebase-admin";
 
 // Interfície per la resposta de YouTube API v3
 interface YouTubeSearchItem {
@@ -53,7 +54,7 @@ export const getYouTubeVideos = onRequest(
     memory: "256MiB",
     cors: true,
   },
-  async (request, response) => {
+  async (_request, response) => {
     logger.info("[getYouTubeVideos] Starting YouTube API request");
 
     try {
@@ -105,6 +106,25 @@ export const getYouTubeVideos = onRequest(
       }));
 
       logger.info(`[getYouTubeVideos] Successfully retrieved ${videos.length} videos from Club del Árbitro`);
+
+      // Guardar els vídeos a Firestore per al sistema de notificacions
+      const db = admin.firestore();
+      const batch = db.batch();
+
+      for (const video of videos) {
+        const videoRef = db.collection("youtube_videos").doc(video.videoId);
+        batch.set(videoRef, {
+          videoId: video.videoId,
+          title: video.title,
+          thumbnailUrl: video.thumbnailUrl,
+          publishedAt: admin.firestore.Timestamp.fromDate(new Date(video.publishedAt)),
+          youtubeUrl: `https://www.youtube.com/watch?v=${video.videoId}`,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, {merge: true}); // merge per no sobreescriure dades existents
+      }
+
+      await batch.commit();
+      logger.info(`[getYouTubeVideos] Saved ${videos.length} videos to Firestore`);
 
       // Retornar resposta amb èxit
       response.status(200).json({

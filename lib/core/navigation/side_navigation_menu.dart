@@ -82,10 +82,10 @@ class SideNavigationMenu extends StatelessWidget {
                       onTap: () => Navigator.pushNamed(ctx, '/visionat'),
                     ),
                     _NavigationItem(
-                      icon: Icons.groups,
-                      text: 'Equips de Bàsquet',
-                      isSelected: isActive('/teams'),
-                      onTap: () => Navigator.pushNamed(ctx, '/teams'),
+                      icon: Icons.assessment,
+                      text: 'Informes + Test',
+                      isSelected: isActive('/reports'),
+                      onTap: () => Navigator.pushNamed(ctx, '/reports'),
                     ),
                     _NavigationItem(
                       icon: Icons.assignment,

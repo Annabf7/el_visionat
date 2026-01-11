@@ -7,6 +7,7 @@ import 'package:el_visionat/features/voting/index.dart';
 import 'package:el_visionat/features/teams/index.dart';
 import 'package:el_visionat/features/profile/index.dart';
 import 'package:el_visionat/features/designations/pages/designations_page.dart';
+import 'package:el_visionat/features/reports/index.dart';
 import 'package:el_visionat/features/notifications/providers/notification_provider.dart';
 import 'package:el_visionat/core/index.dart';
 import 'package:el_visionat/core/services/team_mapping_service.dart';
@@ -171,6 +172,10 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => CommentProvider(),
         ),
+        // Reports provider
+        ChangeNotifierProvider(
+          create: (_) => ReportsProvider(),
+        ),
       ],
       child: const MyApp(), // L'aplicació principal
     ),
@@ -212,7 +217,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => RequireAuth(child: const HomePage()),
         '/all-matches': (context) => RequireAuth(child: const AllMatchesPage()),
         '/profile': (context) => RequireAuth(child: const ProfilePage()),
-        '/teams': (context) => RequireAuth(child: const TeamsPage()),
+        '/reports': (context) => RequireAuth(child: const ReportsPage()),
         '/visionat': (context) => RequireAuth(child: const VisionatMatchPage()),
         '/designations': (context) => RequireAuth(child: const DesignationsPage()),
         '/login': (context) => const LoginPage(), // Ruta explícita per a Login

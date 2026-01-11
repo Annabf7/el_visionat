@@ -61,6 +61,9 @@ ios/Runner/GoogleService-Info.plist   # Firebase iOS config
 firebase-debug.log
 firebase-debug.*.log
 
+# Scripts de testing i desenvolupament
+/scripts/test_scripts/
+
 # Directoris generats per Node.js [CLAU]
 /node_modules
 /functions/node_modules

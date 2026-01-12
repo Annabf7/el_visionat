@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:el_visionat/core/models/referee_report.dart';
@@ -6,6 +7,11 @@ import 'package:el_visionat/core/models/improvement_tracking.dart';
 
 class ReportsProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Subscriptions per escoltar canvis en temps real
+  StreamSubscription<QuerySnapshot>? _reportsSubscription;
+  StreamSubscription<QuerySnapshot>? _testsSubscription;
+  StreamSubscription<DocumentSnapshot>? _trackingSubscription;
 
   // Reports
   List<RefereeReport> _reports = [];
@@ -47,99 +53,136 @@ class ReportsProvider extends ChangeNotifier {
 
   /// Inicialitza el provider amb l'UID de l'usuari
   Future<void> initialize(String userId) async {
-    await Future.wait([
-      loadReports(userId),
-      loadTests(userId),
-      loadCurrentSeasonTracking(userId),
-    ]);
+    // Cancel·lar subscripcions anteriors si n'hi ha
+    _cancelSubscriptions();
+
+    // Iniciar listeners en temps real
+    _listenToReports(userId);
+    _listenToTests(userId);
+    _listenToTracking(userId);
   }
 
-  /// Carrega els informes de l'usuari
-  Future<void> loadReports(String userId) async {
+  /// Cancel·la totes les subscripcions actives
+  void _cancelSubscriptions() {
+    _reportsSubscription?.cancel();
+    _testsSubscription?.cancel();
+    _trackingSubscription?.cancel();
+  }
+
+  @override
+  void dispose() {
+    _cancelSubscriptions();
+    super.dispose();
+  }
+
+  /// Escolta els informes de l'usuari en temps real
+  void _listenToReports(String userId) {
     _isLoadingReports = true;
-    _error = null;
     notifyListeners();
 
-    try {
-      final snapshot = await _firestore
-          .collection('reports')
-          .where('userId', isEqualTo: userId)
-          .orderBy('date', descending: true)
-          .limit(20) // Limitem a els últims 20 informes
-          .get();
+    _reportsSubscription = _firestore
+        .collection('reports')
+        .where('userId', isEqualTo: userId)
+        .orderBy('date', descending: true)
+        .limit(20)
+        .snapshots()
+        .listen(
+      (snapshot) {
+        _reports = snapshot.docs
+            .map((doc) => RefereeReport.fromFirestore(doc))
+            .toList();
 
-      _reports = snapshot.docs
-          .map((doc) => RefereeReport.fromFirestore(doc))
-          .toList();
-
-      debugPrint('[ReportsProvider] Carregats ${_reports.length} informes');
-    } catch (e) {
-      _error = 'Error carregant informes: $e';
-      debugPrint('[ReportsProvider] Error: $_error');
-    } finally {
-      _isLoadingReports = false;
-      notifyListeners();
-    }
+        _isLoadingReports = false;
+        debugPrint('[ReportsProvider] Actualitzats ${_reports.length} informes');
+        notifyListeners();
+      },
+      onError: (e) {
+        _error = 'Error escoltant informes: $e';
+        _isLoadingReports = false;
+        debugPrint('[ReportsProvider] Error: $_error');
+        notifyListeners();
+      },
+    );
   }
 
-  /// Carrega els tests de l'usuari
-  Future<void> loadTests(String userId) async {
+  /// Escolta els tests de l'usuari en temps real
+  void _listenToTests(String userId) {
     _isLoadingTests = true;
-    _error = null;
     notifyListeners();
 
-    try {
-      final snapshot = await _firestore
-          .collection('tests')
-          .where('userId', isEqualTo: userId)
-          .orderBy('date', descending: true)
-          .limit(20) // Limitem a els últims 20 tests
-          .get();
+    _testsSubscription = _firestore
+        .collection('tests')
+        .where('userId', isEqualTo: userId)
+        .orderBy('date', descending: true)
+        .limit(20)
+        .snapshots()
+        .listen(
+      (snapshot) {
+        _tests =
+            snapshot.docs.map((doc) => RefereeTest.fromFirestore(doc)).toList();
 
-      _tests =
-          snapshot.docs.map((doc) => RefereeTest.fromFirestore(doc)).toList();
-
-      debugPrint('[ReportsProvider] Carregats ${_tests.length} tests');
-    } catch (e) {
-      _error = 'Error carregant tests: $e';
-      debugPrint('[ReportsProvider] Error: $_error');
-    } finally {
-      _isLoadingTests = false;
-      notifyListeners();
-    }
+        _isLoadingTests = false;
+        debugPrint('[ReportsProvider] Actualitzats ${_tests.length} tests');
+        notifyListeners();
+      },
+      onError: (e) {
+        _error = 'Error escoltant tests: $e';
+        _isLoadingTests = false;
+        debugPrint('[ReportsProvider] Error: $_error');
+        notifyListeners();
+      },
+    );
   }
 
-  /// Carrega el tracking de la temporada actual
-  Future<void> loadCurrentSeasonTracking(String userId) async {
+  /// Escolta el tracking de la temporada actual en temps real
+  void _listenToTracking(String userId) {
     _isLoadingTracking = true;
-    _error = null;
     notifyListeners();
 
-    try {
-      final trackingId = '${userId}_$_selectedSeason';
-      final doc = await _firestore
-          .collection('improvement_tracking')
-          .doc(trackingId)
-          .get();
+    final trackingId = '${userId}_$_selectedSeason';
+    _trackingSubscription = _firestore
+        .collection('improvement_tracking')
+        .doc(trackingId)
+        .snapshots()
+        .listen(
+      (doc) {
+        if (doc.exists) {
+          _currentSeasonTracking = ImprovementTracking.fromFirestore(doc);
+          debugPrint(
+            '[ReportsProvider] Tracking actualitzat per temporada $_selectedSeason',
+          );
+        } else {
+          _currentSeasonTracking = null;
+          debugPrint(
+            '[ReportsProvider] No hi ha tracking per temporada $_selectedSeason',
+          );
+        }
 
-      if (doc.exists) {
-        _currentSeasonTracking = ImprovementTracking.fromFirestore(doc);
-        debugPrint(
-          '[ReportsProvider] Tracking carregat per temporada $_selectedSeason',
-        );
-      } else {
-        _currentSeasonTracking = null;
-        debugPrint(
-          '[ReportsProvider] No hi ha tracking per temporada $_selectedSeason',
-        );
-      }
-    } catch (e) {
-      _error = 'Error carregant tracking: $e';
-      debugPrint('[ReportsProvider] Error: $_error');
-    } finally {
-      _isLoadingTracking = false;
-      notifyListeners();
-    }
+        _isLoadingTracking = false;
+        notifyListeners();
+      },
+      onError: (e) {
+        _error = 'Error escoltant tracking: $e';
+        _isLoadingTracking = false;
+        debugPrint('[ReportsProvider] Error: $_error');
+        notifyListeners();
+      },
+    );
+  }
+
+  /// Carrega els informes de l'usuari (manté compatibilitat)
+  Future<void> loadReports(String userId) async {
+    _listenToReports(userId);
+  }
+
+  /// Carrega els tests de l'usuari (manté compatibilitat)
+  Future<void> loadTests(String userId) async {
+    _listenToTests(userId);
+  }
+
+  /// Carrega el tracking de la temporada actual (manté compatibilitat)
+  Future<void> loadCurrentSeasonTracking(String userId) async {
+    _listenToTracking(userId);
   }
 
   /// Afegeix un nou informe

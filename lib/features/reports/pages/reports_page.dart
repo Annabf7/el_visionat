@@ -382,8 +382,12 @@ class _ReportsPageState extends State<ReportsPage> {
                 (report) => ReportCard(
                   report: report,
                   onTap: () {
-                    // TODO: Navegar al detall de l'informe
-                    debugPrint('[ReportsPage] Tap en informe: ${report.id}');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ReportDetailPage(report: report),
+                      ),
+                    );
                   },
                 ),
               ),
@@ -438,8 +442,12 @@ class _ReportsPageState extends State<ReportsPage> {
                 (test) => TestCard(
                   test: test,
                   onTap: () {
-                    // TODO: Navegar al detall del test
-                    debugPrint('[ReportsPage] Tap en test: ${test.id}');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TestDetailPage(test: test),
+                      ),
+                    );
                   },
                 ),
               ),

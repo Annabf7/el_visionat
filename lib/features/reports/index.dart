@@ -8,6 +8,8 @@ export 'providers/reports_provider.dart';
 
 // Pages
 export 'pages/reports_page.dart';
+export 'pages/report_detail_page.dart';
+export 'pages/test_detail_page.dart';
 
 // Widgets
 export 'widgets/report_card.dart';

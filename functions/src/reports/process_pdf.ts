@@ -2,18 +2,14 @@
 // Process PDF - Processa PDFs d'informes i tests amb IA
 // ============================================================================
 // Aquesta funció s'activa quan es puja un PDF a Firebase Storage.
-// Utilitza l'API de Claude (Anthropic) per extreure les dades del PDF
+// Utilitza Vertex AI (Gemini 2.0 Flash-Lite) per extreure les dades del PDF
 // i crear automàticament els documents corresponents a Firestore.
 // ============================================================================
 
 import {onObjectFinalized} from "firebase-functions/v2/storage";
-import {defineString} from "firebase-functions/params";
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
-import Anthropic from "@anthropic-ai/sdk";
-
-// Definir la clau API com a paràmetre secret
-const anthropicApiKey = defineString("ANTHROPIC_API_KEY");
+import {VertexAI} from "@google-cloud/vertexai";
 
 /**
  * Funció que es dispara quan es puja un PDF a Storage
@@ -31,7 +27,7 @@ export const processPdfOnUpload = onObjectFinalized(
     timeoutSeconds: 540, // 9 minuts (màxim per Cloud Functions)
     maxInstances: 10,
     // Només per arxius PDF dins la carpeta pdfs/
-    bucket: undefined, // Bucket per defecte
+    bucket: "el-visionat.firebasestorage.app",
   },
   async (event) => {
     const filePath = event.data.name;
@@ -64,11 +60,10 @@ export const processPdfOnUpload = onObjectFinalized(
 
       logger.info(`PDF descarregat: ${fileBuffer.length} bytes`);
 
-      // 2. Cridar l'API de Claude per processar el PDF
-      const extractedData = await extractDataWithClaude(
+      // 2. Cridar Vertex AI per processar el PDF
+      const extractedData = await extractDataWithVertexAI(
         base64Pdf,
-        type,
-        anthropicApiKey.value()
+        type
       );
 
       logger.info("Dades extretes amb èxit:", extractedData);
@@ -115,40 +110,40 @@ export const processPdfOnUpload = onObjectFinalized(
 );
 
 /**
- * Extreu dades del PDF utilitzant Claude API
+ * Extreu dades del PDF utilitzant Vertex AI (Gemini)
  */
-async function extractDataWithClaude(
+async function extractDataWithVertexAI(
   base64Pdf: string,
-  type: "report" | "test",
-  apiKey: string
+  type: "report" | "test"
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any> {
-  const anthropic = new Anthropic({
-    apiKey: apiKey,
+  const vertexAI = new VertexAI({
+    project: "el-visionat",
+    location: "us-central1",
   });
 
-  const prompt = type === "report"
-    ? getReportExtractionPrompt()
-    : getTestExtractionPrompt();
+  const model = vertexAI.getGenerativeModel({
+    model: "gemini-2.0-flash-lite-001",
+  });
 
-  logger.info("Cridant API de Claude...");
+  const prompt = type === "report" ?
+    getReportExtractionPrompt() :
+    getTestExtractionPrompt();
 
-  const message = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
-    max_tokens: 4096,
-    messages: [
+  logger.info("Cridant Vertex AI (Gemini)...");
+
+  const result = await model.generateContent({
+    contents: [
       {
         role: "user",
-        content: [
+        parts: [
           {
-            type: "document",
-            source: {
-              type: "base64",
-              media_type: "application/pdf",
+            inlineData: {
               data: base64Pdf,
+              mimeType: "application/pdf",
             },
           },
           {
-            type: "text",
             text: prompt,
           },
         ],
@@ -156,17 +151,13 @@ async function extractDataWithClaude(
     ],
   });
 
-  // Extreure el contingut de text
-  const textContent = message.content.find((block) => block.type === "text");
-  if (!textContent || textContent.type !== "text") {
-    throw new Error("No s'ha rebut resposta de text de Claude");
-  }
+  const response = result.response;
+  const text = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-  // Parsejar JSON de la resposta
-  const jsonText = textContent.text;
+  logger.info("Resposta rebuda de Gemini");
 
   // Extreure JSON del markdown code block si cal
-  let cleanJson = jsonText.trim();
+  let cleanJson = text.trim();
   if (cleanJson.startsWith("```json")) {
     cleanJson = cleanJson.replace(/^```json\n/, "").replace(/\n```$/, "");
   } else if (cleanJson.startsWith("```")) {
@@ -198,9 +189,9 @@ Retorna un JSON amb aquesta estructura exacta:
   "finalGrade": "OPTIM" | "SATISFACTORI" | "ACCEPTABLE" | "MILLORABLE" | "NO_VALORABLE",
   "categories": [
     {
-      "name": "Nom de la categoria",
+      "categoryName": "Nom de la categoria",
       "grade": "OPTIM" | "SATISFACTORI" | "ACCEPTABLE" | "MILLORABLE" | "NO_VALORABLE",
-      "comments": "Comentaris o buit si no n'hi ha"
+      "description": "Comentaris o buit si no n'hi ha"
     }
   ],
   "improvementPoints": [
@@ -274,6 +265,7 @@ IMPORTANT:
  */
 async function saveReportToFirestore(
   userId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any
 ): Promise<void> {
   const db = admin.firestore();
@@ -300,6 +292,7 @@ async function saveReportToFirestore(
 /**
  * Guarda un test a Firestore
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function saveTestToFirestore(userId: string, data: any): Promise<void> {
   const db = admin.firestore();
 
@@ -369,6 +362,7 @@ async function updateSeasonTracking(userId: string): Promise<void> {
 
     if (reportSeason !== season) return;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (report.improvementPoints || []).forEach((point: any) => {
       const existing = improvementMap.get(point.categoryName);
       if (existing) {
@@ -417,6 +411,7 @@ async function updateSeasonTracking(userId: string): Promise<void> {
 
     if (testSeason !== season) return;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (test.conflictiveQuestions || []).forEach((q: any) => {
       const existing = weakAreasMap.get(q.category);
       if (existing) {

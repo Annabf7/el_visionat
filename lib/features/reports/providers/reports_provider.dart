@@ -217,6 +217,38 @@ class ReportsProvider extends ChangeNotifier {
     }
   }
 
+  /// Elimina un informe
+  Future<void> deleteReport(String reportId) async {
+    try {
+      await _firestore.collection('reports').doc(reportId).delete();
+
+      debugPrint('[ReportsProvider] Informe eliminat: $reportId');
+
+      // Els listeners de Firestore actualitzaran automàticament la llista
+      // No cal cridar notifyListeners() ni removeWhere() manualment
+    } catch (e) {
+      _error = 'Error eliminant informe: $e';
+      debugPrint('[ReportsProvider] Error: $_error');
+      rethrow;
+    }
+  }
+
+  /// Elimina un test
+  Future<void> deleteTest(String testId) async {
+    try {
+      await _firestore.collection('tests').doc(testId).delete();
+
+      debugPrint('[ReportsProvider] Test eliminat: $testId');
+
+      // Els listeners de Firestore actualitzaran automàticament la llista
+      // No cal cridar notifyListeners() ni removeWhere() manualment
+    } catch (e) {
+      _error = 'Error eliminant test: $e';
+      debugPrint('[ReportsProvider] Error: $_error');
+      rethrow;
+    }
+  }
+
   /// Actualitza el tracking de millores
   Future<void> updateTracking(ImprovementTracking tracking) async {
     try {

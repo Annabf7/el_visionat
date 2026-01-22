@@ -9,10 +9,12 @@ import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
 /// Pàgina de detall d'un informe d'arbitratge
 class ReportDetailPage extends StatefulWidget {
   final RefereeReport report;
+  final VoidCallback? onDelete;
 
   const ReportDetailPage({
     super.key,
     required this.report,
+    this.onDelete,
   });
 
   @override
@@ -139,19 +141,29 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                         style:
                             Theme.of(context).textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.porpraFosc,
+                                  color: AppTheme.grisPistacho,
                                 ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         widget.report.competition,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: AppTheme.grisBody,
+                              color: AppTheme.grisPistacho,
                             ),
                       ),
                     ],
                   ),
                 ),
+                if (widget.onDelete != null)
+                  IconButton(
+                    icon: Icon(
+                      Icons.delete_outline,
+                      color: AppTheme.mostassa,
+                      size: 28,
+                    ),
+                    onPressed: () => _showDeleteDialog(context),
+                    tooltip: 'Eliminar informe',
+                  ),
               ],
             ),
             const SizedBox(height: 20),
@@ -192,12 +204,12 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: AppTheme.grisBody),
+          Icon(icon, size: 16, color: AppTheme.grisPistacho),
           const SizedBox(width: 8),
           Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.grisBody,
+                  color: AppTheme.grisPistacho,
                   fontWeight: FontWeight.w500,
                 ),
           ),
@@ -219,6 +231,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
               'Valoració Final',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: AppTheme.grisPistacho,
                   ),
             ),
             const SizedBox(height: 20),
@@ -263,13 +276,14 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
               children: [
                 Icon(
                   Icons.checklist_outlined,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: AppTheme.grisPistacho,
                 ),
                 const SizedBox(width: 12),
                 Text(
                   'Categories Avaluades',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: AppTheme.grisPistacho,
                       ),
                 ),
               ],
@@ -309,7 +323,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                   category.categoryName,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.porpraFosc,
+                        color: AppTheme.grisPistacho,
                       ),
                 ),
               ),
@@ -335,7 +349,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
             Text(
               category.description!,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.grisBody,
+                    color: AppTheme.grisPistacho,
                   ),
             ),
           ],
@@ -364,6 +378,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                   'Punts de Millora Identificats',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: AppTheme.grisPistacho,
                       ),
                 ),
               ],
@@ -399,14 +414,14 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
             point.categoryName,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.porpraFosc,
+                  color: AppTheme.grisPistacho,
                 ),
           ),
           const SizedBox(height: 8),
           Text(
             point.description,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.grisBody,
+                  color: AppTheme.grisPistacho,
                 ),
           ),
         ],
@@ -427,13 +442,14 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
               children: [
                 Icon(
                   Icons.comment_outlined,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: AppTheme.grisPistacho,
                 ),
                 const SizedBox(width: 12),
                 Text(
                   'Comentaris Generals',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: AppTheme.grisPistacho,
                       ),
                 ),
               ],
@@ -448,8 +464,8 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
               ),
               child: Text(
                 widget.report.comments,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppTheme.grisBody,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.grisPistacho,
                       height: 1.6,
                     ),
               ),
@@ -460,18 +476,47 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
     );
   }
 
+  void _showDeleteDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Eliminar informe'),
+          content: Text(
+            'Estàs segur que vols eliminar l\'informe "${widget.report.teams}"?\n\nAquesta acció no es pot desfer.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel·lar'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Tancar diàleg
+                Navigator.of(context).pop(); // Tornar a la pàgina anterior
+                widget.onDelete?.call();
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.mostassa,
+              ),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Color _getGradeColor(AssessmentGrade grade) {
     switch (grade) {
       case AssessmentGrade.optim:
-        return const Color(0xFF50C878); // Verd
-      case AssessmentGrade.satisfactori:
-        return AppTheme.lilaMitja; // Lila
+        return AppTheme.verdeEncert; // Verd
       case AssessmentGrade.acceptable:
-        return AppTheme.mostassa; // Groc
+        return AppTheme.lilaMitja; // Lila
       case AssessmentGrade.millorable:
-        return Colors.orange.shade700; // Taronja
-      case AssessmentGrade.noValorable:
-        return AppTheme.grisBody; // Gris
+        return AppTheme.mostassa; // Groc mostassa
+      case AssessmentGrade.noSatisfactori:
+        return Colors.redAccent; // Vermell
     }
   }
 }

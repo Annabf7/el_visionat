@@ -9,10 +9,12 @@ import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
 /// Pàgina de detall d'un test teòric o físic
 class TestDetailPage extends StatefulWidget {
   final RefereeTest test;
+  final VoidCallback? onDelete;
 
   const TestDetailPage({
     super.key,
     required this.test,
+    this.onDelete,
   });
 
   @override
@@ -92,13 +94,7 @@ class _TestDetailPageState extends State<TestDetailPage> {
             _buildResults(context),
             const SizedBox(height: 32),
 
-            // Preguntes conflictives
-            if (widget.test.conflictiveQuestions.isNotEmpty) ...[
-              _buildConflictiveQuestions(context),
-              const SizedBox(height: 32),
-            ],
-
-            // Totes les preguntes (opcional, amb collapse)
+            // Totes les preguntes (sense secció conflictives separada)
             if (widget.test.allQuestions.isNotEmpty) ...[
               _buildAllQuestions(context),
               const SizedBox(height: 32),
@@ -127,7 +123,7 @@ class _TestDetailPageState extends State<TestDetailPage> {
                   size: 32,
                   color: widget.test.isTheoretical
                       ? AppTheme.lilaMitja
-                      : const Color(0xFF50C878),
+                      : AppTheme.verdeEncert,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -139,19 +135,29 @@ class _TestDetailPageState extends State<TestDetailPage> {
                         style:
                             Theme.of(context).textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.porpraFosc,
+                                  color: AppTheme.grisPistacho,
                                 ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         widget.test.isTheoretical ? 'Test Teòric' : 'Test Físic',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: AppTheme.grisBody,
+                              color: AppTheme.grisPistacho,
                             ),
                       ),
                     ],
                   ),
                 ),
+                if (widget.onDelete != null)
+                  IconButton(
+                    icon: Icon(
+                      Icons.delete_outline,
+                      color: AppTheme.mostassa,
+                      size: 28,
+                    ),
+                    onPressed: () => _showDeleteDialog(context),
+                    tooltip: 'Eliminar test',
+                  ),
               ],
             ),
             const SizedBox(height: 20),
@@ -193,12 +199,12 @@ class _TestDetailPageState extends State<TestDetailPage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: AppTheme.grisBody),
+          Icon(icon, size: 16, color: AppTheme.grisPistacho),
           const SizedBox(width: 8),
           Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.grisBody,
+                  color: AppTheme.grisPistacho,
                   fontWeight: FontWeight.w500,
                 ),
           ),
@@ -223,6 +229,7 @@ class _TestDetailPageState extends State<TestDetailPage> {
               'Resultats',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: AppTheme.grisPistacho,
                   ),
             ),
             const SizedBox(height: 24),
@@ -252,7 +259,7 @@ class _TestDetailPageState extends State<TestDetailPage> {
                     Text(
                       '/ 10',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: AppTheme.grisBody,
+                            color: AppTheme.grisPistacho,
                           ),
                     ),
                   ],
@@ -270,7 +277,7 @@ class _TestDetailPageState extends State<TestDetailPage> {
                     label: 'Encerts',
                     value:
                         '${widget.test.correctAnswers}/${widget.test.totalQuestions}',
-                    color: const Color(0xFF50C878),
+                    color: AppTheme.verdeEncert,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -280,7 +287,7 @@ class _TestDetailPageState extends State<TestDetailPage> {
                     icon: Icons.cancel_outlined,
                     label: 'Errors',
                     value: widget.test.incorrectAnswers.toString(),
-                    color: Colors.orange.shade700,
+                    color: AppTheme.mostassa,
                   ),
                 ),
               ],
@@ -346,7 +353,7 @@ class _TestDetailPageState extends State<TestDetailPage> {
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.grisBody,
+                  color: AppTheme.grisPistacho,
                 ),
           ),
         ],
@@ -354,7 +361,13 @@ class _TestDetailPageState extends State<TestDetailPage> {
     );
   }
 
-  Widget _buildConflictiveQuestions(BuildContext context) {
+  Widget _buildAllQuestions(BuildContext context) {
+    // Separar preguntes incorrectes i correctes
+    final incorrectQuestions =
+        widget.test.allQuestions.where((q) => !q.isCorrect).toList();
+    final correctQuestions =
+        widget.test.allQuestions.where((q) => q.isCorrect).toList();
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -363,220 +376,344 @@ class _TestDetailPageState extends State<TestDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  color: Colors.orange.shade700,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'Preguntes Conflictives',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Aquestes són les preguntes on has tingut errors o dificultats',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.grisBody,
+            // Preguntes INCORRECTES - Sempre expandides amb enunciat
+            if (incorrectQuestions.isNotEmpty) ...[
+              Row(
+                children: [
+                  Icon(
+                    Icons.cancel,
+                    color: AppTheme.mostassa,
                   ),
-            ),
-            const SizedBox(height: 20),
-            ...widget.test.conflictiveQuestions.map(
-              (question) => _buildConflictiveQuestionItem(context, question),
-            ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Preguntes Incorrectes (${incorrectQuestions.length})',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.mostassa,
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ...incorrectQuestions.map(
+                (question) => _buildExpandedIncorrectQuestion(context, question),
+              ),
+              const SizedBox(height: 32),
+            ],
+
+            // Preguntes CORRECTES - Graella estil calendari
+            if (correctQuestions.isNotEmpty) ...[
+              Row(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    color: AppTheme.verdeEncert,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Preguntes Correctes (${correctQuestions.length})',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.verdeEncert,
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Clica una pregunta per veure l\'enunciat',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.grisPistacho,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              _buildCorrectQuestionsGrid(context, correctQuestions),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildConflictiveQuestionItem(
-    BuildContext context,
-    ConflictiveQuestion question,
-  ) {
+  /// Graella de preguntes correctes estil Google Calendar
+  Widget _buildCorrectQuestionsGrid(
+      BuildContext context, List<TestQuestion> questions) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: questions.map((question) {
+        return InkWell(
+          onTap: () => _showQuestionDialog(context, question),
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppTheme.verdeEncert.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppTheme.verdeEncert.withValues(alpha: 0.4),
+              ),
+            ),
+            child: Center(
+              child: Text(
+                '${question.questionNumber}',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.verdeEncert,
+                    ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  /// Widget per preguntes INCORRECTES - Sempre expandides amb tota la informació
+  Widget _buildExpandedIncorrectQuestion(
+      BuildContext context, TestQuestion question) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: 0.08),
+        color: AppTheme.mostassa.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.orange.withValues(alpha: 0.3),
+          color: AppTheme.mostassa.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Capçalera amb número
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.orange.shade700,
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppTheme.mostassa,
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  'P${question.questionNumber}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white,
+                  '${question.questionNumber}',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  question.category,
+                  'Pregunta ${question.questionNumber}',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.porpraFosc,
+                        color: AppTheme.grisPistacho,
                       ),
                 ),
               ),
             ],
           ),
-          if (question.explanation.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              question.explanation,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.grisBody,
-                  ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 
-  Widget _buildAllQuestions(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-        childrenPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-        leading: Icon(
-          Icons.list_alt,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-        title: Text(
-          'Totes les Preguntes (${widget.test.allQuestions.length})',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        children: [
-          const SizedBox(height: 12),
-          ...widget.test.allQuestions.map(
-            (question) => _buildQuestionItem(context, question),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuestionItem(BuildContext context, TestQuestion question) {
-    final isCorrect = question.isCorrect;
-    final color = isCorrect ? const Color(0xFF50C878) : Colors.orange.shade700;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                isCorrect ? Icons.check_circle : Icons.cancel,
-                color: color,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Pregunta ${question.questionNumber}',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.porpraFosc,
-                    ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            question.category,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.grisBody,
-                  fontStyle: FontStyle.italic,
-                ),
-          ),
+          // Text de la pregunta (enunciat)
           if (question.questionText.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
               question.questionText,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.grisBody,
+                    color: AppTheme.grisPistacho,
                   ),
             ),
           ],
-          if (!isCorrect) ...[
-            const SizedBox(height: 12),
-            Row(
+
+          // Respostes: La teva vs Correcta
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.mostassa.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (question.userAnswer != null && question.userAnswer!.isNotEmpty) ...[
+                  Text(
+                    'La teva resposta:',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.grisPistacho,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    question.userAnswer!,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.mostassa,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Text(
-                  'Resposta correcta: ',
+                  'Resposta correcta:',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.grisBody,
+                        color: AppTheme.grisPistacho,
                         fontWeight: FontWeight.w600,
                       ),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   question.correctAnswer,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF50C878),
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  'La teva: ',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.grisBody,
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-                Text(
-                  question.userAnswer ?? '-',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.orange.shade700,
-                        fontWeight: FontWeight.bold,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.verdeEncert,
+                        fontWeight: FontWeight.w500,
                       ),
                 ),
               ],
             ),
-          ],
+          ),
         ],
       ),
     );
   }
 
+  /// Diàleg per mostrar la pregunta completa
+  void _showQuestionDialog(BuildContext context, TestQuestion question) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.verdeEncert,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${question.questionNumber}',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Pregunta ${question.questionNumber}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.grisPistacho,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Text de la pregunta (enunciat)
+                if (question.questionText.isNotEmpty) ...[
+                  Text(
+                    question.questionText,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.grisPistacho,
+                        ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // Resposta correcta
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.verdeEncert.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppTheme.verdeEncert.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Resposta correcta:',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.grisPistacho,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        question.correctAnswer,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.verdeEncert,
+                              fontWeight: FontWeight.w500,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Tancar',
+                style: TextStyle(
+                  color: AppTheme.grisPistacho,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Eliminar test'),
+          content: Text(
+            'Estàs segur que vols eliminar el test "${widget.test.testName}"?\n\nAquesta acció no es pot desfer.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel·lar'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Tancar diàleg
+                Navigator.of(context).pop(); // Tornar a la pàgina anterior
+                widget.onDelete?.call();
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.mostassa,
+              ),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Color _getScoreColor(double score) {
-    if (score >= 9.0) return const Color(0xFF50C878); // Verd
+    if (score >= 9.0) return AppTheme.verdeEncert; // Verd
     if (score >= 7.0) return AppTheme.lilaMitja; // Lila
     if (score >= 5.0) return AppTheme.mostassa; // Groc
-    return Colors.orange.shade700; // Taronja
+    return AppTheme.mostassa; // Groc mostassa per notes baixes
   }
 }

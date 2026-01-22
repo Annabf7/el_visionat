@@ -7,21 +7,16 @@ import 'package:intl/intl.dart';
 class TestCard extends StatelessWidget {
   final RefereeTest test;
   final VoidCallback? onTap;
+  final VoidCallback? onDelete;
 
-  const TestCard({
-    super.key,
-    required this.test,
-    this.onTap,
-  });
+  const TestCard({super.key, required this.test, this.onTap, this.onDelete});
 
   @override
   Widget build(BuildContext context) {
     return Card(
       elevation: 2,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -39,19 +34,36 @@ class TestCard extends StatelessWidget {
                       Icon(
                         Icons.calendar_today,
                         size: 16,
-                        color: AppTheme.grisBody,
+                        color: AppTheme.grisPistacho,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         DateFormat('dd/MM/yyyy').format(test.date),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.grisBody,
-                              fontWeight: FontWeight.w500,
-                            ),
+                          color: AppTheme.grisPistacho,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
-                  _buildTestTypeBadge(context),
+                  Row(
+                    children: [
+                      _buildTestTypeBadge(context),
+                      if (onDelete != null) ...[
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: Icon(
+                            Icons.delete_outline,
+                            size: 20,
+                            color: AppTheme.mostassa,
+                          ),
+                          onPressed: () => _showDeleteDialog(context),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -60,9 +72,9 @@ class TestCard extends StatelessWidget {
               Text(
                 test.testName,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.porpraFosc,
-                    ),
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.mostassa,
+                ),
               ),
               const SizedBox(height: 12),
 
@@ -76,7 +88,7 @@ class TestCard extends StatelessWidget {
                       icon: Icons.grade,
                       label: 'Nota',
                       value: test.score.toStringAsFixed(1),
-                      color: _getScoreColor(test.score),
+                      color: AppTheme.mostassa,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -87,7 +99,7 @@ class TestCard extends StatelessWidget {
                       icon: Icons.check_circle_outline,
                       label: 'Encerts',
                       value: '${test.correctAnswers}/${test.totalQuestions}',
-                      color: const Color(0xFF50C878),
+                      color: AppTheme.verdeEncert,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -98,7 +110,7 @@ class TestCard extends StatelessWidget {
                       icon: Icons.access_time,
                       label: 'Temps',
                       value: '${test.timeSpentMinutes}\'',
-                      color: AppTheme.lilaMitja,
+                      color: AppTheme.mostassa,
                     ),
                   ),
                 ],
@@ -114,20 +126,22 @@ class TestCard extends StatelessWidget {
                     Icon(
                       Icons.error_outline,
                       size: 16,
-                      color: Colors.orange.shade700,
+                      color: AppTheme.mostassa,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       '${test.conflictiveQuestions.length} pregunta${test.conflictiveQuestions.length > 1 ? 'es' : ''} conflictiva${test.conflictiveQuestions.length > 1 ? 'es' : ''}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.orange.shade700,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        color: AppTheme.mostassa,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                ...test.conflictiveQuestions.take(2).map(
+                ...test.conflictiveQuestions
+                    .take(2)
+                    .map(
                       (question) => Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Row(
@@ -135,19 +149,17 @@ class TestCard extends StatelessWidget {
                           children: [
                             Text(
                               'P${question.questionNumber}. ',
-                              style:
-                                  Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: AppTheme.grisBody,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: AppTheme.grisPistacho,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                             ),
                             Expanded(
                               child: Text(
                                 question.category,
-                                style:
-                                    Theme.of(context).textTheme.bodySmall?.copyWith(
-                                          color: AppTheme.grisBody,
-                                        ),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(color: AppTheme.grisPistacho),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -162,9 +174,9 @@ class TestCard extends StatelessWidget {
                     child: Text(
                       '+${test.conflictiveQuestions.length - 2} més...',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.grisBody,
-                            fontStyle: FontStyle.italic,
-                          ),
+                        color: AppTheme.grisPistacho,
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                   ),
               ],
@@ -175,14 +187,42 @@ class TestCard extends StatelessWidget {
     );
   }
 
+  void _showDeleteDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Eliminar test'),
+          content: Text(
+            'Estàs segur que vols eliminar el test "${test.testName}"?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel·lar'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                onDelete?.call();
+              },
+              style: TextButton.styleFrom(foregroundColor: AppTheme.mostassa),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildTestTypeBadge(BuildContext context) {
     final isTheoretical = test.isTheoretical;
     final backgroundColor = isTheoretical
-        ? AppTheme.lilaMitja.withValues(alpha: 0.15)
-        : const Color(0xFF50C878).withValues(alpha: 0.15);
+        ? AppTheme.mostassa.withValues(alpha: 0.15)
+        : AppTheme.verdeEncert.withValues(alpha: 0.15);
     final textColor = isTheoretical
-        ? AppTheme.lilaMitja
-        : const Color(0xFF50C878);
+        ? AppTheme.mostassa
+        : AppTheme.verdeEncert;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -202,10 +242,10 @@ class TestCard extends StatelessWidget {
           Text(
             isTheoretical ? 'Teòric' : 'Físic',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: textColor,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
-                ),
+              color: textColor,
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
+            ),
           ),
         ],
       ),
@@ -232,27 +272,20 @@ class TestCard extends StatelessWidget {
           Text(
             value,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
           const SizedBox(height: 2),
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.grisBody,
-                  fontSize: 10,
-                ),
+              color: AppTheme.grisPistacho,
+              fontSize: 10,
+            ),
           ),
         ],
       ),
     );
-  }
-
-  Color _getScoreColor(double score) {
-    if (score >= 9.0) return const Color(0xFF50C878); // Verd
-    if (score >= 7.0) return AppTheme.lilaMitja; // Lila
-    if (score >= 5.0) return AppTheme.mostassa; // Groc
-    return Colors.orange.shade700; // Taronja
   }
 }

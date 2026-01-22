@@ -54,7 +54,7 @@ class ImprovementItem extends StatelessWidget {
                         Icon(
                           Icons.arrow_right,
                           size: 16,
-                          color: AppTheme.grisBody,
+                          color: AppTheme.grisPistacho,
                         ),
                         const SizedBox(width: 4),
                         Expanded(
@@ -62,7 +62,7 @@ class ImprovementItem extends StatelessWidget {
                             description,
                             style:
                                 Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppTheme.grisBody,
+                                      color: AppTheme.grisPistacho,
                                     ),
                           ),
                         ),
@@ -77,13 +77,13 @@ class ImprovementItem extends StatelessWidget {
               Icon(
                 Icons.access_time,
                 size: 14,
-                color: AppTheme.grisBody,
+                color: AppTheme.grisPistacho,
               ),
               const SizedBox(width: 4),
               Text(
                 'Última vegada: ${DateFormat('dd/MM/yyyy').format(improvement.lastOccurrence)}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.grisBody,
+                      color: AppTheme.grisPistacho,
                       fontSize: 11,
                     ),
               ),
@@ -92,13 +92,13 @@ class ImprovementItem extends StatelessWidget {
                 Icon(
                   Icons.trending_down,
                   size: 14,
-                  color: const Color(0xFF50C878),
+                  color: AppTheme.verdeEncert,
                 ),
                 const SizedBox(width: 4),
                 Text(
                   'Millorant',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF50C878),
+                        color: AppTheme.verdeEncert,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
@@ -145,10 +145,10 @@ class WeakAreaItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: 0.08),
+        color: AppTheme.mostassa.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.orange.withValues(alpha: 0.3),
+          color: AppTheme.mostassa.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -178,14 +178,14 @@ class WeakAreaItem extends StatelessWidget {
                 context,
                 label: 'Errors',
                 value: '${weakArea.incorrectAnswers}/${weakArea.totalQuestions}',
-                color: Colors.orange.shade700,
+                color: AppTheme.mostassa,
               ),
               const SizedBox(width: 16),
               _buildStat(
                 context,
                 label: 'Taxa d\'error',
                 value: '${weakArea.errorRate.toStringAsFixed(0)}%',
-                color: Colors.orange.shade700,
+                color: AppTheme.mostassa,
               ),
             ],
           ),
@@ -197,7 +197,7 @@ class WeakAreaItem extends StatelessWidget {
               'Temes conflictius:',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.grisBody,
+                    color: AppTheme.grisPistacho,
                   ),
             ),
             const SizedBox(height: 6),
@@ -210,7 +210,7 @@ class WeakAreaItem extends StatelessWidget {
                         Icon(
                           Icons.arrow_right,
                           size: 16,
-                          color: AppTheme.grisBody,
+                          color: AppTheme.grisPistacho,
                         ),
                         const SizedBox(width: 4),
                         Expanded(
@@ -218,7 +218,7 @@ class WeakAreaItem extends StatelessWidget {
                             topic,
                             style:
                                 Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppTheme.grisBody,
+                                      color: AppTheme.grisPistacho,
                                     ),
                           ),
                         ),
@@ -234,8 +234,8 @@ class WeakAreaItem extends StatelessWidget {
 
   Widget _buildErrorRateBadge(BuildContext context) {
     final color = weakArea.errorRate >= 50
-        ? Colors.red.shade700
-        : Colors.orange.shade700;
+        ? AppTheme.mostassa
+        : AppTheme.mostassa;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -277,7 +277,7 @@ class WeakAreaItem extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.grisBody,
+                color: AppTheme.grisPistacho,
                 fontSize: 11,
               ),
         ),

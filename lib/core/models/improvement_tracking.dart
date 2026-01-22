@@ -72,7 +72,9 @@ class WeakArea {
       totalQuestions: map['totalQuestions'] ?? 0,
       incorrectAnswers: map['incorrectAnswers'] ?? 0,
       conflictiveTopics: List<String>.from(map['conflictiveTopics'] ?? []),
-      lastTest: (map['lastTest'] as Timestamp).toDate(),
+      lastTest: map['lastTest'] != null
+          ? (map['lastTest'] as Timestamp).toDate()
+          : DateTime.now(),
     );
   }
 }
@@ -142,12 +144,9 @@ class ImprovementTracking {
     required this.updatedAt,
   });
 
-  /// Nombre total de punts de millora actius
+  /// Nombre total de punts de millora actius (categories amb punts de millora)
   int get totalImprovementPoints {
-    return reportImprovements.fold(
-      0,
-      (total, item) => total + item.occurrences,
-    );
+    return reportImprovements.length;
   }
 
   /// Nombre total d'àrees febles

@@ -7,18 +7,20 @@ import 'package:intl/intl.dart';
 class ReportCard extends StatelessWidget {
   final RefereeReport report;
   final VoidCallback? onTap;
+  final VoidCallback? onDelete;
 
   const ReportCard({
     super.key,
     required this.report,
     this.onTap,
+    this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
       elevation: 2,
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -39,19 +41,36 @@ class ReportCard extends StatelessWidget {
                       Icon(
                         Icons.calendar_today,
                         size: 16,
-                        color: AppTheme.grisBody,
+                        color: AppTheme.grisPistacho,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         DateFormat('dd/MM/yyyy').format(report.date),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.grisBody,
+                              color: AppTheme.grisPistacho,
                               fontWeight: FontWeight.w500,
                             ),
                       ),
                     ],
                   ),
-                  _buildGradeBadge(context, report.finalGrade),
+                  Row(
+                    children: [
+                      _buildGradeBadge(context, report.finalGrade),
+                      if (onDelete != null) ...[
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: Icon(
+                            Icons.delete_outline,
+                            size: 20,
+                            color: AppTheme.mostassa,
+                          ),
+                          onPressed: () => _showDeleteDialog(context),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -60,7 +79,7 @@ class ReportCard extends StatelessWidget {
               Text(
                 report.competition,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.grisBody,
+                      color: AppTheme.grisPistacho,
                     ),
               ),
               const SizedBox(height: 4),
@@ -70,7 +89,7 @@ class ReportCard extends StatelessWidget {
                 report.teams,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.porpraFosc,
+                      color: AppTheme.mostassa,
                     ),
               ),
               const SizedBox(height: 12),
@@ -81,17 +100,55 @@ class ReportCard extends StatelessWidget {
                   Icon(
                     Icons.person_outline,
                     size: 16,
-                    color: AppTheme.grisBody,
+                    color: AppTheme.grisPistacho,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     'Informador: ${report.evaluator}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.grisBody,
+                          color: AppTheme.grisPistacho,
                         ),
                   ),
                 ],
               ),
+
+              // Estadístiques de categories
+              if (report.categories.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatItem(
+                        context,
+                        icon: Icons.category,
+                        label: 'Categories',
+                        value: '${report.categories.length}',
+                        color: AppTheme.mostassa,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStatItem(
+                        context,
+                        icon: Icons.check_circle_outline,
+                        label: 'Òptims',
+                        value: '${report.categories.where((c) => c.grade == AssessmentGrade.optim).length}',
+                        color: AppTheme.verdeEncert,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStatItem(
+                        context,
+                        icon: Icons.trending_up,
+                        label: 'Millorables',
+                        value: '${report.categories.where((c) => c.grade == AssessmentGrade.millorable || c.grade == AssessmentGrade.acceptable).length}',
+                        color: AppTheme.mostassa,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
 
               // Punts de millora (si n'hi ha)
               if (report.improvementPoints.isNotEmpty) ...[
@@ -116,7 +173,7 @@ class ReportCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                ...report.improvementPoints.take(2).map(
+                ...report.improvementPoints.map(
                       (point) => Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Row(
@@ -125,7 +182,7 @@ class ReportCard extends StatelessWidget {
                             Text(
                               '• ',
                               style: TextStyle(
-                                color: AppTheme.grisBody,
+                                color: AppTheme.grisPistacho,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -134,7 +191,7 @@ class ReportCard extends StatelessWidget {
                                 point.categoryName,
                                 style:
                                     Theme.of(context).textTheme.bodySmall?.copyWith(
-                                          color: AppTheme.grisBody,
+                                          color: AppTheme.grisPistacho,
                                         ),
                               ),
                             ),
@@ -142,21 +199,77 @@ class ReportCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                if (report.improvementPoints.length > 2)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      '+${report.improvementPoints.length - 2} més...',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.grisBody,
-                            fontStyle: FontStyle.italic,
-                          ),
-                    ),
-                  ),
               ],
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Eliminar informe'),
+          content: Text(
+            'Estàs segur que vols eliminar l\'informe "${report.teams}"?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel·lar'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                onDelete?.call();
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.mostassa,
+              ),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildStatItem(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppTheme.grisPistacho,
+              fontSize: 10,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -167,24 +280,20 @@ class ReportCard extends StatelessWidget {
 
     switch (grade) {
       case AssessmentGrade.optim:
-        backgroundColor = const Color(0xFF50C878).withValues(alpha: 0.15);
-        textColor = const Color(0xFF50C878);
+        backgroundColor = AppTheme.verdeEncert.withValues(alpha: 0.15);
+        textColor = AppTheme.verdeEncert;
         break;
-      case AssessmentGrade.satisfactori:
+      case AssessmentGrade.acceptable:
         backgroundColor = AppTheme.lilaMitja.withValues(alpha: 0.15);
         textColor = AppTheme.lilaMitja;
         break;
-      case AssessmentGrade.acceptable:
+      case AssessmentGrade.millorable:
         backgroundColor = AppTheme.mostassa.withValues(alpha: 0.15);
         textColor = AppTheme.mostassa;
         break;
-      case AssessmentGrade.millorable:
-        backgroundColor = Colors.orange.withValues(alpha: 0.15);
-        textColor = Colors.orange.shade700;
-        break;
-      case AssessmentGrade.noValorable:
-        backgroundColor = AppTheme.grisPistacho.withValues(alpha: 0.15);
-        textColor = AppTheme.grisBody;
+      case AssessmentGrade.noSatisfactori:
+        backgroundColor = Colors.redAccent.withValues(alpha: 0.15);
+        textColor = Colors.redAccent;
         break;
     }
 

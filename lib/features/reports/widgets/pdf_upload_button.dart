@@ -40,8 +40,8 @@ class _PdfUploadButtonState extends State<PdfUploadButton> {
               _buildOptionButton(
                 context,
                 icon: Icons.quiz_outlined,
-                label: 'Test (Teòric o Físic)',
-                color: const Color(0xFF50C878),
+                label: 'Test',
+                color: AppTheme.verdeEncert,
                 value: 'test',
               ),
             ],
@@ -49,7 +49,13 @@ class _PdfUploadButtonState extends State<PdfUploadButton> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel·lar'),
+              child: Text(
+                'Cancel·lar',
+                style: TextStyle(
+                  color: AppTheme.grisPistacho,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         );
@@ -215,7 +221,7 @@ class _PdfUploadButtonState extends State<PdfUploadButton> {
               ),
             ],
           ),
-          backgroundColor: const Color(0xFF50C878),
+          backgroundColor: AppTheme.verdeEncert,
           duration: const Duration(seconds: 4),
         ),
       );
@@ -243,7 +249,7 @@ class _PdfUploadButtonState extends State<PdfUploadButton> {
         return AlertDialog(
           title: Row(
             children: [
-              Icon(Icons.error_outline, color: Colors.orange.shade700),
+              Icon(Icons.error_outline, color: AppTheme.mostassa),
               const SizedBox(width: 12),
               const Text('Error'),
             ],

@@ -31,12 +31,9 @@ class VisionatMatchPage extends StatefulWidget {
 
 class _VisionatMatchPageState extends State<VisionatMatchPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final String _mockMatchId =
-      'match_123'; // TODO: Obtenir de paràmetres de ruta
+  String? _currentMatchId;
 
   @override
-  /// Inicialitza l'estat amb lazy loading per evitar ANR
-  /// Utilitza Future.microtask per evitar crides dins de build()
   void initState() {
     super.initState();
 
@@ -44,17 +41,17 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
     Future.microtask(() {
       if (!mounted) return;
 
-      // Accedir als providers globals i inicialitzar només una vegada
-      final highlightProvider = context.read<VisionatHighlightProvider>();
-      final commentProvider = context.read<VisionatCollectiveCommentProvider>();
-      final personalAnalysisProvider = context.read<PersonalAnalysisProvider>();
       final weeklyMatchProvider = context.read<WeeklyMatchProvider>();
-
-      highlightProvider.setMatch(_mockMatchId);
-      commentProvider.setMatch(_mockMatchId);
+      final personalAnalysisProvider = context.read<PersonalAnalysisProvider>();
 
       // Inicialitzar weekly match provider per carregar àrbitre
       weeklyMatchProvider.initialize();
+
+      // Listener per actualitzar matchId quan canvia el partit setmanal
+      weeklyMatchProvider.addListener(_onWeeklyMatchChanged);
+
+      // Inicialitzar amb el matchId actual si ja existeix
+      _updateMatchId(weeklyMatchProvider.matchId);
 
       // Inicialitzar personal analysis amb userId actual
       final user = FirebaseAuth.instance.currentUser;
@@ -64,11 +61,41 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
     });
   }
 
+  /// Callback quan canvia el partit setmanal
+  void _onWeeklyMatchChanged() {
+    if (!mounted) return;
+    final weeklyMatchProvider = context.read<WeeklyMatchProvider>();
+    _updateMatchId(weeklyMatchProvider.matchId);
+  }
+
+  /// Actualitza el matchId i reinicialitza els providers de highlights/comentaris
+  void _updateMatchId(String newMatchId) {
+    if (newMatchId.isEmpty || newMatchId == _currentMatchId) return;
+
+    _currentMatchId = newMatchId;
+
+    final highlightProvider = context.read<VisionatHighlightProvider>();
+    final commentProvider = context.read<VisionatCollectiveCommentProvider>();
+
+    // Actualitzar els providers amb el nou matchId (això reseteja els highlights)
+    highlightProvider.setMatch(newMatchId);
+    commentProvider.setMatch(newMatchId);
+  }
+
+  /// Getter per obtenir el matchId actual (amb fallback)
+  String get _matchId => _currentMatchId ?? '';
+
   // Les dades del partit es gestionen pel WeeklyMatchProvider
 
   @override
   void dispose() {
-    // No need to dispose global providers
+    // Eliminar listener del WeeklyMatchProvider
+    try {
+      final weeklyMatchProvider = context.read<WeeklyMatchProvider>();
+      weeklyMatchProvider.removeListener(_onWeeklyMatchChanged);
+    } catch (_) {
+      // Context pot no estar disponible en dispose
+    }
     super.dispose();
   }
 
@@ -97,7 +124,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
       if (highlightTag != null && title.isNotEmpty && category.isNotEmpty) {
         final newHighlight = HighlightEntry(
           id: '', // Es generarà automàticament
-          matchId: _mockMatchId,
+          matchId: _matchId,
           timestamp: timestamp,
           title: title,
           tag: highlightTag,
@@ -247,7 +274,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
     try {
       final comment = CollectiveComment(
         id: '', // S'assignarà automàticament a Firestore
-        matchId: _mockMatchId,
+        matchId: _matchId,
         content: text,
         tagId: 'general', // Tag general per defecte
         tagLabel: 'General',
@@ -348,7 +375,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
               children: [
                 const MatchHeader(),
                 const SizedBox(height: 24),
-                MatchVideoSection(matchId: _mockMatchId),
+                MatchVideoSection(matchId: _matchId),
                 const SizedBox(height: 24),
                 Consumer<VisionatHighlightProvider>(
                   builder: (context, provider, child) => TagFilterBar(
@@ -379,7 +406,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
                       );
                     }
                     return HighlightsTimeline(
-                      matchId: _mockMatchId,
+                      matchId: _matchId,
                       entries: provider.filteredHighlights,
                       selectedCategory: provider.selectedCategory,
                       onReactionTap: (highlightId, type) {
@@ -413,7 +440,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
                   Consumer<VisionatCollectiveCommentProvider>(
                     builder: (context, provider, child) {
                       return AnalysisSectionCard(
-                        matchId: _mockMatchId,
+                        matchId: _matchId,
                         collectiveComments: provider.comments,
                         onViewAllComments: _openCollectiveAnalysisModal,
                       );
@@ -435,7 +462,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
         children: [
           const MatchHeader(),
           const SizedBox(height: 16),
-          MatchVideoSection(matchId: _mockMatchId),
+          MatchVideoSection(matchId: _matchId),
           const SizedBox(height: 16),
           Consumer<VisionatHighlightProvider>(
             builder: (context, provider, child) => TagFilterBar(
@@ -466,7 +493,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
                 );
               }
               return HighlightsTimeline(
-                matchId: _mockMatchId,
+                matchId: _matchId,
                 entries: provider.filteredHighlights,
                 selectedCategory: provider.selectedCategory,
                 onReactionTap: (highlightId, type) {
@@ -486,7 +513,7 @@ class _VisionatMatchPageState extends State<VisionatMatchPage> {
           Consumer<VisionatCollectiveCommentProvider>(
             builder: (context, provider, child) {
               return AnalysisSectionCard(
-                matchId: _mockMatchId,
+                matchId: _matchId,
                 collectiveComments: provider.comments,
                 onViewAllComments: _openCollectiveAnalysisModal,
               );

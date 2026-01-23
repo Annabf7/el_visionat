@@ -53,6 +53,7 @@ import {
   notifyUnwatchedClips,
   checkUnwatchedClipsHttp,
 } from "./visionat/notify_unwatched_clips";
+import {cleanupOldHighlightsOnWeeklyFocusChange} from "./visionat/cleanup_old_highlights";
 
 // Reports - Sistema de processament de PDFs amb IA
 import {
@@ -98,6 +99,7 @@ exports.notifyCommentReply = notifyCommentReply;
 exports.notifyCommentLike = notifyCommentLike;
 exports.notifyUnwatchedClips = notifyUnwatchedClips;
 exports.checkUnwatchedClipsHttp = checkUnwatchedClipsHttp;
+exports.cleanupOldHighlightsOnWeeklyFocusChange = cleanupOldHighlightsOnWeeklyFocusChange;
 
 // Reports - Sistema de processament de PDFs exports
 exports.processPdfOnUpload = processPdfOnUpload;

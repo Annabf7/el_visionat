@@ -70,6 +70,26 @@ class VisionatHighlightProvider extends ChangeNotifier {
   /// Indica si hi ha un error actiu
   bool get hasError => _errorMessage != null;
 
+  /// Retorna els highlights més polèmics (amb més reaccions)
+  /// Ordenats per totalCount de reaccions, màxim 5
+  List<HighlightPlay> get topControversialHighlights {
+    if (_highlights.isEmpty) return [];
+
+    // Copiar i ordenar per nombre total de reaccions (descendent)
+    final sorted = List<HighlightPlay>.from(_highlights);
+    sorted.sort((a, b) =>
+        b.reactionsSummary.totalCount.compareTo(a.reactionsSummary.totalCount));
+
+    // Filtrar només els que tenen almenys 1 reacció i retornar màxim 5
+    return sorted
+        .where((h) => h.reactionsSummary.totalCount > 0)
+        .take(5)
+        .toList();
+  }
+
+  /// Indica si hi ha jugades polèmiques disponibles
+  bool get hasControversialHighlights => topControversialHighlights.isNotEmpty;
+
   // --- Mètodes públics ---
 
   /// Estableix el partit a gestionar

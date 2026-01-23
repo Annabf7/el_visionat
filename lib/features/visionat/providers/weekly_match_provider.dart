@@ -24,6 +24,9 @@ class WeeklyMatchProvider extends ChangeNotifier {
   /// Dades completes del focus setmanal
   WeeklyFocus? get weeklyFocus => _weeklyFocus;
 
+  /// ID únic del partit setmanal (per associar highlights)
+  String get matchId => _weeklyFocus?.winningMatch.matchId ?? '';
+
   /// Nom de l'àrbitre principal
   String get refereeName =>
       _weeklyFocus?.refereeInfo.principal ?? 'Carregant àrbitre...';

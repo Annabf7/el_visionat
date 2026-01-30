@@ -312,34 +312,34 @@ class _RefereeTeamCardState extends State<RefereeTeamCard> {
         childrenPadding: const EdgeInsets.only(top: 8),
         collapsedIconColor: AppTheme.grisPistacho,
         iconColor: AppTheme.mostassa,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text(
-              'Oficials de Taula',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.grisPistacho.withValues(alpha: 0.9),
-              ),
-            ),
-          ],
+        title: Text(
+          'Oficials de Taula',
+          textAlign: TextAlign.right,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.grisPistacho.withValues(alpha: 0.9),
+          ),
         ),
         children: referees.tableOfficials.map((official) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  official.role,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 12,
-                    color: AppTheme.grisPistacho.withValues(alpha: 0.7),
+                Flexible(
+                  child: Text(
+                    official.role,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      color: AppTheme.grisPistacho.withValues(alpha: 0.7),
+                    ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 Flexible(
                   child: Text(
                     _formatName(official.name),
@@ -378,18 +378,22 @@ class _RefereeTeamCardState extends State<RefereeTeamCard> {
               ),
               elevation: 0,
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+              mainAxisSize: MainAxisSize.min,
+              children: const [
                 Icon(Icons.play_circle_filled_rounded, size: 22),
                 SizedBox(width: 10),
-                Text(
-                  'VEURE ENTREVISTA',
-                  style: TextStyle(
-                    fontFamily: 'Geist',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
+                Flexible(
+                  child: Text(
+                    'VEURE ENTREVISTA',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Geist',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                    ),
                   ),
                 ),
               ],
@@ -406,13 +410,16 @@ class _RefereeTeamCardState extends State<RefereeTeamCard> {
               color: AppTheme.grisPistacho.withValues(alpha: 0.7),
             ),
             const SizedBox(width: 4),
-            Text(
-              'Publicació: Divendres 18:00h',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 10,
-                color: AppTheme.grisPistacho.withValues(alpha: 0.7),
-                fontWeight: FontWeight.w500,
+            Flexible(
+              child: Text(
+                'Publicació: Divendres 18:00h',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 10,
+                  color: AppTheme.grisPistacho.withValues(alpha: 0.7),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],

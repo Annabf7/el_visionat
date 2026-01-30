@@ -16,23 +16,18 @@ class TrainingActivitiesWidget extends StatelessWidget {
     return Consumer<ActivityControllerProvider>(
       builder: (context, controller, _) {
         final activity = controller.currentActivity;
-        return DefaultTabController(
-          length: controller.activities.length,
-          initialIndex: controller.selectedActivityIndex,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ActivityTabSelector(),
-              if (activity.youtubeVideoId != null &&
-                  activity.youtubeVideoId!.isNotEmpty)
-                ActivityVideoPlayer(videoId: activity.youtubeVideoId!),
-              // Remove Expanded: let QuestionListWidget size naturally
-              QuestionListWidget(
-                questions: activity.questions,
-                activityId: activity.id,
-              ),
-            ],
-          ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ActivityTabSelector(),
+            if (activity.youtubeVideoId != null &&
+                activity.youtubeVideoId!.isNotEmpty)
+              ActivityVideoPlayer(videoId: activity.youtubeVideoId!),
+            QuestionListWidget(
+              questions: activity.questions,
+              activityId: activity.id,
+            ),
+          ],
         );
       },
     );

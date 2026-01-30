@@ -224,12 +224,12 @@ class JornadaData {
     String homeLogo = home['logoSlug'] as String? ?? '';
     String awayLogo = away['logoSlug'] as String? ?? '';
 
-    // Si el logo és buit o l'equip no va ser trobat, intentem resolució local
-    if (homeLogo.isEmpty || home['teamId'] == null) {
+    // Si el logo és buit, intentem resolució local
+    if (homeLogo.isEmpty) {
       final result = TeamMappingService.instance.findTeamSync(homeName);
       homeLogo = result.logoFilename ?? homeLogo;
     }
-    if (awayLogo.isEmpty || away['teamId'] == null) {
+    if (awayLogo.isEmpty) {
       final result = TeamMappingService.instance.findTeamSync(awayName);
       awayLogo = result.logoFilename ?? awayLogo;
     }

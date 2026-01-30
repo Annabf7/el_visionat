@@ -283,6 +283,7 @@ class ReportCard extends StatelessWidget {
         backgroundColor = AppTheme.verdeEncert.withValues(alpha: 0.15);
         textColor = AppTheme.verdeEncert;
         break;
+      case AssessmentGrade.satisfactori:
       case AssessmentGrade.acceptable:
         backgroundColor = AppTheme.lilaMitja.withValues(alpha: 0.15);
         textColor = AppTheme.lilaMitja;

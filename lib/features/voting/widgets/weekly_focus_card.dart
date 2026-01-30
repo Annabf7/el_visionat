@@ -199,15 +199,19 @@ class _WeeklyFocusCardState extends State<WeeklyFocusCard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Partit de la Setmana',
-                style: TextStyle(
-                  fontFamily: 'Geist',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.grisPistacho,
+              Flexible(
+                child: Text(
+                  'Partit de la Setmana',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'Geist',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.grisPistacho,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               _buildStatusBadge(focus.status),
             ],
           ),
@@ -334,18 +338,23 @@ class _WeeklyFocusCardState extends State<WeeklyFocusCard> {
           // Label and Value
           Expanded(
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.grisPistacho,
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.grisPistacho,
+                    ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 Expanded(
+                  flex: 3,
                   child: Text(
                     value,
                     textAlign: TextAlign.right,

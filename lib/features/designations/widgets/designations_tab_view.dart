@@ -436,9 +436,9 @@ class _DesignationCard extends StatelessWidget {
                         color: AppTheme.lilaMitja,
                       ),
                       _EarningDetail(
-                        label: 'Total',
+                        label: 'Total net',
                         amount: currencyFormat.format(
-                          designation.earnings.total,
+                          designation.earnings.netTotal,
                         ),
                         color: AppTheme.lilaMitja,
                         isTotal: true,

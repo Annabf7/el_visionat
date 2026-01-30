@@ -15,7 +15,15 @@
     "gender": "Masculina",
     "colorHex": "#FF8C00",
     "logoAssetPath": "assets/images/teams/intersport-olaria-sama-vilanova-sam.webp",
-    "aliases": ["INTERSPORT OLARIA", "OLARIA SAMA VILANOVA", "INTERSPORT OLARIA - SAMA VILANOVA SAM"]
+    "aliases": [
+      "INTERSPORT OLARIA",
+      "OLARIA SAMA VILANOVA",
+      "INTERSPORT OLARIA - SAMA VILANOVA SAM",
+      "LA PARRÒQUIA - OLARIA ESPORTS - SAMÀ VILANOVA SAM",
+      "LA Parròquia - Olaria Esports - Samà Vilanova Sam",
+      "LA PARROQUIA - OLARIA ESPORTS - SAMA VILANOVA SAM",
+      "OLARIA ESPORTS SAMA VILANOVA SAM"
+    ]
   },
   {
     "id": "minguella",

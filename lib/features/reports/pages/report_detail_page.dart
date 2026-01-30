@@ -511,6 +511,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
     switch (grade) {
       case AssessmentGrade.optim:
         return AppTheme.verdeEncert; // Verd
+      case AssessmentGrade.satisfactori:
       case AssessmentGrade.acceptable:
         return AppTheme.lilaMitja; // Lila
       case AssessmentGrade.millorable:

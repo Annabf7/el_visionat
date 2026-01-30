@@ -69,17 +69,47 @@ export function parseMatches(
   const $ = cheerio.load(html);
   const matches: MatchData[] = [];
 
-  // Primer, extraiem tots els enllaços d'acta disponibles
-  const actaLinks: string[] = [];
+  // Extraiem els enllaços d'acta amb informació de context (equips propers)
+  // La FCBQ pot usar .row (Bootstrap) o tr (taula) com a contenidor
+  interface ActaInfo {
+    url: string;
+    nearbyTeams: string[]; // Noms d'equips propers a l'enllaç d'acta
+  }
+  const actaInfos: ActaInfo[] = [];
   $("a[href*='/acta/']").each((_, el) => {
     const href = $(el).attr("href");
     if (href) {
-      // Normalitzem la URL (afegim domini si falta)
       const fullUrl = href.startsWith("http") ? href : `https://www.basquetcatala.cat${href}`;
-      actaLinks.push(fullUrl);
+      const $el = $(el);
+      const nearbyTeams: string[] = [];
+
+      // Intentem trobar el contenidor del partit (pot ser .row, tr, o un div pare)
+      let container = $el.closest(".row");
+      if (!container.length || container.find("a.teamNameLink").length === 0) {
+        container = $el.closest("tr");
+      }
+      if (!container.length || container.find("a.teamNameLink").length === 0) {
+        // Fallback: busquem en els parents fins a trobar equips
+        container = $el.parent();
+        let maxIterations = 5;
+        while (container.length && container.find("a.teamNameLink").length === 0 && maxIterations > 0) {
+          container = container.parent();
+          maxIterations--;
+        }
+      }
+
+      container.find("a.teamNameLink").each((__, teamEl) => {
+        const teamName = $(teamEl).text().trim();
+        if (teamName) nearbyTeams.push(teamName.toUpperCase());
+      });
+
+      actaInfos.push({url: fullUrl, nearbyTeams});
+      if (nearbyTeams.length > 0) {
+        console.log(`[parseMatches] Acta ${fullUrl} → equips: ${nearbyTeams.join(", ")}`);
+      }
     }
   });
-  console.log(`[parseMatches] Trobats ${actaLinks.length} enllaços d'acta a la pàgina`);
+  console.log(`[parseMatches] Trobats ${actaInfos.length} enllaços d'acta a la pàgina`);
 
   // Busquem tots els enllaços d'equips amb classe .teamNameLink
   const teamLinks = $("a.teamNameLink");
@@ -98,8 +128,20 @@ export function parseMatches(
     if (!homeName || !awayName) continue;
 
     // Busquem la data/hora - està en un div#time2 proper
-    // Naveguem cap amunt per trobar el contenidor del partit
-    const homeContainer = homeLink.closest(".row");
+    // Naveguem cap amunt per trobar el contenidor del partit (.row o tr)
+    let homeContainer = homeLink.closest(".row");
+    if (!homeContainer.length) {
+      homeContainer = homeLink.closest("tr");
+    }
+    if (!homeContainer.length) {
+      // Fallback: busquem el parent que contingui ambdós equips
+      homeContainer = homeLink.parent();
+      let maxIterations = 5;
+      while (homeContainer.length && homeContainer.find("a.teamNameLink").length < 2 && maxIterations > 0) {
+        homeContainer = homeContainer.parent();
+        maxIterations--;
+      }
+    }
     const timeDiv = homeContainer.find("#time2, [id='time2']").first();
     let dateTimeStr = timeDiv.text().trim().replace(/\s+/g, " ");
 
@@ -177,12 +219,16 @@ export function parseMatches(
         match.actaUrl = href.startsWith("http") ? href : `https://www.basquetcatala.cat${href}`;
       }
     } else {
-      // Si no trobem l'acta dins del contenidor, busquem per proximitat al text dels equips
-      // Utilitzem l'índex del partit per assignar l'acta corresponent
-      const matchIndex = Math.floor(i / 2);
-      if (actaLinks[matchIndex]) {
-        match.actaUrl = actaLinks[matchIndex];
-        console.log(`[parseMatches] Assignant acta per proximitat: ${match.actaUrl} al partit ${homeName} vs ${awayName}`);
+      // Si no trobem l'acta dins del contenidor, busquem per matching d'equips
+      // (millora respecte a l'assignació per índex que era incorrecta)
+      const homeUpper = homeName.toUpperCase();
+      const awayUpper = awayName.toUpperCase();
+      const matchingActa = actaInfos.find((acta) =>
+        acta.nearbyTeams.includes(homeUpper) || acta.nearbyTeams.includes(awayUpper)
+      );
+      if (matchingActa) {
+        match.actaUrl = matchingActa.url;
+        console.log(`[parseMatches] Assignant acta per matching d'equips: ${match.actaUrl} al partit ${homeName} vs ${awayName}`);
       }
     }
 

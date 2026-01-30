@@ -13,7 +13,7 @@ class ProfileBannerWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Image.network(
       _fixedBannerImageUrl,
-      fit: BoxFit.contain,
+      fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
       alignment: Alignment.center,

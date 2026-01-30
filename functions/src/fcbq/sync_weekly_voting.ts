@@ -16,7 +16,8 @@
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-import {scrapeJornada, fetchActaInfo} from "./scraper";
+import {scrapeJornada, fetchActaInfo, fetchFcbqPage} from "./scraper";
+import * as cheerio from "cheerio";
 import {mapFcbqTeam, TeamMappingResult} from "./team_mapper";
 import {MatchData, StandingEntry, RefereeInfo, DEFAULT_SCRAPER_CONFIG} from "./types";
 
@@ -175,7 +176,15 @@ function transformToVotingMatch(match: MatchData): VotingMatch {
   const awayMapping = mapFcbqTeam(match.away.name);
   const homeTeam = teamMappingToVotingTeam(homeMapping);
   const awayTeam = teamMappingToVotingTeam(awayMapping);
-  const matchId = `${match.jornada}-${homeTeam.logoSlug.replace(".webp", "")}-${awayTeam.logoSlug.replace(".webp", "")}`;
+
+  // Generar matchId: usar logoSlug si existeix, sinó normalitzar el nom
+  const homeSlug = homeTeam.logoSlug ?
+    homeTeam.logoSlug.replace(".webp", "") :
+    normalizeForSignature(match.home.name).toLowerCase();
+  const awaySlug = awayTeam.logoSlug ?
+    awayTeam.logoSlug.replace(".webp", "") :
+    normalizeForSignature(match.away.name).toLowerCase();
+  const matchId = `${match.jornada}-${homeSlug}-${awaySlug}`;
 
   const votingMatch: VotingMatch = {
     matchId,
@@ -562,6 +571,59 @@ async function processVotingWinner(previousJornada: number): Promise<void> {
       scrapedData.matches.forEach((m) => {
         console.log(`  └─ ${m.home.name} vs ${m.away.name} (${m.dateTime}) - actaUrl: ${m.actaUrl || "no disponible"}`);
       });
+
+      // FALLBACK: Cerca directa d'acta a la pàgina HTML per matching d'equips
+      console.log("[processVotingWinner] 🔄 Intentant cerca directa d'acta a la pàgina HTML...");
+      try {
+        const html = await fetchFcbqPage(previousJornada);
+        const $ = cheerio.load(html);
+
+        // Busquem totes les actes i els seus equips propers
+        $("a[href*='/acta/']").each((_, el) => {
+          const href = $(el).attr("href");
+          if (!href || refereeInfo) return; // Si ja hem trobat, sortim
+
+          const container = $(el).closest(".row");
+          const teamsInContainer: string[] = [];
+          container.find("a.teamNameLink").each((__, teamEl) => {
+            teamsInContainer.push(normalizeForSignature($(teamEl).text().trim()));
+          });
+
+          // Comprovem si els equips coincideixen
+          if (teamsInContainer.includes(targetHomeNorm) || teamsInContainer.includes(targetAwayNorm)) {
+            const actaUrl = href.startsWith("http") ? href : `https://www.basquetcatala.cat${href}`;
+            console.log(`[processVotingWinner] 📋 Acta trobada per cerca directa: ${actaUrl}`);
+            // Fem el fetch síncronament dins del callback no és ideal, ho fem fora
+          }
+        });
+
+        // Cerca alternativa: busquem qualsevol acta que contingui els equips
+        if (!refereeInfo) {
+          const allActas: string[] = [];
+          $("a[href*='/acta/']").each((_, el) => {
+            const href = $(el).attr("href");
+            if (href) {
+              const container = $(el).closest(".row");
+              const teamsInContainer: string[] = [];
+              container.find("a.teamNameLink").each((__, teamEl) => {
+                teamsInContainer.push(normalizeForSignature($(teamEl).text().trim()));
+              });
+              if (teamsInContainer.includes(targetHomeNorm) || teamsInContainer.includes(targetAwayNorm)) {
+                const actaUrl = href.startsWith("http") ? href : `https://www.basquetcatala.cat${href}`;
+                allActas.push(actaUrl);
+              }
+            }
+          });
+
+          if (allActas.length > 0) {
+            console.log(`[processVotingWinner] 📋 Acta trobada per cerca directa: ${allActas[0]}`);
+            refereeInfo = await fetchActaInfo(allActas[0]);
+            console.log(`[processVotingWinner] ✅ Àrbitre principal: ${refereeInfo.principal || "no trobat"}`);
+          }
+        }
+      } catch (fallbackError) {
+        console.error("[processVotingWinner] ❌ Error en cerca directa:", fallbackError);
+      }
     }
   } catch (error) {
     console.error("[processVotingWinner] ❌ Error obtenint àrbitres:", error);

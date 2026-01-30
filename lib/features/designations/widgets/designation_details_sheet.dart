@@ -579,6 +579,7 @@ class _DesignationDetailsSheetState extends State<DesignationDetailsSheet> {
   }
 
   Widget _buildEconomicDetails(NumberFormat currencyFormat) {
+    final earnings = widget.designation.earnings;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -588,52 +589,133 @@ class _DesignationDetailsSheetState extends State<DesignationDetailsSheet> {
           AppTheme.mostassa,
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildEarningCard(
+        // Taula estil FCBQ: Concepte | Brut | Retenció | Net
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: AppTheme.mostassa.withValues(alpha: 0.3),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            children: [
+              // Capçalera
+              Row(
+                children: [
+                  const Expanded(flex: 3, child: Text(
+                    'Concepte',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                      color: AppTheme.porpraFosc, letterSpacing: 0.3),
+                  )),
+                  Expanded(flex: 2, child: Text(
+                    'Brut', textAlign: TextAlign.right,
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                      color: AppTheme.grisBody.withValues(alpha: 0.7),
+                      letterSpacing: 0.3),
+                  )),
+                  Expanded(flex: 2, child: Text(
+                    'Retenció', textAlign: TextAlign.right,
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                      color: AppTheme.grisBody.withValues(alpha: 0.7),
+                      letterSpacing: 0.3),
+                  )),
+                  Expanded(flex: 2, child: Text(
+                    'Net', textAlign: TextAlign.right,
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                      color: AppTheme.porpraFosc, letterSpacing: 0.3),
+                  )),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Divider(height: 1, color: AppTheme.grisPistacho.withValues(alpha: 0.2)),
+              const SizedBox(height: 8),
+              // Drets
+              _buildEarningRow(
                 'Drets',
-                currencyFormat.format(widget.designation.earnings.rights),
-                Icons.gavel_rounded,
-                AppTheme.lilaMitja,
+                currencyFormat.format(earnings.rights),
+                currencyFormat.format(earnings.rightsRetention),
+                currencyFormat.format(earnings.netRights),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _buildEarningCard(
-                'Km',
-                currencyFormat.format(
-                  widget.designation.earnings.kilometersAmount,
-                ),
-                Icons.local_gas_station_rounded,
-                AppTheme.lilaClar,
+              const SizedBox(height: 6),
+              // Dietes
+              _buildEarningRow(
+                'Dieta',
+                currencyFormat.format(earnings.allowance),
+                currencyFormat.format(earnings.allowanceRetention),
+                currencyFormat.format(earnings.netAllowance),
               ),
-            ),
-          ],
+              const SizedBox(height: 6),
+              // Desplaçament
+              _buildEarningRow(
+                'Desplaçament',
+                currencyFormat.format(earnings.kilometersAmount),
+                currencyFormat.format(earnings.displacementRetention),
+                currencyFormat.format(earnings.netKilometersAmount),
+              ),
+              const SizedBox(height: 8),
+              Divider(height: 1, color: AppTheme.mostassa.withValues(alpha: 0.4)),
+              const SizedBox(height: 8),
+              // Total
+              Row(
+                children: [
+                  const Expanded(flex: 3, child: Text(
+                    'TOTAL',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800,
+                      color: AppTheme.porpraFosc),
+                  )),
+                  Expanded(flex: 2, child: Text(
+                    currencyFormat.format(earnings.total),
+                    textAlign: TextAlign.right,
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                      color: AppTheme.grisBody.withValues(alpha: 0.7)),
+                  )),
+                  Expanded(flex: 2, child: Text(
+                    currencyFormat.format(earnings.totalRetention),
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                      color: Colors.redAccent),
+                  )),
+                  Expanded(flex: 2, child: Text(
+                    currencyFormat.format(earnings.netTotal),
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800,
+                      color: AppTheme.mostassa),
+                  )),
+                ],
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: _buildEarningCard(
-                'Dietes',
-                currencyFormat.format(widget.designation.earnings.allowance),
-                Icons.restaurant_rounded,
-                AppTheme.grisPistacho,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _buildEarningCard(
-                'TOTAL',
-                currencyFormat.format(widget.designation.earnings.total),
-                Icons.payments_rounded,
-                AppTheme.mostassa,
-                isTotal: true,
-              ),
-            ),
-          ],
-        ),
+      ],
+    );
+  }
+
+  Widget _buildEarningRow(String label, String brut, String retention, String net) {
+    return Row(
+      children: [
+        Expanded(flex: 3, child: Text(
+          label,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
+            color: AppTheme.textBlackLow),
+        )),
+        Expanded(flex: 2, child: Text(
+          brut, textAlign: TextAlign.right,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500,
+            color: AppTheme.grisBody.withValues(alpha: 0.7)),
+        )),
+        Expanded(flex: 2, child: Text(
+          retention, textAlign: TextAlign.right,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500,
+            color: AppTheme.grisBody.withValues(alpha: 0.5)),
+        )),
+        Expanded(flex: 2, child: Text(
+          net, textAlign: TextAlign.right,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+            color: AppTheme.textBlackLow),
+        )),
       ],
     );
   }
@@ -1062,58 +1144,4 @@ class _DesignationDetailsSheetState extends State<DesignationDetailsSheet> {
     );
   }
 
-  Widget _buildEarningCard(
-    String label,
-    String amount,
-    IconData icon,
-    Color color, {
-    bool isTotal = false,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: color.withValues(alpha: isTotal ? 0.4 : 0.2),
-          width: isTotal ? 2 : 1.5,
-        ),
-        boxShadow: isTotal
-            ? [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.15),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : null,
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: isTotal ? 24 : 20),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color.withValues(alpha: 0.8),
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            amount,
-            style: TextStyle(
-              fontSize: isTotal ? 18 : 16,
-              fontWeight: isTotal ? FontWeight.w900 : FontWeight.w700,
-              color: color,
-              letterSpacing: -0.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
 }

@@ -212,14 +212,17 @@ class _HomePageState extends State<HomePage> {
                                       ).colorScheme.primary,
                                     ),
                                     const SizedBox(width: 10),
-                                    Text(
-                                      'Activitats de formació',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleLarge
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                    Flexible(
+                                      child: Text(
+                                        'Activitats de formació',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -290,10 +293,13 @@ class _HomePageState extends State<HomePage> {
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                               const SizedBox(width: 10),
-                              Text(
-                                'Activitats de formació',
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              Flexible(
+                                child: Text(
+                                  'Activitats de formació',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                ),
                               ),
                             ],
                           ),

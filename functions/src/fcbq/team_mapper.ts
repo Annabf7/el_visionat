@@ -210,15 +210,15 @@ export function mapFcbqTeam(fcbqName: string): TeamMappingResult {
     };
   }
 
-  // 4. No trobat - retorna fallback
-  console.warn(`[TeamMapper] ⚠️ Equip no trobat: "${fcbqName}"`);
+  // 4. No trobat - retorna sense logoSlug (el frontend mostrarà inicials)
+  console.warn(`[TeamMapper] ⚠️ Equip no trobat: "${fcbqName}" (normalitzat: "${fcbqNameNormalized}")`);
   return {
     found: false,
     teamId: null,
     teamNameRaw: fcbqName,
     teamNameNormalized: null,
     colorHex: null,
-    logoSlug: generateLogoSlug(fcbqName),
+    logoSlug: "", // Buit - no generar slugs invàlids
     matchType: "not-found",
   };
 }

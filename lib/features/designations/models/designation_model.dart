@@ -81,7 +81,10 @@ class DesignationModel {
       locationAddress: data['locationAddress'] ?? '',
       originAddress: data['originAddress'],
       kilometers: (data['kilometers'] ?? 0).toDouble(),
-      earnings: EarningsModel.fromMap(data['earnings'] ?? {}),
+      earnings: EarningsModel.fromMap(
+        data['earnings'] ?? {},
+        kilometerDistance: (data['kilometers'] ?? 0).toDouble(),
+      ),
       pdfUrl: data['pdfUrl'],
       notes: data['notes'],
       refereePartner: data['refereePartner'],
@@ -136,17 +139,69 @@ class DesignationModel {
 
 /// Model per representar els ingressos d'una designació
 class EarningsModel {
-  final double rights; // Drets d'arbitratge
-  final double kilometersAmount; // Quilometratge
-  final double allowance; // Dietes
-  final double total;
+  final double rights; // Drets d'arbitratge (brut)
+  final double kilometersAmount; // Quilometratge (brut)
+  final double allowance; // Dietes (brut)
+  final double total; // Total brut
+  final double kilometerDistance; // Distància en km (per calcular retenció desplaçament)
+
+  /// Taxa IRPF aplicable (2% per activitats < 15.000€/any)
+  static const double irpfRate = 0.02;
+
+  /// Tarifa exempta fiscal de quilometratge (€/km no subjecte a IRPF)
+  static const double exemptRatePerKm = 0.25;
 
   EarningsModel({
     required this.rights,
     required this.kilometersAmount,
     required this.allowance,
     required this.total,
+    this.kilometerDistance = 0.0,
   });
+
+  /// Retenció IRPF sobre drets
+  double get rightsRetention => _roundToTwo(rights * irpfRate);
+
+  /// Retenció IRPF sobre dietes
+  double get allowanceRetention => _roundToTwo(allowance * irpfRate);
+
+  /// Retenció IRPF sobre desplaçament (només l'excés sobre 0.25€/km tributa)
+  double get displacementRetention =>
+      computeDisplacementRetention(kilometersAmount, kilometerDistance);
+
+  /// Retenció total (drets + dietes + desplaçament)
+  double get totalRetention =>
+      _roundToTwo(rightsRetention + allowanceRetention + displacementRetention);
+
+  /// Total net (després de totes les retencions)
+  double get netTotal => _roundToTwo(total - totalRetention);
+
+  /// Drets nets
+  double get netRights => _roundToTwo(rights - rightsRetention);
+
+  /// Dietes netes
+  double get netAllowance => _roundToTwo(allowance - allowanceRetention);
+
+  /// Quilometratge net
+  double get netKilometersAmount => _roundToTwo(kilometersAmount - displacementRetention);
+
+  // Mantenir getter antic per compatibilitat
+  double get irpfRetention => totalRetention;
+
+  /// Calcula la retenció IRPF sobre desplaçament.
+  /// Només l'excés sobre la tarifa exempta (0.25€/km) està subjecte a IRPF 2%.
+  static double computeDisplacementRetention(double amount, double km) {
+    if (amount <= 0 || km <= 0) return 0.0;
+    final exemptAmount = km * exemptRatePerKm;
+    final taxable = amount - exemptAmount;
+    if (taxable <= 0) return 0.0;
+    return _roundToTwo(taxable * irpfRate);
+  }
+
+  /// Arrodoneix a 2 decimals
+  static double _roundToTwo(double value) {
+    return (value * 100).roundToDouble() / 100;
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -157,12 +212,13 @@ class EarningsModel {
     };
   }
 
-  factory EarningsModel.fromMap(Map<String, dynamic> map) {
+  factory EarningsModel.fromMap(Map<String, dynamic> map, {double kilometerDistance = 0.0}) {
     return EarningsModel(
       rights: (map['rights'] ?? 0).toDouble(),
       kilometersAmount: (map['kilometers'] ?? 0).toDouble(),
       allowance: (map['allowance'] ?? 0).toDouble(),
       total: (map['total'] ?? 0).toDouble(),
+      kilometerDistance: kilometerDistance,
     );
   }
 
@@ -171,12 +227,14 @@ class EarningsModel {
     double? kilometersAmount,
     double? allowance,
     double? total,
+    double? kilometerDistance,
   }) {
     return EarningsModel(
       rights: rights ?? this.rights,
       kilometersAmount: kilometersAmount ?? this.kilometersAmount,
       allowance: allowance ?? this.allowance,
       total: total ?? this.total,
+      kilometerDistance: kilometerDistance ?? this.kilometerDistance,
     );
   }
 }

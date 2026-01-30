@@ -211,84 +211,108 @@ class MyClipsWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Thumbnail placeholder
-              Container(
-                width: 80,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: AppTheme.grisPistacho.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: clip.thumbnailUrl != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          clip.thumbnailUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              const Icon(Icons.play_circle_outline, size: 32),
-                        ),
-                      )
-                    : const Icon(Icons.play_circle_outline, size: 32),
-              ),
-              const SizedBox(width: 16),
-
-              // Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      clip.matchInfo,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+              Row(
+                children: [
+                  // Thumbnail placeholder
+                  Container(
+                    width: 80,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: AppTheme.grisPistacho.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
+                    child: clip.thumbnailUrl != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              clip.thumbnailUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.play_circle_outline,
+                                size: 32,
+                              ),
+                            ),
+                          )
+                        : const Icon(Icons.play_circle_outline, size: 32),
+                  ),
+                  const SizedBox(width: 16),
+
+                  // Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildTag(
-                          clip.actionType.displayName,
-                          AppTheme.porpraFosc,
+                        Text(
+                          clip.matchInfo,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            _buildTag(
+                              clip.actionType.displayName,
+                              AppTheme.porpraFosc,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text(
+                              '${clip.formattedDuration} · ${clip.formattedSize}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              clip.isPublic ? Icons.public : Icons.lock,
+                              size: 16,
+                              color: clip.isPublic
+                                  ? AppTheme.mostassa
+                                  : Colors.grey,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              clip.isPublic ? 'Públic' : 'Privat',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              // Etiqueta (outcome) abaix a la dreta en format mobil
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 500) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
                         _buildTag(
                           clip.outcome.label,
                           _getOutcomeColor(clip.outcome),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${clip.formattedDuration} · ${clip.formattedSize}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Visibilitat i més
-              Column(
-                children: [
-                  Icon(
-                    clip.isPublic ? Icons.public : Icons.lock,
-                    size: 20,
-                    color: clip.isPublic ? AppTheme.mostassa : Colors.grey,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    clip.isPublic ? 'Públic' : 'Privat',
-                    style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-                  ),
-                ],
+                    );
+                  } else {
+                    return const SizedBox.shrink();
+                  }
+                },
               ),
             ],
           ),

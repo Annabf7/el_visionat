@@ -6,7 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
-import '../models/designation_model.dart';
+import '../models/designation_model.dart' show DesignationModel, EarningsModel;
 
 /// Repository per gestionar les designacions a Firestore
 class DesignationsRepository {
@@ -318,7 +318,19 @@ class DesignationsRepository {
     });
   }
 
-  /// Obté el total d'ingressos per període
+  /// Calcula el total NET a partir de les dades brutes de Firestore.
+  /// Aplica la retenció IRPF (2%) sobre drets + dietes + desplaçament (excés sobre 0.25€/km).
+  static double _calculateNetFromEarningsMap(Map<String, dynamic> earnings, double kilometerDistance) {
+    final rights = (earnings['rights'] as num?)?.toDouble() ?? 0.0;
+    final allowance = (earnings['allowance'] as num?)?.toDouble() ?? 0.0;
+    final kmAmount = (earnings['kilometers'] as num?)?.toDouble() ?? 0.0;
+    final total = (earnings['total'] as num?)?.toDouble() ?? 0.0;
+    final rightsAllowanceRetention = (rights + allowance) * EarningsModel.irpfRate;
+    final displacementRetention = EarningsModel.computeDisplacementRetention(kmAmount, kilometerDistance);
+    return total - rightsAllowanceRetention - displacementRetention;
+  }
+
+  /// Obté el total d'ingressos NET per període
   Future<double> getTotalEarnings({
     DateTime? startDate,
     DateTime? endDate,
@@ -346,8 +358,9 @@ class DesignationsRepository {
       for (final doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
         final earnings = data['earnings'] as Map<String, dynamic>?;
+        final km = (data['kilometers'] as num?)?.toDouble() ?? 0.0;
         if (earnings != null) {
-          total += (earnings['total'] as num?)?.toDouble() ?? 0.0;
+          total += _calculateNetFromEarningsMap(earnings, km);
         }
       }
 
@@ -359,7 +372,7 @@ class DesignationsRepository {
     }
   }
 
-  /// Obté el total d'ingressos per període com a Stream (actualització en temps real)
+  /// Obté el total d'ingressos NET per període com a Stream (actualització en temps real)
   Stream<double> getTotalEarningsStream({
     DateTime? startDate,
     DateTime? endDate,
@@ -387,8 +400,9 @@ class DesignationsRepository {
       for (final doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
         final earnings = data['earnings'] as Map<String, dynamic>?;
+        final km = (data['kilometers'] as num?)?.toDouble() ?? 0.0;
         if (earnings != null) {
-          total += (earnings['total'] as num?)?.toDouble() ?? 0.0;
+          total += _calculateNetFromEarningsMap(earnings, km);
         }
       }
       return total;

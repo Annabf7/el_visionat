@@ -54,13 +54,18 @@ class _ReportsPageState extends State<ReportsPage> {
 
       if (doc.exists) {
         final data = doc.data();
-        final category = data?['refereeCategory'] as String? ??
+        final category =
+            data?['refereeCategory'] as String? ??
             data?['categoriaRrtt'] as String? ??
             '';
 
         debugPrint('[ReportsPage] Categoria carregada: "$category"');
-        debugPrint('[ReportsPage] isAuxiliarDeTaula: ${TestRequirements.isAuxiliarDeTaula(category)}');
-        debugPrint('[ReportsPage] isFederacioEspanyolaArbitre: ${TestRequirements.isFederacioEspanyolaArbitre(category)}');
+        debugPrint(
+          '[ReportsPage] isAuxiliarDeTaula: ${TestRequirements.isAuxiliarDeTaula(category)}',
+        );
+        debugPrint(
+          '[ReportsPage] isFederacioEspanyolaArbitre: ${TestRequirements.isFederacioEspanyolaArbitre(category)}',
+        );
 
         if (mounted) {
           setState(() {
@@ -222,10 +227,7 @@ class _ReportsPageState extends State<ReportsPage> {
               child: _buildRecentReports(context, provider),
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              height: 450,
-              child: _buildRecentTests(context, provider),
-            ),
+            SizedBox(height: 450, child: _buildRecentTests(context, provider)),
             const SizedBox(height: 16),
             _buildStudyMaterial(context, provider),
             const SizedBox(height: 32),
@@ -238,54 +240,87 @@ class _ReportsPageState extends State<ReportsPage> {
   // --- Widgets de contingut ---
 
   Widget _buildSeasonSelector(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Temporada',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Selecciona la temporada per veure l\'històric',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-            DropdownButton<String>(
-              value: _selectedSeason,
-              items: [
-                '2025-2026',
-                '2024-2025',
-                '2023-2024',
-              ]
-                  .map(
-                    (season) => DropdownMenuItem(
-                      value: season,
-                      child: Text(season),
+        child: isMobile
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Temporada',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _selectedSeason = value;
-                  });
-                }
-              },
-            ),
-          ],
-        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Selecciona la temporada per veure l\'històric',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButton<String>(
+                    value: _selectedSeason,
+                    isExpanded: true,
+                    items: ['2025-2026', '2024-2025', '2023-2024']
+                        .map(
+                          (season) => DropdownMenuItem(
+                            value: season,
+                            child: Text(season),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _selectedSeason = value;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Temporada',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Selecciona la temporada per veure l\'històric',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                  DropdownButton<String>(
+                    value: _selectedSeason,
+                    items: ['2025-2026', '2024-2025', '2023-2024']
+                        .map(
+                          (season) => DropdownMenuItem(
+                            value: season,
+                            child: Text(season),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _selectedSeason = value;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -310,7 +345,8 @@ class _ReportsPageState extends State<ReportsPage> {
             icon: Icons.quiz_outlined,
             title: 'Tests',
             value: provider.totalTests.toString(),
-            subtitle: 'mitjana ${provider.averageTestScore.toStringAsFixed(1)}/10',
+            subtitle:
+                'mitjana ${provider.averageTestScore.toStringAsFixed(1)}/10',
             color: AppTheme.mostassa,
           ),
         ),
@@ -338,26 +374,23 @@ class _ReportsPageState extends State<ReportsPage> {
               children: [
                 Icon(icon, color: color, size: 24),
                 const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
+                Text(title, style: Theme.of(context).textTheme.titleSmall),
               ],
             ),
             const SizedBox(height: 12),
             Text(
               value,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.grisPistacho,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppTheme.grisPistacho),
             ),
           ],
         ),
@@ -381,16 +414,13 @@ class _ReportsPageState extends State<ReportsPage> {
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.description_outlined,
-                    color: AppTheme.lilaMitja,
-                  ),
+                  Icon(Icons.description_outlined, color: AppTheme.lilaMitja),
                   const SizedBox(width: 10),
                   Text(
                     'Últims Informes',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -403,9 +433,7 @@ class _ReportsPageState extends State<ReportsPage> {
 
               // Per FEB/ACB: mostrar NOMÉS el banner (no processem els seus PDFs)
               if (isFebAcb && _userCategory.isNotEmpty) ...[
-                Expanded(
-                  child: _buildFebAcbReportsBanner(context),
-                ),
+                Expanded(child: _buildFebAcbReportsBanner(context)),
               ] else ...[
                 // Llista d'informes (només per categories FCBQ)
                 Expanded(
@@ -424,74 +452,82 @@ class _ReportsPageState extends State<ReportsPage> {
                                   ),
                                 )
                               : provider.recentReports.isEmpty
-                                  ? _buildPlaceholder('No hi ha informes encara')
-                                  : Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        // Estadístiques d'informes (dins del scroll)
-                                        if (provider.reports.isNotEmpty) ...[
-                                          _buildReportStats(context, provider),
-                                          const SizedBox(height: 16),
-                                        ],
-                                        // Llista d'informes
-                                        ...provider.recentReports
-                                            .asMap()
-                                            .entries
-                                            .map(
-                                              (entry) {
-                                                final index = entry.key;
-                                                final report = entry.value;
-                                                final isLast = index == provider.recentReports.length - 1;
-                                                return Padding(
-                                                  padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
-                                                  child: ReportCard(
-                                                    report: report,
-                                                    onTap: () {
-                                                      Navigator.push(
-                                                        context,
-                                                        MaterialPageRoute(
-                                                          builder: (context) =>
-                                                              ReportDetailPage(
-                                                            report: report,
-                                                            onDelete: () async {
-                                                              try {
-                                                                await provider
-                                                                    .deleteReport(report.id);
-                                                                if (context.mounted) {
-                                                                  ScaffoldMessenger.of(context)
-                                                                      .showSnackBar(
-                                                                    const SnackBar(
-                                                                      content: Text(
-                                                                          'Informe eliminat correctament'),
-                                                                      backgroundColor:
-                                                                          AppTheme.verdeEncert,
-                                                                    ),
-                                                                  );
-                                                                }
-                                                              } catch (e) {
-                                                                if (context.mounted) {
-                                                                  ScaffoldMessenger.of(context)
-                                                                      .showSnackBar(
-                                                                    SnackBar(
-                                                                      content: Text(
-                                                                          'Error eliminant informe: $e'),
-                                                                      backgroundColor:
-                                                                          AppTheme.mostassa,
-                                                                    ),
-                                                                  );
-                                                                }
-                                                              }
-                                                            },
+                              ? _buildPlaceholder('No hi ha informes encara')
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Estadístiques d'informes (dins del scroll)
+                                    if (provider.reports.isNotEmpty) ...[
+                                      _buildReportStats(context, provider),
+                                      const SizedBox(height: 16),
+                                    ],
+                                    // Llista d'informes
+                                    ...provider.recentReports.asMap().entries.map((
+                                      entry,
+                                    ) {
+                                      final index = entry.key;
+                                      final report = entry.value;
+                                      final isLast =
+                                          index ==
+                                          provider.recentReports.length - 1;
+                                      return Padding(
+                                        padding: EdgeInsets.only(
+                                          bottom: isLast ? 0 : 12,
+                                        ),
+                                        child: ReportCard(
+                                          report: report,
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => ReportDetailPage(
+                                                  report: report,
+                                                  onDelete: () async {
+                                                    try {
+                                                      await provider
+                                                          .deleteReport(
+                                                            report.id,
+                                                          );
+                                                      if (context.mounted) {
+                                                        ScaffoldMessenger.of(
+                                                          context,
+                                                        ).showSnackBar(
+                                                          const SnackBar(
+                                                            content: Text(
+                                                              'Informe eliminat correctament',
+                                                            ),
+                                                            backgroundColor:
+                                                                AppTheme
+                                                                    .verdeEncert,
                                                           ),
-                                                        ),
-                                                      );
-                                                    },
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                      ],
-                                    ),
+                                                        );
+                                                      }
+                                                    } catch (e) {
+                                                      if (context.mounted) {
+                                                        ScaffoldMessenger.of(
+                                                          context,
+                                                        ).showSnackBar(
+                                                          SnackBar(
+                                                            content: Text(
+                                                              'Error eliminant informe: $e',
+                                                            ),
+                                                            backgroundColor:
+                                                                AppTheme
+                                                                    .mostassa,
+                                                          ),
+                                                        );
+                                                      }
+                                                    }
+                                                  },
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                ),
                         ),
                       );
                     },
@@ -524,16 +560,13 @@ class _ReportsPageState extends State<ReportsPage> {
               // Header fix (no fa scroll)
               Row(
                 children: [
-                  Icon(
-                    Icons.quiz_outlined,
-                    color: AppTheme.lilaMitja,
-                  ),
+                  Icon(Icons.quiz_outlined, color: AppTheme.lilaMitja),
                   const SizedBox(width: 10),
                   Text(
                     'Tests Realitzats',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -548,9 +581,7 @@ class _ReportsPageState extends State<ReportsPage> {
 
               // Per FEB/ACB: mostrar NOMÉS el banner (no processem els seus PDFs)
               if (isFebAcb && userCategory.isNotEmpty) ...[
-                Expanded(
-                  child: _buildFebAcbTestsBanner(context),
-                ),
+                Expanded(child: _buildFebAcbTestsBanner(context)),
               ] else ...[
                 // Contingut amb scroll (estadístiques + llista)
                 Expanded(
@@ -573,67 +604,81 @@ class _ReportsPageState extends State<ReportsPage> {
                                   children: [
                                     // Estadístiques de tests (dins del scroll)
                                     if (provider.tests.isNotEmpty) ...[
-                                      _buildTestStats(context, provider, userCategory),
+                                      _buildTestStats(
+                                        context,
+                                        provider,
+                                        userCategory,
+                                      ),
                                       const SizedBox(height: 16),
                                     ],
                                     // Llista de tests
                                     if (provider.recentTests.isEmpty)
                                       _buildPlaceholder('No hi ha tests encara')
                                     else
-                                      ...provider.recentTests
-                                          .asMap()
-                                          .entries
-                                          .map(
-                                            (entry) {
-                                              final index = entry.key;
-                                              final test = entry.value;
-                                              final isLast = index == provider.recentTests.length - 1;
-                                              return Padding(
-                                                padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
-                                                child: TestCard(
-                                                  test: test,
-                                                  onTap: () {
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (context) => TestDetailPage(
-                                                          test: test,
-                                                          onDelete: () async {
-                                                            try {
-                                                              await provider.deleteTest(test.id);
-                                                              if (context.mounted) {
-                                                                ScaffoldMessenger.of(context)
-                                                                    .showSnackBar(
-                                                                  const SnackBar(
-                                                                    content: Text(
-                                                                        'Test eliminat correctament'),
-                                                                    backgroundColor:
-                                                                        AppTheme.verdeEncert,
-                                                                  ),
-                                                                );
-                                                              }
-                                                            } catch (e) {
-                                                              if (context.mounted) {
-                                                                ScaffoldMessenger.of(context)
-                                                                    .showSnackBar(
-                                                                  SnackBar(
-                                                                    content: Text(
-                                                                        'Error eliminant test: $e'),
-                                                                    backgroundColor:
-                                                                        AppTheme.mostassa,
-                                                                  ),
-                                                                );
-                                                              }
-                                                            }
-                                                          },
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
+                                      ...provider.recentTests.asMap().entries.map((
+                                        entry,
+                                      ) {
+                                        final index = entry.key;
+                                        final test = entry.value;
+                                        final isLast =
+                                            index ==
+                                            provider.recentTests.length - 1;
+                                        return Padding(
+                                          padding: EdgeInsets.only(
+                                            bottom: isLast ? 0 : 12,
+                                          ),
+                                          child: TestCard(
+                                            test: test,
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => TestDetailPage(
+                                                    test: test,
+                                                    onDelete: () async {
+                                                      try {
+                                                        await provider
+                                                            .deleteTest(
+                                                              test.id,
+                                                            );
+                                                        if (context.mounted) {
+                                                          ScaffoldMessenger.of(
+                                                            context,
+                                                          ).showSnackBar(
+                                                            const SnackBar(
+                                                              content: Text(
+                                                                'Test eliminat correctament',
+                                                              ),
+                                                              backgroundColor:
+                                                                  AppTheme
+                                                                      .verdeEncert,
+                                                            ),
+                                                          );
+                                                        }
+                                                      } catch (e) {
+                                                        if (context.mounted) {
+                                                          ScaffoldMessenger.of(
+                                                            context,
+                                                          ).showSnackBar(
+                                                            SnackBar(
+                                                              content: Text(
+                                                                'Error eliminant test: $e',
+                                                              ),
+                                                              backgroundColor:
+                                                                  AppTheme
+                                                                      .mostassa,
+                                                            ),
+                                                          );
+                                                        }
+                                                      }
+                                                    },
+                                                  ),
                                                 ),
                                               );
                                             },
                                           ),
+                                        );
+                                      }),
                                   ],
                                 ),
                         ),
@@ -652,7 +697,7 @@ class _ReportsPageState extends State<ReportsPage> {
   Widget _buildReportStats(BuildContext context, ReportsProvider provider) {
     // Calcular estadístiques de valoracions finals (de millor a pitjor)
     int optims = 0;
-    int acceptables = 0;
+    int satisfactoris = 0;
     int millorables = 0;
     int noSatisfactoris = 0;
 
@@ -661,8 +706,9 @@ class _ReportsPageState extends State<ReportsPage> {
         case AssessmentGrade.optim:
           optims++;
           break;
-        case AssessmentGrade.acceptable:
-          acceptables++;
+        case AssessmentGrade.satisfactori:
+        case AssessmentGrade.acceptable: // Dades antigues → tractem com satisfactori
+          satisfactoris++;
           break;
         case AssessmentGrade.millorable:
           millorables++;
@@ -673,16 +719,14 @@ class _ReportsPageState extends State<ReportsPage> {
       }
     }
 
-    final total = optims + acceptables + millorables + noSatisfactoris;
+    final total = optims + satisfactoris + millorables + noSatisfactoris;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.grisBody.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.grisPistacho.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: AppTheme.grisPistacho.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -699,9 +743,9 @@ class _ReportsPageState extends State<ReportsPage> {
               Text(
                 'Resum de valoracions',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.grisPistacho,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: AppTheme.grisPistacho,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -721,13 +765,13 @@ class _ReportsPageState extends State<ReportsPage> {
                 ),
               ),
               const SizedBox(width: 6),
-              // Acceptables
+              // Satisfactoris
               Expanded(
                 child: _buildStatItem(
                   context,
                   icon: Icons.thumb_up,
-                  label: 'Acceptable',
-                  value: acceptables.toString(),
+                  label: 'Satisfactori',
+                  value: satisfactoris.toString(),
                   color: AppTheme.lilaMitja,
                 ),
               ),
@@ -767,37 +811,25 @@ class _ReportsPageState extends State<ReportsPage> {
                   if (optims > 0)
                     Expanded(
                       flex: optims,
-                      child: Container(
-                        height: 8,
-                        color: AppTheme.verdeEncert,
-                      ),
+                      child: Container(height: 8, color: AppTheme.verdeEncert),
                     ),
-                  // Lila - Acceptable
-                  if (acceptables > 0)
+                  // Lila - Satisfactori
+                  if (satisfactoris > 0)
                     Expanded(
-                      flex: acceptables,
-                      child: Container(
-                        height: 8,
-                        color: AppTheme.lilaMitja,
-                      ),
+                      flex: satisfactoris,
+                      child: Container(height: 8, color: AppTheme.lilaMitja),
                     ),
                   // Groc - Millorable
                   if (millorables > 0)
                     Expanded(
                       flex: millorables,
-                      child: Container(
-                        height: 8,
-                        color: AppTheme.mostassa,
-                      ),
+                      child: Container(height: 8, color: AppTheme.mostassa),
                     ),
                   // Vermell - No Satisfactori
                   if (noSatisfactoris > 0)
                     Expanded(
                       flex: noSatisfactoris,
-                      child: Container(
-                        height: 8,
-                        color: Colors.redAccent,
-                      ),
+                      child: Container(height: 8, color: Colors.redAccent),
                     ),
                 ],
               ),
@@ -811,7 +843,7 @@ class _ReportsPageState extends State<ReportsPage> {
                   children: [
                     _buildLegendItem(context, AppTheme.verdeEncert, 'Òptim'),
                     const SizedBox(width: 12),
-                    _buildLegendItem(context, AppTheme.lilaMitja, 'Acceptable'),
+                    _buildLegendItem(context, AppTheme.lilaMitja, 'Satisfactori'),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -868,9 +900,7 @@ class _ReportsPageState extends State<ReportsPage> {
       decoration: BoxDecoration(
         color: AppTheme.grisBody.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.grisPistacho.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: AppTheme.grisPistacho.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -889,9 +919,9 @@ class _ReportsPageState extends State<ReportsPage> {
                   child: Text(
                     'Categoria: $userCategory',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.grisPistacho,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: AppTheme.grisPistacho,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -904,18 +934,18 @@ class _ReportsPageState extends State<ReportsPage> {
                   child: Text(
                     '• Mínim categoria: $minimCategory/25',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.grisPistacho,
-                          fontSize: 11,
-                        ),
+                      color: AppTheme.grisPistacho,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
                 Expanded(
                   child: Text(
                     '• Mínim actuar: $minimAct/25',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.grisPistacho,
-                          fontSize: 11,
-                        ),
+                      color: AppTheme.grisPistacho,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
               ],
@@ -972,28 +1002,19 @@ class _ReportsPageState extends State<ReportsPage> {
                   if (approvedCategory > 0)
                     Expanded(
                       flex: approvedCategory,
-                      child: Container(
-                        height: 8,
-                        color: AppTheme.verdeEncert,
-                      ),
+                      child: Container(height: 8, color: AppTheme.verdeEncert),
                     ),
                   // Lila - Apte actuar
                   if (approvedAct > 0)
                     Expanded(
                       flex: approvedAct,
-                      child: Container(
-                        height: 8,
-                        color: AppTheme.lilaMitja,
-                      ),
+                      child: Container(height: 8, color: AppTheme.lilaMitja),
                     ),
                   // Groc - No apte
                   if (notApproved > 0)
                     Expanded(
                       flex: notApproved,
-                      child: Container(
-                        height: 8,
-                        color: AppTheme.mostassa,
-                      ),
+                      child: Container(height: 8, color: AppTheme.mostassa),
                     ),
                 ],
               ),
@@ -1023,43 +1044,37 @@ class _ReportsPageState extends State<ReportsPage> {
       decoration: BoxDecoration(
         color: AppTheme.lilaMitja.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.lilaMitja.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: AppTheme.lilaMitja.withValues(alpha: 0.3)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.info_outline,
-            size: 48,
-            color: AppTheme.lilaMitja,
-          ),
+          Icon(Icons.info_outline, size: 48, color: AppTheme.lilaMitja),
           const SizedBox(height: 16),
           Text(
             'Categoria $_userCategory',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppTheme.lilaMitja,
-                  fontWeight: FontWeight.bold,
-                ),
+              color: AppTheme.lilaMitja,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 12),
           Text(
             'El sistema d\'avaluació d\'informes per àrbitres d\'aquesta categoria és competència de la Federació Espanyola (FEB).',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.grisPistacho,
-                  height: 1.5,
-                ),
+              color: AppTheme.grisPistacho,
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Aquesta funcionalitat està fora de l\'abast d\'aquesta app.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.grisPistacho,
-                  fontStyle: FontStyle.italic,
-                ),
+              color: AppTheme.grisPistacho,
+              fontStyle: FontStyle.italic,
+            ),
           ),
         ],
       ),
@@ -1073,43 +1088,37 @@ class _ReportsPageState extends State<ReportsPage> {
       decoration: BoxDecoration(
         color: AppTheme.lilaMitja.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.lilaMitja.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: AppTheme.lilaMitja.withValues(alpha: 0.3)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.info_outline,
-            size: 48,
-            color: AppTheme.lilaMitja,
-          ),
+          Icon(Icons.info_outline, size: 48, color: AppTheme.lilaMitja),
           const SizedBox(height: 16),
           Text(
             'Categoria $_userCategory',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppTheme.lilaMitja,
-                  fontWeight: FontWeight.bold,
-                ),
+              color: AppTheme.lilaMitja,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 12),
           Text(
             'El seguiment de mínims i tests per àrbitres d\'aquesta categoria és competència de la Federació Espanyola (FEB).',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.grisPistacho,
-                  height: 1.5,
-                ),
+              color: AppTheme.grisPistacho,
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Aquesta funcionalitat està fora de l\'abast d\'aquesta app.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.grisPistacho,
-                  fontStyle: FontStyle.italic,
-                ),
+              color: AppTheme.grisPistacho,
+              fontStyle: FontStyle.italic,
+            ),
           ),
         ],
       ),
@@ -1132,9 +1141,9 @@ class _ReportsPageState extends State<ReportsPage> {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.grisPistacho,
-                fontSize: 10,
-              ),
+            color: AppTheme.grisPistacho,
+            fontSize: 10,
+          ),
         ),
       ],
     );
@@ -1154,15 +1163,15 @@ class _ReportsPageState extends State<ReportsPage> {
         Text(
           value,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
         ),
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.grisPistacho,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppTheme.grisPistacho),
         ),
       ],
     );
@@ -1170,7 +1179,9 @@ class _ReportsPageState extends State<ReportsPage> {
 
   Widget _buildStudyMaterial(BuildContext context, ReportsProvider provider) {
     // Comprovar si és àrbitre FEB/ACB (no auxiliar)
-    final isFebAcbArbitre = TestRequirements.isFederacioEspanyolaArbitre(_userCategory);
+    final isFebAcbArbitre = TestRequirements.isFederacioEspanyolaArbitre(
+      _userCategory,
+    );
 
     // Per àrbitres FEB/ACB: no mostrem aquesta secció (retornem widget buit)
     if (isFebAcbArbitre && _userCategory.isNotEmpty) {
@@ -1194,9 +1205,9 @@ class _ReportsPageState extends State<ReportsPage> {
                 const SizedBox(width: 10),
                 Text(
                   'Material d\'Estudi',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -1225,14 +1236,15 @@ class _ReportsPageState extends State<ReportsPage> {
                 Text(
                   'Punts de Millora Recurrents',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 12),
-                ...provider.topImprovements.take(3).map(
-                      (improvement) => ImprovementItem(
-                        improvement: improvement,
-                      ),
+                ...provider.topImprovements
+                    .take(3)
+                    .map(
+                      (improvement) =>
+                          ImprovementItem(improvement: improvement),
                     ),
                 const SizedBox(height: 24),
               ],
@@ -1241,15 +1253,13 @@ class _ReportsPageState extends State<ReportsPage> {
                 Text(
                   'Àrees Febles en Tests',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 12),
-                ...provider.topWeakAreas.take(3).map(
-                      (weakArea) => WeakAreaItem(
-                        weakArea: weakArea,
-                      ),
-                    ),
+                ...provider.topWeakAreas
+                    .take(3)
+                    .map((weakArea) => WeakAreaItem(weakArea: weakArea)),
               ],
             ],
           ],
@@ -1264,9 +1274,7 @@ class _ReportsPageState extends State<ReportsPage> {
       decoration: BoxDecoration(
         color: AppTheme.grisBody.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.grisPistacho.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: AppTheme.grisPistacho.withValues(alpha: 0.3)),
       ),
       child: Center(
         child: Text(

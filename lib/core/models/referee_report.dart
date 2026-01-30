@@ -1,9 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Grau d'assoliment d'una valoració (de millor a pitjor)
+/// - Valoració Final: ÒPTIM | SATISFACTORI | MILLORABLE | NO SATISFACTORI
+/// - Categories: ÒPTIM | ACCEPTABLE | MILLORABLE | NO SATISFACTORI
 enum AssessmentGrade {
   optim,
-  acceptable,
+  satisfactori, // Per a Valoració Final
+  acceptable, // Per a Categories individuals
   millorable,
   noSatisfactori;
 
@@ -11,6 +14,8 @@ enum AssessmentGrade {
     switch (this) {
       case AssessmentGrade.optim:
         return 'Òptim';
+      case AssessmentGrade.satisfactori:
+        return 'Satisfactori';
       case AssessmentGrade.acceptable:
         return 'Acceptable';
       case AssessmentGrade.millorable:
@@ -25,6 +30,8 @@ enum AssessmentGrade {
       case 'òptim':
       case 'optim':
         return AssessmentGrade.optim;
+      case 'satisfactori':
+        return AssessmentGrade.satisfactori;
       case 'acceptable':
         return AssessmentGrade.acceptable;
       case 'millorable':

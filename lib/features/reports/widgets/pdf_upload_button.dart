@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
+import 'dart:async';
 
 import 'package:el_visionat/core/theme/app_theme.dart';
 import 'package:el_visionat/features/auth/providers/auth_provider.dart';
+import 'package:el_visionat/features/reports/providers/reports_provider.dart';
 
 /// Widget per pujar PDFs d'informes i tests
 class PdfUploadButton extends StatefulWidget {
@@ -178,7 +181,7 @@ class _PdfUploadButtonState extends State<PdfUploadButton> {
         throw Exception('No s\'ha pogut accedir a l\'arxiu');
       }
 
-      // Monitoritzar progrés
+      // Monitoritzar progrés de pujada
       uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
         final progress = snapshot.bytesTransferred / snapshot.totalBytes;
         debugPrint('[PdfUpload] Progrés: ${(progress * 100).toStringAsFixed(1)}%');
@@ -192,42 +195,8 @@ class _PdfUploadButtonState extends State<PdfUploadButton> {
 
       if (!mounted) return;
 
-      // Mostrar missatge d'èxit
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'PDF pujat correctament',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'S\'està processant amb IA...',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.9),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: AppTheme.verdeEncert,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-
-      // TODO: Cridar Cloud Function per processar el PDF
-      // await _triggerPdfProcessing(downloadUrl, type, userId);
+      // Mostrar diàleg de processament IA
+      await _showProcessingDialog(type, userId, timestamp);
 
     } catch (e) {
       debugPrint('[PdfUpload] Error: $e');
@@ -240,6 +209,161 @@ class _PdfUploadButtonState extends State<PdfUploadButton> {
         });
       }
     }
+  }
+
+  /// Mostra un diàleg de processament i espera que el document aparegui a Firestore
+  Future<void> _showProcessingDialog(
+      String type, String userId, int timestamp) async {
+    final collection = type == 'report' ? 'reports' : 'tests';
+    final typeLabel = type == 'report' ? 'informe' : 'test';
+    StreamSubscription<QuerySnapshot>? subscription;
+    Timer? timeoutTimer;
+    bool completed = false;
+
+    // Mostrar diàleg
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return PopScope(
+          canPop: false,
+          child: AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: 60,
+                  height: 60,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.lilaMitja),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Processant $typeLabel amb IA...',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Estem analitzant el PDF.\nAixò pot trigar uns segons.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppTheme.grisPistacho,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    // Escoltar nous documents a Firestore (creats després del timestamp)
+    final startTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    subscription = FirebaseFirestore.instance
+        .collection(collection)
+        .where('userId', isEqualTo: userId)
+        .where('createdAt', isGreaterThan: Timestamp.fromDate(startTime))
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.docs.isNotEmpty && !completed) {
+        completed = true;
+        debugPrint('[PdfUpload] Document detectat a Firestore!');
+        _onProcessingComplete(subscription, timeoutTimer, type, userId);
+      }
+    });
+
+    // Timeout de 60 segons
+    timeoutTimer = Timer(const Duration(seconds: 60), () {
+      if (!completed) {
+        completed = true;
+        debugPrint('[PdfUpload] Timeout - tancant diàleg');
+        _onProcessingTimeout(subscription, timeoutTimer, type);
+      }
+    });
+  }
+
+  void _onProcessingComplete(StreamSubscription? subscription, Timer? timer,
+      String type, String userId) {
+    subscription?.cancel();
+    timer?.cancel();
+
+    if (!mounted) return;
+
+    // Tancar diàleg de processament
+    Navigator.of(context, rootNavigator: true).pop();
+
+    // Refrescar llista d'informes si estem en la pàgina correcta
+    if (type == 'report') {
+      try {
+        context.read<ReportsProvider>().loadReports(userId);
+      } catch (_) {}
+    }
+
+    // Mostrar missatge d'èxit
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                type == 'report'
+                    ? 'Informe processat correctament!'
+                    : 'Test processat correctament!',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppTheme.verdeEncert,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _onProcessingTimeout(StreamSubscription? subscription, Timer? timer,
+      String type) {
+    subscription?.cancel();
+    timer?.cancel();
+
+    if (!mounted) return;
+
+    // Tancar diàleg de processament
+    Navigator.of(context, rootNavigator: true).pop();
+
+    // Mostrar missatge informatiu (no és un error, pot trigar més)
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.info_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                type == 'report'
+                    ? 'L\'informe s\'està processant. Apareixerà en breu.'
+                    : 'El test s\'està processant. Apareixerà en breu.',
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppTheme.lilaMitja,
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   void _showErrorDialog(String message) {

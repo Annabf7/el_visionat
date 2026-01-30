@@ -1,3 +1,5 @@
+import 'dart:ui' show PointerDeviceKind;
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 
@@ -97,11 +99,6 @@ class CategoryStatsWidget extends StatelessWidget {
 
               final stats = snapshot.data!;
 
-              // Debug: mostrar categories i prioritats
-              for (final entry in stats.entries) {
-                print('Category: "${entry.key}" -> Priority: ${_getCategoryPriority(entry.key)}');
-              }
-
               final sortedEntries = stats.entries.toList()
                 ..sort((a, b) {
                   // Ordenar per jerarquia de categoria (de més important a menys)
@@ -112,113 +109,172 @@ class CategoryStatsWidget extends StatelessWidget {
 
               return Column(
                 children: [
-                  // Gràfic de barres
-                  SizedBox(
-                    height: 200,
-                    child: BarChart(
-                      BarChartData(
-                        alignment: BarChartAlignment.spaceAround,
-                        maxY: sortedEntries.first.value.toDouble() * 1.2,
-                        barTouchData: BarTouchData(
-                          enabled: true,
-                          touchTooltipData: BarTouchTooltipData(
-                            getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                              return BarTooltipItem(
-                                '${sortedEntries[group.x.toInt()].key}\n${rod.toY.toInt()} partits',
-                                const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        titlesData: FlTitlesData(
-                          show: true,
-                          bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              reservedSize: 50,
-                              getTitlesWidget: (value, meta) {
-                                if (value.toInt() >= sortedEntries.length) {
-                                  return const SizedBox.shrink();
-                                }
-                                final category = sortedEntries[value.toInt()].key;
-                                // Escurçar el nom si és massa llarg
-                                final shortName = category.length > 15
-                                    ? '${category.substring(0, 12)}...'
-                                    : category;
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 8.0),
-                                  child: Text(
-                                    shortName,
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w500,
-                                      color: AppTheme.porpraFosc,
+                  // Gràfic de barres (scrollable horitzontalment amb suport desktop)
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final minWidth = sortedEntries.length * 65.0;
+                      final chartWidth = minWidth > constraints.maxWidth
+                          ? minWidth
+                          : constraints.maxWidth;
+
+                      Widget chart = SizedBox(
+                        height: 280,
+                        width: chartWidth,
+                        child: BarChart(
+                          BarChartData(
+                            alignment: BarChartAlignment.spaceAround,
+                            maxY: sortedEntries.first.value.toDouble() * 1.2,
+                            barTouchData: BarTouchData(
+                              enabled: true,
+                              touchTooltipData: BarTouchTooltipData(
+                                fitInsideVertically: true,
+                                fitInsideHorizontally: true,
+                                getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                                  // Tooltip mostra nom complet
+                                  return BarTooltipItem(
+                                    '${sortedEntries[group.x.toInt()].key}\n${rod.toY.toInt()} partits',
+                                    const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
                                     ),
-                                    textAlign: TextAlign.center,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                );
-                              },
+                                  );
+                                },
+                              ),
                             ),
-                          ),
-                          leftTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              reservedSize: 30,
-                              getTitlesWidget: (value, meta) {
-                                return Text(
-                                  value.toInt().toString(),
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: AppTheme.porpraFosc,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          topTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-                          rightTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-                        ),
-                        gridData: FlGridData(
-                          show: true,
-                          drawVerticalLine: false,
-                          horizontalInterval: 1,
-                          getDrawingHorizontalLine: (value) {
-                            return FlLine(
-                              color: AppTheme.porpraFosc.withValues(alpha: 0.15),
-                              strokeWidth: 1,
-                            );
-                          },
-                        ),
-                        borderData: FlBorderData(show: false),
-                        barGroups: List.generate(
-                          sortedEntries.length,
-                          (index) => BarChartGroupData(
-                            x: index,
-                            barRods: [
-                              BarChartRodData(
-                                toY: sortedEntries[index].value.toDouble(),
-                                color: _getColorForIndex(index),
-                                width: 24,
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(6),
-                                  topRight: Radius.circular(6),
+                            titlesData: FlTitlesData(
+                              show: true,
+                              bottomTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 90,
+                                  getTitlesWidget: (value, meta) {
+                                    if (value.toInt() >= sortedEntries.length) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    final category = sortedEntries[value.toInt()].key;
+                                    return SideTitleWidget(
+                                      axisSide: AxisSide.bottom,
+                                      angle: -0.7,
+                                      space: 20,
+                                      child: Text(
+                                        _abbreviateCategory(category),
+                                        style: const TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppTheme.porpraFosc,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
-                            ],
+                              leftTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 30,
+                                  getTitlesWidget: (value, meta) {
+                                    return Text(
+                                      value.toInt().toString(),
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        color: AppTheme.porpraFosc,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              topTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                              rightTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                            ),
+                            gridData: FlGridData(
+                              show: true,
+                              drawVerticalLine: false,
+                              horizontalInterval: 1,
+                              getDrawingHorizontalLine: (value) {
+                                return FlLine(
+                                  color: AppTheme.porpraFosc.withValues(alpha: 0.15),
+                                  strokeWidth: 1,
+                                );
+                              },
+                            ),
+                            borderData: FlBorderData(show: false),
+                            barGroups: List.generate(
+                              sortedEntries.length,
+                              (index) => BarChartGroupData(
+                                x: index,
+                                barRods: [
+                                  BarChartRodData(
+                                    toY: sortedEntries[index].value.toDouble(),
+                                    color: _getColorForIndex(index),
+                                    width: 24,
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(6),
+                                      topRight: Radius.circular(6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+
+                      // Scroll horitzontal si hi ha massa categories
+                      final needsScroll = minWidth > constraints.maxWidth;
+                      if (needsScroll) {
+                        chart = SizedBox(
+                          height: 280,
+                          child: ScrollConfiguration(
+                            behavior: ScrollConfiguration.of(context).copyWith(
+                              dragDevices: {
+                                PointerDeviceKind.touch,
+                                PointerDeviceKind.mouse,
+                              },
+                            ),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: chart,
+                            ),
+                          ),
+                        );
+                      }
+
+                      return Column(
+                        children: [
+                          chart,
+                          if (needsScroll)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.swipe,
+                                    size: 14,
+                                    color: AppTheme.grisBody.withValues(alpha: 0.6),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Llisca per veure més categories',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppTheme.grisBody.withValues(alpha: 0.6),
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
                   // Llista de categories
@@ -240,87 +296,99 @@ class CategoryStatsWidget extends StatelessWidget {
     );
   }
 
-  /// Retorna la prioritat d'una categoria segons la jerarquia oficial
-  /// Números més baixos = més prioritat (apareixen primer a l'esquerra)
+  /// Retorna la prioritat d'una categoria segons la jerarquia oficial FCBQ.
+  /// Usa matching per paraules clau individuals (no substrings compostos)
+  /// per gestionar variants amb gènere intercalat (ex: "JÚNIOR MASCULÍ INTERTERRITORIAL").
   int _getCategoryPriority(String category) {
-    // Normalitzar la categoria per comparació (sense espais extra, majúscules/minúscules)
-    final normalized = category.trim().toUpperCase();
+    String upper = category.trim().toUpperCase().replaceAll('-', ' ');
 
-    // Jerarquia oficial de categories (de més important a menys)
-    final priorities = {
-      // Lligues professionals
-      'ACB': 1,
-      'PRIMERA FEB': 2,
-      'LLIGA FEMENINA': 3,
-      'FEMENINA CHALLENGE': 4,
-      'SEGONA FEB': 5,
-      'FEMENINA 2': 6,
-      'TERCERA FEB': 7,
+    // Treure prefixos (C.T., C.C., C.I. i variants)
+    upper = upper.replaceFirst(RegExp(r'^C\.?\s*[TCI]\.?\s*'), '').trim();
 
-      // Copes i tornejos
-      'SUPER COPA': 8,
-      'COPA CATALUNYA': 9,
+    // Normalitzar punts d'ordinals (1A. → 1A, 2A. → 2A, etc.)
+    upper = upper
+        .replaceAll('1A.', '1A')
+        .replaceAll('2A.', '2A')
+        .replaceAll('3A.', '3A')
+        .replaceAll('1R.', '1R');
 
-      // Categories territorials
-      'PRIMERA CATEGORIA': 10,
-      '1A CATEGORIA': 10,
-      'SEGONA CATEGORIA': 11,
-      '2A CATEGORIA': 11,
-      'TERRITORIAL SÈNIOR': 12,
-      '1A TERRITORIAL': 12,
-      '1A. TERRITORIAL': 12,
-      '2A I 3A TERRITORIAL': 13,
-      '2A TERRITORIAL': 13,
-      '3A TERRITORIAL': 13,
+    // 1. SUPER COPA
+    if (upper.contains('SUPER COPA')) return 1;
+    // 2. COPA CATALUNYA
+    if (upper.contains('COPA CATALUNYA')) return 2;
+    // 3. PRIMERA CATEGORIA
+    if (upper.contains('PRIMERA CATEGORIA') || upper.contains('1A CATEGORIA')) return 3;
+    // 4. SEGONA CATEGORIA
+    if (upper.contains('SEGONA CATEGORIA') || upper.contains('2A CATEGORIA')) return 4;
+    // 5. 1A TERRITORIAL
+    if (upper.contains('1A TERRITORIAL')) return 5;
+    // 6. 2A TERRITORIAL
+    if (upper.contains('2A TERRITORIAL')) return 6;
+    // 7. 3A TERRITORIAL
+    if (upper.contains('3A TERRITORIAL')) return 7;
 
-      // Categories de base
-      'SOTS 25': 14,
-      'SOTS 20 PREFERENT': 15,
-      'SOTS 20 NIVELL A': 16,
-      'SOTS 20 NIVELL B': 17,
-      'JÚNIOR PREFERENT': 18,
-      'JUNIOR PREFERENT': 18,
-      'JÚNIOR PREFERENT 1R ANY': 19,
-      'JUNIOR PREFERENT 1R ANY': 19,
-      'JÚNIOR INTERTERRITORIAL': 20,
-      'JUNIOR INTERTERRITORIAL': 20,
-      'JÚNIOR NIVELL A': 21,
-      'JUNIOR NIVELL A': 21,
-      'JÚNIOR NIVELL B': 22,
-      'JUNIOR NIVELL B': 22,
-      'JÚNIOR NIVELL C': 23,
-      'JUNIOR NIVELL C': 23,
-      'CADET PREFERENT': 24,
-      'CADET PREFERENT 1R ANY': 25,
-      'CADET INTERTERRITORIAL': 26,
-      'CADET PROMOCIÓ': 27,
-      'CADET MASCULÍ PROMOCIÓ': 27, // Variant amb masculí/femení
-      'CADET FEMENÍ PROMOCIÓ': 27,
-      'INFANTIL PREFERENT': 28,
-      'INFANTIL PREFERENT 1R ANY': 29,
-      'INFANTIL INTERTERRITORIAL': 30,
-      'INFANTIL': 31,
-      'PREINFANTIL': 31,
-      'PRE-INFANTIL': 31, // Amb guió
-      'MINI': 32,
-      'PREMINI': 32,
-      'PRE-MINI': 32, // Amb guió
-      'ESCOBOL': 33,
-      '3X3 NO PROMOCIÓ': 34,
-      '3X3 PROMOCIÓ': 35,
-    };
+    // 8-11. SOTS
+    if (upper.contains('SOTS 21') && upper.contains('PREF')) return 8;
+    if (upper.contains('SOTS 20')) {
+      if (upper.contains('PREF')) return 8;
+      if (upper.contains('NIVELL A') || upper.contains('N. A')) return 10;
+      if (upper.contains('NIVELL B') || upper.contains('N. B')) return 11;
+      return 10;
+    }
+    if (upper.contains('SOTS 25')) return 9;
 
-    // Buscar coincidència exacta o parcial (ordenat per claus més llargues primer)
-    final sortedPriorities = priorities.entries.toList()
-      ..sort((a, b) => b.key.length.compareTo(a.key.length));
-
-    for (final entry in sortedPriorities) {
-      if (normalized.contains(entry.key)) {
-        return entry.value;
+    // 12-17. JÚNIOR
+    if (upper.contains('JÚNIOR') || upper.contains('JUNIOR')) {
+      if (upper.contains('PREFERENT')) {
+        if (upper.contains('1R ANY')) return 13;
+        return 12;
       }
+      if (upper.contains('INTERTERRITORIAL')) return 14;
+      if (upper.contains('NIVELL A')) return 15;
+      if (upper.contains('NIVELL B')) return 16;
+      if (upper.contains('NIVELL C')) return 17;
+      return 15;
     }
 
-    // Si no es troba, assignar una prioritat baixa (al final)
+    // 18/31. 3X3
+    if (upper.contains('3X3') || upper.contains('3 X 3')) {
+      if (upper.contains('NO PROMO')) return 18;
+      if (upper.contains('PROMO')) return 31;
+      return 18;
+    }
+
+    // 19-22. CADET
+    if (upper.contains('CADET')) {
+      if (upper.contains('PREFERENT')) {
+        if (upper.contains('1R ANY')) return 20;
+        return 19;
+      }
+      if (upper.contains('INTERTERRITORIAL')) return 21;
+      if (upper.contains('PROMOCIÓ') || upper.contains('PROMOCI')) return 22;
+      return 22;
+    }
+
+    // 27. PREINFANTIL (comprovar ABANS d'INFANTIL)
+    if (upper.contains('PREINFANTIL') || upper.contains('PRE INFANTIL')) return 27;
+
+    // 23-26. INFANTIL
+    if (upper.contains('INFANTIL')) {
+      if (upper.contains('PREFERENT')) {
+        if (upper.contains('1R ANY')) return 25;
+        return 23;
+      }
+      if (upper.contains('INTERTERRITORIAL')) return 24;
+      return 26;
+    }
+
+    // 29. PREMINI (comprovar ABANS de MINI)
+    if (upper.contains('PREMINI') || upper.contains('PRE MINI')) return 29;
+    // 28. MINI
+    if (upper.contains('MINI')) return 28;
+
+    // 30. ESCOBOL
+    if (upper.contains('ESCOBOL')) return 30;
+
     return 999;
   }
 
@@ -334,6 +402,104 @@ class CategoryStatsWidget extends StatelessWidget {
       AppTheme.grisBody,
     ];
     return colors[index % colors.length];
+  }
+
+  /// Abrevia el nom de la categoria per mostrar a l'eix X del gràfic.
+  /// Ex: "C.C. PRIMERA CATEGORIA MASCULINA" → "1Cat. Masc."
+  /// Ex: "C.T. 1A TERRITORIAL SÈNIOR MASCULÍ" → "1a Terr. Masc."
+  /// Ex: "C.C. JÚNIOR MASCULÍ INTERTERRITORIAL" → "Júnior Masc. Inter."
+  String _abbreviateCategory(String category) {
+    String upper = category.trim().toUpperCase();
+
+    // Treure prefixos (C.T., C.C., C.I. i variants)
+    upper = upper.replaceFirst(RegExp(r'^C\.?\s*[TCI]\.?\s*'), '').trim();
+
+    // Normalitzar guions (SOTS-25 → SOTS 25) i punts d'ordinals (1A. → 1A)
+    final norm = upper
+        .replaceAll('-', ' ')
+        .replaceAll('1A.', '1A')
+        .replaceAll('2A.', '2A')
+        .replaceAll('3A.', '3A')
+        .replaceAll('1R.', '1R');
+
+    // Detectar gènere
+    String gender = '';
+    if (norm.contains('MASCULIN') || norm.contains('MASCULÍ')) {
+      gender = 'Masc.';
+    } else if (norm.contains('FEMEN')) {
+      gender = 'Fem.';
+    }
+
+    // Detectar base de categoria
+    String base;
+    if (norm.contains('SUPER COPA')) {
+      base = 'S. Copa';
+    } else if (norm.contains('COPA CATALUNYA')) {
+      base = 'Copa Cat.';
+    } else if (norm.contains('PRIMERA CATEGORIA') || norm.contains('1A CATEGORIA')) {
+      base = '1Cat.';
+    } else if (norm.contains('SEGONA CATEGORIA') || norm.contains('2A CATEGORIA')) {
+      base = '2Cat.';
+    } else if (norm.contains('3A TERRITORIAL')) {
+      base = '3a Terr.';
+    } else if (norm.contains('2A TERRITORIAL')) {
+      base = '2a Terr.';
+    } else if (norm.contains('1A TERRITORIAL')) {
+      base = '1a Terr.';
+    } else if (norm.contains('SOTS 25')) {
+      base = 'Sots 25';
+    } else if (norm.contains('SOTS 21')) {
+      base = 'Sots 21';
+    } else if (norm.contains('SOTS 20')) {
+      base = 'Sots 20';
+    } else if (norm.contains('3X3') || norm.contains('3 X 3')) {
+      base = '3x3';
+    } else if (norm.contains('PREINFANTIL') || norm.contains('PRE INFANTIL')) {
+      base = 'Pre-Inf.';
+    } else if (norm.contains('PREMINI') || norm.contains('PRE MINI')) {
+      base = 'Pre-Mini';
+    } else if (norm.contains('JÚNIOR') || norm.contains('JUNIOR')) {
+      base = 'Júnior';
+    } else if (norm.contains('CADET')) {
+      base = 'Cadet';
+    } else if (norm.contains('INFANTIL')) {
+      base = 'Infantil';
+    } else if (norm.contains('MINI')) {
+      base = 'Mini';
+    } else if (norm.contains('ESCOBOL')) {
+      base = 'Escobol';
+    } else {
+      return category;
+    }
+
+    // Construir resultat: Base + Gènere + Qualificador
+    final parts = <String>[base];
+    if (gender.isNotEmpty) parts.add(gender);
+
+    // Qualificadors (mútuament excloents excepte nivell)
+    if (norm.contains('PREFERENT')) {
+      parts.add('Pref.');
+      if (norm.contains('1R ANY') || norm.contains('1R. ANY')) {
+        parts.add('1r');
+      }
+    } else if (norm.contains('INTERTERRITORIAL')) {
+      parts.add('Inter.');
+    } else if (norm.contains('NO PROMO')) {
+      // 3X3 NO PROMOCIÓ: sense qualificador extra
+    } else if (norm.contains('PROMOCIÓ') || norm.contains('PROMOCI')) {
+      parts.add('Promo.');
+    }
+
+    // Nivell (independent del qualificador anterior)
+    if (norm.contains('NIVELL A') || norm.contains('N. A')) {
+      parts.add('A');
+    } else if (norm.contains('NIVELL B') || norm.contains('N. B')) {
+      parts.add('B');
+    } else if (norm.contains('NIVELL C')) {
+      parts.add('C');
+    }
+
+    return parts.join(' ');
   }
 }
 
@@ -357,7 +523,7 @@ class _CategoryStatItem extends StatelessWidget {
         color: AppTheme.grisPistacho.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: color.withValues(alpha: 0.25),
+          color: AppTheme.grisPistacho.withValues(alpha: 0.35),
           width: 1.5,
         ),
       ),

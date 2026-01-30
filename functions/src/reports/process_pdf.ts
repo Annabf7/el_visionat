@@ -10,9 +10,11 @@ import {onObjectFinalized} from "firebase-functions/v2/storage";
 import {onDocumentDeleted} from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
-import {VertexAI} from "@google-cloud/vertexai";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse = require("pdf-parse");
+
+// IMPORTANT: VertexAI i pdf-parse es carreguen dinàmicament dins les funcions
+// per evitar timeouts durant la inicialització del desplegament.
+// @google-cloud/vertexai és molt pesada (gRPC, protobuf) i pdf-parse
+// té un bug que carrega un PDF de test al fer require().
 
 /**
  * Funció que es dispara quan es puja un PDF a Storage
@@ -156,6 +158,9 @@ interface ParsedTestData {
 async function parseTestPdfDeterministic(
   pdfBuffer: Buffer
 ): Promise<ParsedTestData> {
+  // Import dinàmic per evitar timeout al desplegament
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const pdfParse = require("pdf-parse");
   // Extreure text del PDF
   const pdfData = await pdfParse(pdfBuffer);
   const text = pdfData.text;
@@ -530,6 +535,8 @@ async function extractDataWithVertexAI(
   base64Pdf: string
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any> {
+  // Import dinàmic per evitar timeout al desplegament
+  const {VertexAI} = await import("@google-cloud/vertexai");
   const vertexAI = new VertexAI({
     project: "el-visionat",
     location: "us-central1",
@@ -585,11 +592,13 @@ async function extractDataWithVertexAI(
 
 /**
  * Prompt per extreure dades d'un informe d'arbitratge
+ * IMPORTANT: Cada camp té la seva pròpia escala de valoració
  */
 function getReportExtractionPrompt(): string {
-  return `Analitza aquest informe d'arbitratge de bàsquet i extreu les següents dades en format JSON.
+  return `Ets un extractor robust i extremadament rigorós de dades d'informes d'avaluació arbitral de la FCBQ.
 
-L'informe conté una avaluació de l'àrbitre amb categories valorades de ÒPTIM a MILLORABLE, i punts de millora identificats.
+OBJECTIU: Extreure totes les valoracions del document i retornar-les en un JSON estructurat.
+NO INVENTIS MAI DADES. Davant del dubte, retorna el valor exacte que apareix al PDF.
 
 Retorna un JSON amb aquesta estructura exacta:
 
@@ -597,12 +606,12 @@ Retorna un JSON amb aquesta estructura exacta:
   "date": "YYYY-MM-DD",
   "competition": "Nom de la competició",
   "teams": "Equip A vs Equip B",
-  "evaluator": "Codi i nom complet de l'informador",
-  "finalGrade": "OPTIM" | "ACCEPTABLE" | "MILLORABLE" | "NO_SATISFACTORI",
+  "evaluator": "Codi i nom complet de l'informador (ex: 1068 - JORDI FEIXA IBAÑEZ)",
+  "finalGrade": "ÒPTIM" | "SATISFACTORI" | "MILLORABLE" | "NO SATISFACTORI",
   "categories": [
     {
-      "categoryName": "Nom de la categoria",
-      "grade": "OPTIM" | "ACCEPTABLE" | "MILLORABLE" | "NO_SATISFACTORI",
+      "categoryName": "Nom EXACTE de la categoria tal com apareix al PDF",
+      "grade": "Valor EXACTE del PDF",
       "description": "Comentaris o buit si no n'hi ha"
     }
   ],
@@ -612,53 +621,150 @@ Retorna un JSON amb aquesta estructura exacta:
       "description": "Descripció del punt de millora"
     }
   ],
-  "comments": "Comentaris generals de l'informe"
+  "comments": "Comentaris generals de l'informe (camp COMENTARIS VALORACIÓ)"
 }
 
-IMPORTANT - REGLES DE NORMALITZACIÓ DE GRADES:
-- El camp "grade" NOMÉS pot tenir aquests valors exactes: "OPTIM", "ACCEPTABLE", "MILLORABLE", "NO_SATISFACTORI"
-- Aquestes són les 4 categories de valoració (de millor a pitjor):
-  * OPTIM: Coneix el criteri i és consistent amb les seves valoracions
-  * ACCEPTABLE: Acostuma a encertar però es detecten alguns errors poc importants
-  * MILLORABLE: Alterna encerts i errors
-  * NO_SATISFACTORI: És irregular i desconeix el criteri
-- Normalitza tots els valors del PDF a aquests formats:
-  * "ÒPTIM" o "ÒPTIMA" o "OPTIMA" → "OPTIM"
-  * "ACCEPTABLE" → "ACCEPTABLE"
-  * "MILLORABLE" → "MILLORABLE"
-  * "NO SATISFACTORI" o "NO_SATISFACTORI" o qualsevol altre negatiu → "NO_SATISFACTORI"
-- SEMPRE utilitza ASCII normal sense accents ni caràcters especials per als valors de "grade"
+════════════════════════════════════════════════════════════════════════════════
+ESCALES DE VALORACIÓ PER TIPUS DE CAMP
+════════════════════════════════════════════════════════════════════════════════
 
-ALTRES REGLES:
-- La data ha de ser en format YYYY-MM-DD
-- El finalGrade és la valoració global que apareix al PDF (normalment al principi)
-- Inclou TOTES les categories que apareixen al PDF, no només les que tenen descripció
-- Els improvementPoints són només els aspectes amb "MILLORABLE" o "ACCEPTABLE" que necessiten millora
-- El camp "evaluator" ha de contenir NOMÉS el camp "Informador" del PDF (exemple: "1302 - ABRAHAM HORMIGO CASELLES"), NO l'àrbitre avaluat
-- Si una categoria no té descripció, usa cadena buida ""
-- NO afegeixis explicacions, només retorna el JSON`;
+TIPUS A - CAMPS GENERALS (la majoria de camps tècnics):
+Escala: ÒPTIM | ACCEPTABLE | MILLORABLE | NO SATISFACTORI
+
+TIPUS B - CAMPS QUE ADMETEN "NO VALORABLE" (situacions que poden no donar-se):
+Escala: ÒPTIM | ACCEPTABLE | MILLORABLE | NO SATISFACTORI | NO VALORABLE
+Camps tipus B: PROTOCOL D'AVISOS, SANCIONS DISCIPLINÀRIES, ERRADES DECISIVES,
+               REGLES DE JOC, ANTIESPORTIVES, SIMULACIONS
+
+TIPUS C - VALORACIÓ FINAL DEL PARTIT:
+Escala: ÒPTIM | SATISFACTORI | MILLORABLE | NO SATISFACTORI
+
+════════════════════════════════════════════════════════════════════════════════
+CAMPS AMB ESCALES ESPECIALS (MÉS IMPORTANT!)
+════════════════════════════════════════════════════════════════════════════════
+
+🔴 CAPACITAT D'AUTOCRÍTICA:
+   - SATISFACTORI (Majoritàriament demostra ser conscient dels seus encerts i errors)
+   - MILLORABLE (Sovint excusa els seus errors)
+   - INSATISFACTORI (No ha mostrat interès en la reunió)
+
+🔴 VALORACIÓ ACTITUD:
+   - ADEQUADA (Mostra interès i es relaciona adequadament)
+   - INADEQUADA (No mostra interès o es mostra passota/irrespectuós)
+
+🔴 DIFICULTAT PARTIT:
+   - NORMAL (No ha presentat dificultats)
+   - COMPETIT AMB ALGUNES DIFICULTATS (Partit competit fins al final)
+   - DIFÍCIL (Complicacions del joc o comportament dels participants)
+
+🔴 ERRADES DECISIVES:
+   - NO (No ha tingut errades que han alterat el resultat)
+   - SÍ (Ha tingut errades que han pogut alterar el resultat)
+
+════════════════════════════════════════════════════════════════════════════════
+REGLES CRÍTIQUES
+════════════════════════════════════════════════════════════════════════════════
+
+1. LLEGEIX ATENTAMENT cada camp del PDF i extreu el valor EXACTE que hi apareix
+2. NO normalitzis ni canviïs els valors - retorna'ls tal com surten al PDF
+3. Manté els accents originals (ÒPTIM, no OPTIM)
+4. Cada camp té la seva pròpia escala - respecta-la
+5. El camp "evaluator" ha de contenir NOMÉS l'Informador, NO l'àrbitre avaluat
+6. Inclou TOTES les categories que apareixen al PDF
+7. Si una categoria no té descripció, usa cadena buida ""
+8. NO afegeixis explicacions, només retorna el JSON
+
+════════════════════════════════════════════════════════════════════════════════
+LLISTA DE CAMPS A EXTREURE (si apareixen al PDF)
+════════════════════════════════════════════════════════════════════════════════
+
+ASPECTE PERSONAL, CONDICIÓ FÍSICA, SENYALITZACIÓ, MECÀNICA DE CAP, MECÀNICA DE CUA,
+TRANSICIONS, TREBALL D'EQUIP, COHERÈNCIA CONSISTÈNCIA I EQUILIBRI, INTUÏCIONS,
+PUJADA DE PILOTA I JOC EXTERIOR, RBVD, PANTALLES / JOC SENSE PILOTA,
+CÀRREGA/BLOQUEIG, JOC DE PIVOT, PROTECCIÓ DEL LLANÇADOR, ACCIÓ DE TIR - ACCIÓ CONTINUADA,
+REBOT, ANTIESPORTIVES, SIMULACIONS, CRITERI DE VIOLACIONS DE PASSES, CAMP ENRERE,
+24 SEGONS, ALTRES VIOLACIONS TEMPORALS (8, 5 i 3"), PEUS, FORES, SERVEI I SERVEI RÀPID,
+TIRS LLIURES, DOBLE REGAT, INTERPOSICIONS/INTERFERÈNCIES, SALT ENTRE DOS i SITUACIONS ALTERNANÇA,
+COMUNICACIÓ AMB ELS PARTICIPANTS, PROTOCOL D'AVISOS, SANCIONS DISCIPLINÀRIES,
+GESTIÓ DE LA PRESSIÓ, ERRADES DECISIVES, REGLES DE JOC, DIFICULTAT PARTIT,
+VALORACIÓ ACTITUD, CAPACITAT D'AUTOCRÍTICA, VALORACIÓ FINAL DEL PARTIT, COMENTARIS VALORACIÓ`;
 }
 
 // Nota: Els tests ara es processen amb parser determinístic (parseTestPdfDeterministic)
 // No es necessita prompt de Gemini per tests
 
 /**
- * Normalitza el valor de grade a un dels valors vàlids
- * Categories (de millor a pitjor): OPTIM, ACCEPTABLE, MILLORABLE, NO_SATISFACTORI
+ * Normalitza el valor de grade mantenint el valor original però amb format consistent
+ *
+ * ESCALES VÀLIDES:
+ * - General: ÒPTIM, ACCEPTABLE, MILLORABLE, NO SATISFACTORI, NO VALORABLE
+ * - Valoració Final: ÒPTIM, SATISFACTORI, MILLORABLE, NO SATISFACTORI
+ * - Capacitat Autocrítica: SATISFACTORI, MILLORABLE, INSATISFACTORI
+ * - Valoració Actitud: ADEQUADA, INADEQUADA
+ * - Dificultat Partit: NORMAL, COMPETIT AMB ALGUNES DIFICULTATS, DIFÍCIL
+ * - Errades Decisives: NO, SÍ
  */
-function normalizeGrade(grade: string): string {
-  const normalized = grade
+function normalizeGrade(grade: string, categoryName?: string): string {
+  if (!grade) return "";
+
+  const original = grade.trim();
+  const normalized = original
     .toUpperCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Elimina accents
+    .replace(/[\u0300-\u036f]/g, "") // Elimina accents per comparació
     .trim();
 
-  if (normalized.includes("OPTIM")) return "OPTIM";
+  // Camps amb escales especials - mantenim el valor original
+  const categoryNorm = (categoryName || "")
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  // ERRADES DECISIVES: NO / SÍ
+  if (categoryNorm.includes("ERRADES") && categoryNorm.includes("DECISIVES")) {
+    if (normalized === "NO") return "NO";
+    if (normalized === "SI") return "SÍ";
+  }
+
+  // DIFICULTAT PARTIT: NORMAL / COMPETIT AMB ALGUNES DIFICULTATS / DIFÍCIL
+  if (categoryNorm.includes("DIFICULTAT") && categoryNorm.includes("PARTIT")) {
+    if (normalized === "NORMAL") return "NORMAL";
+    if (normalized.includes("COMPETIT")) return "COMPETIT AMB ALGUNES DIFICULTATS";
+    if (normalized === "DIFICIL") return "DIFÍCIL";
+  }
+
+  // VALORACIÓ ACTITUD: ADEQUADA / INADEQUADA
+  if (categoryNorm.includes("VALORACIO") && categoryNorm.includes("ACTITUD")) {
+    if (normalized === "ADEQUADA" || normalized === "ADEQUAT") return "ADEQUADA";
+    if (normalized === "INADEQUADA" || normalized === "INADEQUAT") return "INADEQUADA";
+  }
+
+  // CAPACITAT D'AUTOCRÍTICA: SATISFACTORI / MILLORABLE / INSATISFACTORI
+  if (categoryNorm.includes("AUTOCRITICA")) {
+    if (normalized.includes("INSATISFACTORI")) return "INSATISFACTORI";
+    if (normalized.includes("SATISFACTORI")) return "SATISFACTORI";
+    if (normalized.includes("MILLORABLE")) return "MILLORABLE";
+  }
+
+  // Escala general - ordre d'importància
+  if (normalized.includes("NO") && normalized.includes("VALORABLE")) return "NO VALORABLE";
+  if (normalized.includes("NO") && normalized.includes("SATISFACTORI")) return "NO SATISFACTORI";
+  if (normalized.includes("INSATISFACTORI")) return "INSATISFACTORI";
+  if (normalized.includes("OPTIM")) return "ÒPTIM";
+  if (normalized.includes("SATISFACTORI")) return "SATISFACTORI";
   if (normalized.includes("ACCEPTABLE")) return "ACCEPTABLE";
   if (normalized.includes("MILLORABLE")) return "MILLORABLE";
-  if (normalized.includes("NO") && normalized.includes("SATISFACTORI")) return "NO_SATISFACTORI";
+  if (normalized === "ADEQUADA" || normalized === "ADEQUAT") return "ADEQUADA";
+  if (normalized === "INADEQUADA" || normalized === "INADEQUAT") return "INADEQUADA";
+  if (normalized === "NORMAL") return "NORMAL";
+  if (normalized === "DIFICIL") return "DIFÍCIL";
+  if (normalized.includes("COMPETIT")) return "COMPETIT AMB ALGUNES DIFICULTATS";
+  if (normalized === "NO") return "NO";
+  if (normalized === "SI") return "SÍ";
 
-  return "NO_SATISFACTORI";
+  // Si no reconeixem el valor, el retornem tal qual (amb warning)
+  logger.warn(`Grade no reconegut: "${grade}" (categoria: ${categoryName || "desconeguda"})`);
+  return original;
 }
 
 /**
@@ -671,12 +777,12 @@ async function saveReportToFirestore(
 ): Promise<void> {
   const db = admin.firestore();
 
-  // Normalitzar categories
+  // Normalitzar categories (passant el nom de categoria per aplicar l'escala correcta)
   const categories = (data.categories || []).map(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (cat: any) => ({
       categoryName: cat.categoryName || "",
-      grade: normalizeGrade(cat.grade || ""),
+      grade: normalizeGrade(cat.grade || "", cat.categoryName),
       description: cat.description || "",
     })
   );
@@ -687,7 +793,7 @@ async function saveReportToFirestore(
     competition: data.competition || "",
     teams: data.teams || "",
     evaluator: data.evaluator || "",
-    finalGrade: normalizeGrade(data.finalGrade || ""),
+    finalGrade: normalizeGrade(data.finalGrade || "", "VALORACIÓ FINAL DEL PARTIT"),
     categories: categories,
     improvementPoints: data.improvementPoints || [],
     comments: data.comments || "",

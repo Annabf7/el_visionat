@@ -8,6 +8,7 @@ import 'package:el_visionat/features/teams/index.dart';
 import 'package:el_visionat/features/profile/index.dart';
 import 'package:el_visionat/features/designations/pages/designations_page.dart';
 import 'package:el_visionat/features/reports/index.dart';
+import 'package:el_visionat/features/vestidor/index.dart';
 import 'package:el_visionat/features/notifications/providers/notification_provider.dart';
 import 'package:el_visionat/core/index.dart';
 import 'package:el_visionat/core/services/team_mapping_service.dart';
@@ -176,6 +177,10 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => ReportsProvider(),
         ),
+        // Vestidor (botiga merchandising) provider
+        ChangeNotifierProvider(
+          create: (_) => VestidorProvider(),
+        ),
       ],
       child: const MyApp(), // L'aplicació principal
     ),
@@ -220,6 +225,7 @@ class MyApp extends StatelessWidget {
         '/reports': (context) => RequireAuth(child: const ReportsPage()),
         '/visionat': (context) => RequireAuth(child: const VisionatMatchPage()),
         '/designations': (context) => RequireAuth(child: const DesignationsPage()),
+        '/vestidor': (context) => RequireAuth(child: const VestidorPage()),
         '/login': (context) => const LoginPage(), // Ruta explícita per a Login
         '/create-password': (context) =>
             const CreatePasswordPage(), // Ruta per crear contrasenya

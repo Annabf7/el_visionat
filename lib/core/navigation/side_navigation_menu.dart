@@ -108,12 +108,10 @@ class SideNavigationMenu extends StatelessWidget {
                     ),
                     _NavigationItem(icon: Icons.tv, text: 'ACB a Tv3'),
                     _NavigationItem(
-                      icon: Icons.group_work,
-                      text: 'Xarxa Arbitral',
-                    ),
-                    _NavigationItem(
-                      icon: Icons.shopping_bag,
-                      text: 'Merchandising',
+                      icon: Icons.checkroom,
+                      text: 'El vestidor',
+                      isSelected: isActive('/vestidor'),
+                      onTap: () => Navigator.pushNamed(ctx, '/vestidor'),
                     ),
                   ],
                 );

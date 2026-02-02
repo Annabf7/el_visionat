@@ -62,6 +62,9 @@ import {
   onTestDeleted,
 } from "./reports/process_pdf";
 
+// Printful - Integració botiga merchandising
+import {getPrintfulProducts, getPrintfulProduct, proxyPrintfulImage, getPrintfulProductMockups} from "./printful";
+
 // Export functions with the exact names expected by the client
 exports.lookupLicense = lookupLicense;
 exports.requestRegistration = requestRegistration;
@@ -105,3 +108,9 @@ exports.cleanupOldHighlightsOnWeeklyFocusChange = cleanupOldHighlightsOnWeeklyFo
 exports.processPdfOnUpload = processPdfOnUpload;
 exports.onReportDeleted = onReportDeleted;
 exports.onTestDeleted = onTestDeleted;
+
+// Printful - Integració botiga merchandising exports
+exports.getPrintfulProducts = getPrintfulProducts;
+exports.getPrintfulProduct = getPrintfulProduct;
+exports.proxyPrintfulImage = proxyPrintfulImage;
+exports.getPrintfulProductMockups = getPrintfulProductMockups;

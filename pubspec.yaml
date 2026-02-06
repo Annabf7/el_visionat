@@ -82,6 +82,8 @@ dependencies:
   # Autocomplete for referee partner
   flutter_typeahead: ^5.2.0
   timeago: ^3.7.1
+  # Calendar for Gestiona't feature
+  table_calendar: ^3.1.2
 
 dev_dependencies:
   flutter_test:

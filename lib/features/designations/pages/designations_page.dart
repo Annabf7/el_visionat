@@ -158,44 +158,11 @@ class _DesignationsPageState extends State<DesignationsPage>
 
         // Calcular quilometratge automàticament si tenim adreça de casa
         double kilometers = 0.0;
-        String venueAddress = matchData['locationAddress']!;
 
         // Netejar l'adreça del pavelló per millorar la geocodificació
-        // 1. Eliminar "S/N" (sense número)
-        venueAddress = venueAddress
-            .replaceAll('S/N', '')
-            .replaceAll('s/n', '')
-            .replaceAll('S / N', '')
-            .replaceAll('s / n', '');
-
-        // 2. Convertir separadors "·" a comes
-        venueAddress = venueAddress
-            .replaceAll(' · ', ', ')
-            .replaceAll('·', ', ');
-
-        // 3. Netejar comes i espais múltiples
-        venueAddress = venueAddress
-            .replaceAll(RegExp(r'\s+,\s*'), ', ')  // Espais abans de comes
-            .replaceAll(RegExp(r',\s*,'), ',')     // Comes dobles
-            .replaceAll(RegExp(r'\s+'), ' ')       // Espais múltiples
-            .trim();
-
-        // 4. Si l'adreça comença amb coma, eliminar-la
-        if (venueAddress.startsWith(',')) {
-          venueAddress = venueAddress.substring(1).trim();
-        }
-
-        // 5. Si l'adreça acaba amb coma, eliminar-la
-        if (venueAddress.endsWith(',')) {
-          venueAddress = venueAddress.substring(0, venueAddress.length - 1).trim();
-        }
-
-        // 6. Afegir "Spain" al final si no hi és per millorar la geocodificació
-        if (!venueAddress.toUpperCase().contains('SPAIN') &&
-            !venueAddress.toUpperCase().contains('ESPAÑA') &&
-            !venueAddress.toUpperCase().contains('ESPANYA')) {
-          venueAddress = '$venueAddress, Spain';
-        }
+        final venueAddress = DistanceCalculatorService.cleanVenueAddress(
+          matchData['locationAddress']!,
+        );
 
         print('==== DESIGNATION DEBUG ====');
         print('Match #${matchData['matchNumber']}:');

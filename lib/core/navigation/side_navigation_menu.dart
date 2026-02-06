@@ -94,6 +94,12 @@ class SideNavigationMenu extends StatelessWidget {
                       onTap: () => Navigator.pushNamed(ctx, '/designations'),
                     ),
                     _NavigationItem(
+                      icon: Icons.checklist,
+                      text: "Gestiona't",
+                      isSelected: isActive('/gestiona-t'),
+                      onTap: () => Navigator.pushNamed(ctx, '/gestiona-t'),
+                    ),
+                    _NavigationItem(
                       icon: Icons.science,
                       text: 'El Laboratori Arbitral',
                     ),

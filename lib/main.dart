@@ -9,6 +9,7 @@ import 'package:el_visionat/features/profile/index.dart';
 import 'package:el_visionat/features/designations/pages/designations_page.dart';
 import 'package:el_visionat/features/reports/index.dart';
 import 'package:el_visionat/features/vestidor/index.dart';
+import 'package:el_visionat/features/gestiona_t/index.dart';
 import 'package:el_visionat/features/notifications/providers/notification_provider.dart';
 import 'package:el_visionat/features/search/providers/search_provider.dart';
 import 'package:el_visionat/core/index.dart';
@@ -186,6 +187,10 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => SearchProvider(),
         ),
+        // Schedule provider per Gestiona't
+        ChangeNotifierProvider(
+          create: (_) => ScheduleProvider(),
+        ),
       ],
       child: const MyApp(), // L'aplicació principal
     ),
@@ -231,6 +236,7 @@ class MyApp extends StatelessWidget {
         '/visionat': (context) => RequireAuth(child: const VisionatMatchPage()),
         '/designations': (context) => RequireAuth(child: const DesignationsPage()),
         '/vestidor': (context) => RequireAuth(child: const VestidorPage()),
+        '/gestiona-t': (context) => RequireAuth(child: const GestionaTPage()),
         '/login': (context) => const LoginPage(), // Ruta explícita per a Login
         '/create-password': (context) =>
             const CreatePasswordPage(), // Ruta per crear contrasenya

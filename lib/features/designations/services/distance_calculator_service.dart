@@ -71,7 +71,7 @@ class DistanceCalculatorService {
   /// Útil per processar múltiples designacions d'un mateix PDF
   ///
   /// Returns:
-  /// - Map<String, double>: Map amb clau = adreça destinació, valor = km
+  /// - `Map<String, double>`: Map amb clau = adreça destinació, valor = km
   static Future<Map<String, double>> calculateDistances({
     required String originAddress,
     required List<String> destinationAddresses,
@@ -87,5 +87,73 @@ class DistanceCalculatorService {
     }
 
     return results;
+  }
+
+  /// Neteja una adreça de pavelló per millorar la geocodificació de Google Maps
+  ///
+  /// Expandeix abreviatures comunes (PAV.MUN., POL., C.E., etc.),
+  /// elimina "S/N", converteix separadors, i afegeix "Spain" si cal.
+  static String cleanVenueAddress(String address) {
+    String cleaned = address;
+
+    // 1. Expandir abreviatures comunes de pavellons
+    cleaned = cleaned
+        // Pavellons municipals
+        .replaceAll(RegExp(r'PAV\.?\s*MUN\.?\s*DE\s+', caseSensitive: false), 'Pavelló Municipal de ')
+        .replaceAll(RegExp(r'PAV\.?\s*MUN\.?\s*', caseSensitive: false), 'Pavelló Municipal ')
+        .replaceAll(RegExp(r'PAV\.?\s*ESP\.?\s*', caseSensitive: false), 'Pavelló Esportiu ')
+        .replaceAll(RegExp(r'PAV\.?\s*POL\.?\s*', caseSensitive: false), 'Pavelló Poliesportiu ')
+        .replaceAll(RegExp(r'PAV\.?\s*', caseSensitive: false), 'Pavelló ')
+        // Poliesportius
+        .replaceAll(RegExp(r'POL\.?\s*MUN\.?\s*', caseSensitive: false), 'Poliesportiu Municipal ')
+        .replaceAll(RegExp(r'POLIESP\.?\s*', caseSensitive: false), 'Poliesportiu ')
+        .replaceAll(RegExp(r'POL\.?\s+', caseSensitive: false), 'Poliesportiu ')
+        // Centres esportius
+        .replaceAll(RegExp(r'C\.?\s*E\.?\s*M\.?\s*', caseSensitive: false), 'Centre Esportiu Municipal ')
+        .replaceAll(RegExp(r'C\.?\s*E\.?\s+', caseSensitive: false), 'Centre Esportiu ')
+        // Altres
+        .replaceAll(RegExp(r'MPAL\.?\s*', caseSensitive: false), 'Municipal ')
+        .replaceAll(RegExp(r'MUNI\.?\s*', caseSensitive: false), 'Municipal ')
+        .replaceAll(RegExp(r'ESP\.?\s+', caseSensitive: false), 'Esportiu ')
+        .replaceAll(RegExp(r'INST\.?\s*ESP\.?\s*', caseSensitive: false), 'Instal·lacions Esportives ')
+        .replaceAll(RegExp(r'COMPLEX\s*ESP\.?\s*', caseSensitive: false), 'Complex Esportiu ');
+
+    // 2. Eliminar "S/N" (sense número)
+    cleaned = cleaned
+        .replaceAll('S/N', '')
+        .replaceAll('s/n', '')
+        .replaceAll('S / N', '')
+        .replaceAll('s / n', '');
+
+    // 3. Convertir separadors "·" a comes
+    cleaned = cleaned
+        .replaceAll(' · ', ', ')
+        .replaceAll('·', ', ');
+
+    // 4. Netejar comes i espais múltiples
+    cleaned = cleaned
+        .replaceAll(RegExp(r'\s+,\s*'), ', ')
+        .replaceAll(RegExp(r',\s*,'), ',')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+
+    // 5. Si l'adreça comença amb coma, eliminar-la
+    if (cleaned.startsWith(',')) {
+      cleaned = cleaned.substring(1).trim();
+    }
+
+    // 6. Si l'adreça acaba amb coma, eliminar-la
+    if (cleaned.endsWith(',')) {
+      cleaned = cleaned.substring(0, cleaned.length - 1).trim();
+    }
+
+    // 7. Afegir "Spain" al final si no hi és
+    if (!cleaned.toUpperCase().contains('SPAIN') &&
+        !cleaned.toUpperCase().contains('ESPAÑA') &&
+        !cleaned.toUpperCase().contains('ESPANYA')) {
+      cleaned = '$cleaned, Spain';
+    }
+
+    return cleaned;
   }
 }

@@ -635,7 +635,7 @@ class PdfParserService {
       // Només és arbitratge a dobles si hi ha TOTS DOS rols
       isDoubleReferee = hasPrincipal && hasAuxiliar;
 
-      print('   📊 Referee type: ${isDoubleReferee ? "DOUBLE (principal + auxiliar)" : "INDIVIDUAL (only ${currentRole})"}');
+      print('   📊 Referee type: ${isDoubleReferee ? "DOUBLE (principal + auxiliar)" : "INDIVIDUAL (only $currentRole)"}');
       developer.log('Referee type: ${isDoubleReferee ? "double" : "individual"}', name: 'PdfParserService');
     } else {
       // Si no hi ha membres, és arbitratge individual

@@ -54,6 +54,16 @@ class VestidorProvider extends ChangeNotifier {
       'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Fboth_front_back.png?alt=media&token=136e5c5c-7f12-4148-a838-c65beca92cca',
       'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Fback_militar_man.png?alt=media&token=ab82f114-6888-4c73-9929-5fcbb7fe0ad7',
     ],
+    // TimeOut (xanclas) - personalitzades en ordre
+    'timeout_xanclas': [
+      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_1.png?alt=media&token=26db40ed-d96b-4ab9-bc25-39cbe61325bc',
+      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_2.png?alt=media&token=61542a20-bef7-46f2-82fb-b4522a7bdd34',
+      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_3.png?alt=media&token=24bbdc33-241f-431e-b977-fca469ca6101',
+      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_4.png?alt=media&token=b283e831-3a97-4eb3-86d2-7779dddf9b1f',
+      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_5.png?alt=media&token=cc7fcbe8-755d-4fb8-9081-a1cc7e7ef3f5',
+      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_6.png?alt=media&token=9fd15905-073c-4f16-a77f-4586164e784b',
+      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_7.png?alt=media&token=8caa9454-da25-41cb-8d4e-9d3933b4a0b1',
+    ],
   };
 
   // --- Estat de la llista de productes ---
@@ -87,6 +97,10 @@ class VestidorProvider extends ChangeNotifier {
     if (normalizedName == normalize('samarreta_1')) {
       // Sempre mostra la imatge militar, independentment del color
       return 'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Fgreen-front-and-back.png?alt=media&token=e87deb1d-94e1-48dc-a43f-6a4d9deab16e';
+    }
+    if (normalizedName == normalize('timeout')) {
+      // Thumbnail de TimeOut (xanclas)
+      return 'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_3.png?alt=media&token=24bbdc33-241f-431e-b977-fca469ca6101';
     }
     return product.thumbnailUrl;
   }
@@ -209,6 +223,37 @@ class VestidorProvider extends ChangeNotifier {
               'sudadera unisex — coll rodo_militar',
             ]
           : ['samarreta_1_white', 'samarreta_1_militar'];
+      for (final key in keys) {
+        final localImages = _localProductAssets[key];
+        if (localImages != null && localImages.isNotEmpty) {
+          for (final url in localImages) {
+            if (seen.add(url)) {
+              urls.add(url);
+            }
+          }
+        }
+      }
+      if (urls.isNotEmpty) return urls;
+    }
+    // Si el producte és Sudadera unisex — Caputxa, Sudadera unisex — coll rodo, Samarreta_1 o TimeOut, mostra les imatges personalitzades corresponents (carrousel)
+    if (normalizedProductName == normalize('sudadera unisex — caputxa') ||
+        normalizedProductName == normalize('sudadera unisex — coll rodo') ||
+        normalizedProductName == normalize('samarreta_1') ||
+        normalizedProductName == normalize('timeout')) {
+      final keys =
+          normalizedProductName == normalize('sudadera unisex — caputxa')
+          ? [
+              'sudadera unisex — caputxa_white',
+              'sudadera unisex — caputxa_militar',
+            ]
+          : normalizedProductName == normalize('sudadera unisex — coll rodo')
+          ? [
+              'sudadera unisex — coll rodo_white',
+              'sudadera unisex — coll rodo_militar',
+            ]
+          : normalizedProductName == normalize('samarreta_1')
+          ? ['samarreta_1_white', 'samarreta_1_militar']
+          : ['timeout_xanclas'];
       for (final key in keys) {
         final localImages = _localProductAssets[key];
         if (localImages != null && localImages.isNotEmpty) {

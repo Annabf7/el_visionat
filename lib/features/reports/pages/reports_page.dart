@@ -335,7 +335,7 @@ class _ReportsPageState extends State<ReportsPage> {
             title: 'Informes',
             value: provider.totalReports.toString(),
             subtitle: 'aquesta temporada',
-            color: AppTheme.mostassa,
+            color: AppTheme.porpraFosc,
           ),
         ),
         const SizedBox(width: 12),
@@ -347,7 +347,7 @@ class _ReportsPageState extends State<ReportsPage> {
             value: provider.totalTests.toString(),
             subtitle:
                 'mitjana ${provider.averageTestScore.toStringAsFixed(1)}/10',
-            color: AppTheme.mostassa,
+            color: AppTheme.porpraFosc,
           ),
         ),
       ],
@@ -364,36 +364,56 @@ class _ReportsPageState extends State<ReportsPage> {
   }) {
     return Card(
       elevation: 2,
+      color: AppTheme.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: color, size: 24),
-                const SizedBox(width: 8),
-                Text(title, style: Theme.of(context).textTheme.titleSmall),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        children: [
+          // Línia vertical accent mostassa
+          Container(
+            width: 4,
+            height: 100,
+            color: AppTheme.mostassa,
+          ),
+          // Contingut de la card
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(icon, color: color, size: 24),
+                      const SizedBox(width: 8),
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: AppTheme.textBlackLow,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    value,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: AppTheme.textBlackLow),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppTheme.grisPistacho),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -707,7 +727,8 @@ class _ReportsPageState extends State<ReportsPage> {
           optims++;
           break;
         case AssessmentGrade.satisfactori:
-        case AssessmentGrade.acceptable: // Dades antigues → tractem com satisfactori
+        case AssessmentGrade
+            .acceptable: // Dades antigues → tractem com satisfactori
           satisfactoris++;
           break;
         case AssessmentGrade.millorable:
@@ -843,7 +864,11 @@ class _ReportsPageState extends State<ReportsPage> {
                   children: [
                     _buildLegendItem(context, AppTheme.verdeEncert, 'Òptim'),
                     const SizedBox(width: 12),
-                    _buildLegendItem(context, AppTheme.lilaMitja, 'Satisfactori'),
+                    _buildLegendItem(
+                      context,
+                      AppTheme.lilaMitja,
+                      'Satisfactori',
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),

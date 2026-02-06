@@ -10,6 +10,7 @@ import 'package:el_visionat/features/designations/pages/designations_page.dart';
 import 'package:el_visionat/features/reports/index.dart';
 import 'package:el_visionat/features/vestidor/index.dart';
 import 'package:el_visionat/features/notifications/providers/notification_provider.dart';
+import 'package:el_visionat/features/search/providers/search_provider.dart';
 import 'package:el_visionat/core/index.dart';
 import 'package:el_visionat/core/services/team_mapping_service.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
@@ -180,6 +181,10 @@ void main() async {
         // Vestidor (botiga merchandising) provider
         ChangeNotifierProvider(
           create: (_) => VestidorProvider(),
+        ),
+        // Search provider per cerca global d'àrbitres
+        ChangeNotifierProvider(
+          create: (_) => SearchProvider(),
         ),
       ],
       child: const MyApp(), // L'aplicació principal

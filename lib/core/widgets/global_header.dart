@@ -4,6 +4,7 @@ import 'package:el_visionat/features/auth/providers/auth_provider.dart';
 import 'package:el_visionat/features/notifications/providers/notification_provider.dart';
 import 'package:el_visionat/features/notifications/widgets/notification_badge.dart';
 import 'package:el_visionat/features/notifications/widgets/notification_dropdown.dart';
+import 'package:el_visionat/features/search/widgets/global_search_bar.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 
 /// Header global reutilitzable per a tota l'aplicació
@@ -84,33 +85,7 @@ class GlobalHeader extends StatelessWidget implements PreferredSizeWidget {
       ) : null,
       automaticallyImplyLeading: showMenuButton,
       title: showSearch
-          ? Container(
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppTheme.white.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: TextField(
-                style: const TextStyle(color: AppTheme.white, fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Cerca partits, àrbitres, situacions...',
-                  hintStyle: TextStyle(
-                    color: AppTheme.white.withValues(alpha: 0.7),
-                    fontSize: 14,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: AppTheme.white.withValues(alpha: 0.7),
-                    size: 20,
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                ),
-              ),
-            )
+          ? const GlobalSearchBar()
           : Text(
               title,
               style: const TextStyle(

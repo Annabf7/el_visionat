@@ -162,7 +162,9 @@ export const getPlaceDetails = onCall(
 
 /**
  * Cloud Function per calcular distància entre dues adreces
- * Utilitza Google Maps Distance Matrix API
+ * Utilitza Google Maps Distance Matrix API amb avoid=tolls|highways
+ * per obtenir rutes per carreteres secundàries (menys km, més proper
+ * al càlcul de la federació)
  */
 export const calculateDistance = onCall(
   {region: "europe-west1", secrets: [googlePlacesApiKey]},
@@ -193,25 +195,19 @@ export const calculateDistance = onCall(
       url.searchParams.append("destinations", destinationAddress);
       url.searchParams.append("key", googlePlacesApiKey.value());
       url.searchParams.append("mode", "driving");
+      // Evitar autopistes i peatges per obtenir la ruta més curta en km
+      // (les autopistes catalanes fan més km però menys temps)
+      url.searchParams.append("avoid", "tolls|highways");
       url.searchParams.append("language", "ca");
 
-      console.log("Distance Matrix API Request:", {
+      console.log("Distance Matrix API Request (avoid tolls|highways):", {
         origin: originAddress,
         destination: destinationAddress,
-        url: url.toString().replace(googlePlacesApiKey.value(), "***API_KEY***"),
       });
 
       const response = await fetch(url.toString());
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await response.json() as any;
-
-      console.log("Distance Matrix API Response:", {
-        status: result.status,
-        errorMessage: result.error_message,
-        rows: result.rows?.length,
-        elements: result.rows?.[0]?.elements?.length,
-        elementStatus: result.rows?.[0]?.elements?.[0]?.status,
-      });
 
       if (result.status === "OK" && result.rows && result.rows.length > 0) {
         const elements = result.rows[0].elements;
@@ -219,7 +215,7 @@ export const calculateDistance = onCall(
           const distanceInMeters = elements[0].distance?.value ?? 0;
           const kilometers = distanceInMeters / 1000.0;
 
-          console.log("Distance calculated successfully:", {
+          console.log("Distance calculated (avoiding tolls/highways):", {
             kilometers,
             distanceText: elements[0].distance?.text,
           });
@@ -240,7 +236,6 @@ export const calculateDistance = onCall(
       console.error("Distance Matrix API error:", {
         status: result.status,
         errorMessage: result.error_message,
-        fullResponse: result,
       });
       return {kilometers: 0.0, distanceText: "", durationText: ""};
     } catch (error) {

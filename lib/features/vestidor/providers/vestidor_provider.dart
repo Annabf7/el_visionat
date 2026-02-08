@@ -16,12 +16,12 @@ class VestidorProvider extends ChangeNotifier {
   static const _localProductAssets = <String, List<String>>{
     // Samarreta_1 (personalitzades per color, optimitzades)
     'samarreta_1_white': [
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Fwhite_front.png?alt=media&token=1a851494-8279-44c4-8d00-342465210157',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Fwhite-front-and-back_2.png?alt=media&token=6ed2b42e-93fa-42e9-a0cf-bb2945979424',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Fwhite-back.png?alt=media&token=1d42336c-55ab-4125-86b7-73483bd95a12',
+      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Funisex-militar.png?alt=media&token=e12c821c-b3ad-4341-97c6-c8bef18c6843',
+      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Funisex-white.png?alt=media&token=17657673-8e85-4ecf-b82e-4cac1c36d181',
     ],
     'samarreta_1_militar': [
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Fgreen-front-and-back.png?alt=media&token=e87deb1d-94e1-48dc-a43f-6a4d9deab16e',
+      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Funisex-militar.png?alt=media&token=e12c821c-b3ad-4341-97c6-c8bef18c6843',
+      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Funisex-white.png?alt=media&token=17657673-8e85-4ecf-b82e-4cac1c36d181',
     ],
     'tasa_1': ['assets/images/merchandising/tasa_1.png'],
     'tasa_2': ['assets/images/merchandising/tasa_2.png'],
@@ -95,8 +95,8 @@ class VestidorProvider extends ChangeNotifier {
       return 'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Fwomen_white_back.png?alt=media&token=1664ff00-ddb8-4f4b-9e54-ac096de5b72a';
     }
     if (normalizedName == normalize('samarreta_1')) {
-      // Sempre mostra la imatge militar, independentment del color
-      return 'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Fgreen-front-and-back.png?alt=media&token=e87deb1d-94e1-48dc-a43f-6a4d9deab16e';
+      // Mostra la nova imatge de mockup per Samarreta_1
+      return 'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Funisex-militar.png?alt=media&token=e12c821c-b3ad-4341-97c6-c8bef18c6843';
     }
     if (normalizedName == normalize('timeout')) {
       // Thumbnail de TimeOut (xanclas)

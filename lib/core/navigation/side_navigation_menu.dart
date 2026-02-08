@@ -67,7 +67,8 @@ class SideNavigationMenu extends StatelessWidget {
                     (route == '/home' &&
                         (current == '/' || current == '/home'));
 
-                return ListView(
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _NavigationItem(
                       icon: Icons.home,
@@ -104,15 +105,10 @@ class SideNavigationMenu extends StatelessWidget {
                       text: 'El Laboratori Arbitral',
                     ),
                     _NavigationItem(
-                      icon: Icons.fitness_center,
-                      text: 'Condició Física',
+                      icon: Icons.psychology,
+                      text: 'Neurovisionat',
                     ),
                     _NavigationItem(icon: Icons.people, text: 'Mentoria'),
-                    _NavigationItem(
-                      icon: Icons.emoji_events,
-                      text: 'Supercopa Officiating Crew',
-                    ),
-                    _NavigationItem(icon: Icons.tv, text: 'ACB a Tv3'),
                     _NavigationItem(
                       icon: Icons.checkroom,
                       text: 'El vestidor',
@@ -217,7 +213,7 @@ class _NavigationItem extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          margin: const EdgeInsets.symmetric(horizontal: 24),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: backgroundColor,

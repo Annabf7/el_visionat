@@ -364,18 +364,45 @@ class PdfParserService {
       }
 
       // Extreure localització
-      if ((line.contains('CIUTAT') || line.contains('PAVELLÓ') || line.contains('PAVELLO') ||
-          line.contains('POLIESPORTIU') || line.contains('COMPLEX') ||
-          line.contains('PARC') || line.contains('MUNICIPAL')) &&
-          !line.contains('CATEGORIA')) {
+      // Buscar paraules clau de pavellons (incloent abreviatures com PAV., POL., C.E.)
+      final upperLine = line.toUpperCase();
+      final isLocationLine = (
+          upperLine.contains('CIUTAT') ||
+          upperLine.contains('PAVELLÓ') ||
+          upperLine.contains('PAVELLO') ||
+          upperLine.contains('POLIESPORTIU') ||
+          upperLine.contains('COMPLEX') ||
+          upperLine.contains('PARC') ||
+          upperLine.contains('MUNICIPAL') ||
+          // Abreviatures comunes
+          RegExp(r'\bPAV\.?\s*MUN', caseSensitive: false).hasMatch(line) ||
+          RegExp(r'\bPAV\.?\s*ESP', caseSensitive: false).hasMatch(line) ||
+          RegExp(r'\bPAV\.?\s*POL', caseSensitive: false).hasMatch(line) ||
+          RegExp(r'\bPOL\.?\s*MUN', caseSensitive: false).hasMatch(line) ||
+          RegExp(r'\bC\.?\s*E\.?\s*M', caseSensitive: false).hasMatch(line) ||
+          RegExp(r'\bPAV\.', caseSensitive: false).hasMatch(line)
+      ) && !upperLine.contains('CATEGORIA');
+
+      if (isLocationLine) {
         currentLocation = line;
+        currentLocationAddress = line; // La línia ja conté l'adreça completa
+        print('📍 PDF PARSER: Found location: $currentLocation');
         developer.log('Found location: $currentLocation', name: 'PdfParserService');
-        // Buscar adreça
+        // Buscar adreça addicional a la línia següent (si existeix)
         if (i + 1 < lines.length) {
           final nextLine = lines[i + 1].trim();
-          if (nextLine.isNotEmpty && !nextLine.contains('NÚM')) {
-            currentLocationAddress = nextLine;
-            developer.log('Found address: $currentLocationAddress', name: 'PdfParserService');
+          // Si la línia següent és una adreça (no és una capçalera ni està buida)
+          if (nextLine.isNotEmpty &&
+              !nextLine.contains('NÚM') &&
+              !nextLine.toUpperCase().contains('CATEGORIA') &&
+              !nextLine.toUpperCase().contains('DATA') &&
+              !nextLine.toUpperCase().contains('HORA')) {
+            // Concatenar amb la localització si sembla una adreça
+            if (nextLine.contains(',') || RegExp(r'\d{5}').hasMatch(nextLine)) {
+              currentLocationAddress = '$line, $nextLine';
+              print('📍 PDF PARSER: Extended address: $currentLocationAddress');
+              developer.log('Found extended address: $currentLocationAddress', name: 'PdfParserService');
+            }
           }
         }
       }

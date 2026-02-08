@@ -27,6 +27,7 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
   late TimeBlockPriority _priority;
   late DateTime _startAt;
   late DateTime _endAt;
+  late bool _isRecurring;
 
   bool _isSaving = false;
 
@@ -38,6 +39,7 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
     _priority = widget.block.priority;
     _startAt = widget.block.startAt;
     _endAt = widget.block.endAt;
+    _isRecurring = widget.block.isRecurring;
   }
 
   @override
@@ -127,6 +129,37 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
     }
   }
 
+  Future<void> _delete() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar bloc'),
+        content: const Text('Segur que vols eliminar aquest bloc?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel·lar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    final provider = context.read<ScheduleProvider>();
+    final success = await provider.deleteBlock(widget.block.id!);
+
+    if (!mounted) return;
+    if (success) {
+      Navigator.pop(context);
+    }
+  }
+
   Future<void> _save() async {
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -140,20 +173,30 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
 
     setState(() => _isSaving = true);
 
+    final isRecurring = _isRecurring;
     final newBlock = widget.block.copyWith(
       title: _titleController.text.trim(),
       category: _category,
       priority: _priority,
       startAt: _startAt,
       endAt: _endAt,
+      isRecurring: isRecurring,
+      recurringId: isRecurring
+          ? (widget.block.recurringId ??
+              DateTime.now().millisecondsSinceEpoch.toString())
+          : null,
     );
 
     final provider = context.read<ScheduleProvider>();
     bool success;
 
     if (widget.isNew) {
-      final id = await provider.createBlock(newBlock);
-      success = id != null;
+      if (isRecurring) {
+        success = await provider.createWeeklyBlocks(newBlock);
+      } else {
+        final id = await provider.createBlock(newBlock);
+        success = id != null;
+      }
     } else {
       success = await provider.updateBlock(newBlock);
     }
@@ -176,7 +219,7 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat("EEE, d MMM", 'ca_ES');
+    final dateFormat = DateFormat("d MMM", 'ca_ES');
     final timeFormat = DateFormat('HH:mm', 'ca_ES');
 
     return Dialog(
@@ -189,10 +232,23 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Títol del diàleg
-                Text(
-                  widget.isNew ? 'Nou bloc' : 'Editar bloc',
-                  style: Theme.of(context).textTheme.titleLarge,
+                // Títol del diàleg + botó eliminar
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.isNew ? 'Nou bloc' : 'Editar bloc',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                    if (!widget.isNew)
+                      IconButton(
+                        onPressed: _isSaving ? null : _delete,
+                        icon: const Icon(Icons.delete_outline),
+                        color: Colors.redAccent,
+                        tooltip: 'Eliminar bloc',
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 24),
 
@@ -221,11 +277,19 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
                   children: TimeBlockCategory.values.map((cat) {
                     final isSelected = _category == cat;
                     final color = TimeblockCard.getCategoryColor(cat);
+                    final isGym = cat == TimeBlockCategory.gimnas;
                     return ChoiceChip(
-                      label: Text(TimeblockCard.getCategoryName(cat)),
+                      avatar: isGym && isSelected
+                          ? Icon(Icons.fitness_center, size: 14, color: color)
+                          : null,
+                      label: Text(
+                        isGym ? 'In Shape' : TimeblockCard.getCategoryName(cat),
+                      ),
                       selected: isSelected,
                       onSelected: (selected) {
-                        if (selected) setState(() => _category = cat);
+                        if (selected) {
+                          setState(() => _category = cat);
+                        }
                       },
                       selectedColor: color.withValues(alpha: 0.3),
                       labelStyle: TextStyle(
@@ -235,6 +299,26 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
                     );
                   }).toList(),
                 ),
+
+                // Toggle bloc fix setmanal (per blocs nous de qualsevol categoria)
+                if (widget.isNew) ...[
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    title: const Text('Bloc fix setmanal'),
+                    subtitle: const Text(
+                      'Es crearà de dilluns a divendres al mateix horari',
+                    ),
+                    value: _isRecurring,
+                    onChanged: (value) => setState(() => _isRecurring = value),
+                    activeTrackColor: AppTheme.verdeEncert.withValues(alpha: 0.5),
+                    thumbColor: WidgetStatePropertyAll(AppTheme.verdeEncert),
+                    secondary: const Icon(
+                      Icons.repeat,
+                      color: AppTheme.verdeEncert,
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ],
                 const SizedBox(height: 16),
 
                 // Selecció de prioritat
@@ -274,8 +358,11 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: _selectDate,
-                        icon: const Icon(Icons.calendar_today, size: 18),
-                        label: Text(dateFormat.format(_startAt)),
+                        icon: const Icon(Icons.calendar_today, size: 16),
+                        label: Text(
+                          dateFormat.format(_startAt),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),

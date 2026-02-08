@@ -6,8 +6,10 @@ enum TimeBlockCategory {
   gimnas, // Entrenament físic
   feina, // Treball professional
   estudi, // Formació, universitat
-  familia, // Temps personal/familiar
+  familia, // Temps familiar
   descans, // Recuperació, oci
+  amiguis, // Quedades amb amics
+  time4me, // Temps per a mi
 }
 
 /// Prioritats segons metodologia Eat That Frog
@@ -34,6 +36,8 @@ class TimeBlock {
   final DateTime endAt;
   final bool done;
   final TimeBlockSource source;
+  final bool isRecurring;
+  final String? recurringId;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -46,6 +50,8 @@ class TimeBlock {
     required this.endAt,
     this.done = false,
     this.source = TimeBlockSource.manual,
+    this.isRecurring = false,
+    this.recurringId,
     DateTime? createdAt,
     DateTime? updatedAt,
   })  : createdAt = createdAt ?? DateTime.now(),
@@ -67,6 +73,8 @@ class TimeBlock {
     DateTime? endAt,
     bool? done,
     TimeBlockSource? source,
+    bool? isRecurring,
+    String? recurringId,
   }) {
     return TimeBlock(
       id: id ?? this.id,
@@ -77,6 +85,8 @@ class TimeBlock {
       endAt: endAt ?? this.endAt,
       done: done ?? this.done,
       source: source ?? this.source,
+      isRecurring: isRecurring ?? this.isRecurring,
+      recurringId: recurringId ?? this.recurringId,
       createdAt: createdAt,
       updatedAt: DateTime.now(),
     );
@@ -92,6 +102,8 @@ class TimeBlock {
       'endAt': Timestamp.fromDate(endAt),
       'done': done,
       'source': source.name,
+      'isRecurring': isRecurring,
+      if (recurringId != null) 'recurringId': recurringId,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     };
@@ -117,6 +129,8 @@ class TimeBlock {
         (e) => e.name == map['source'],
         orElse: () => TimeBlockSource.manual,
       ),
+      isRecurring: map['isRecurring'] ?? false,
+      recurringId: map['recurringId'],
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );

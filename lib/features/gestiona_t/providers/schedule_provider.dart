@@ -113,6 +113,49 @@ class ScheduleProvider with ChangeNotifier {
     );
   }
 
+  /// Crea blocs de dilluns a divendres a la setmana del bloc donat
+  Future<bool> createWeeklyBlocks(TimeBlock template) async {
+    if (_userId == null) return false;
+    try {
+      final recurringId = DateTime.now().millisecondsSinceEpoch.toString();
+      final weekStart = _getWeekStart(template.startAt);
+
+      for (int dayOffset = 0; dayOffset < 5; dayOffset++) {
+        final targetDate = weekStart.add(Duration(days: dayOffset));
+
+        final block = TimeBlock(
+          title: template.title,
+          category: template.category,
+          priority: template.priority,
+          startAt: DateTime(
+            targetDate.year,
+            targetDate.month,
+            targetDate.day,
+            template.startAt.hour,
+            template.startAt.minute,
+          ),
+          endAt: DateTime(
+            targetDate.year,
+            targetDate.month,
+            targetDate.day,
+            template.endAt.hour,
+            template.endAt.minute,
+          ),
+          source: template.source,
+          isRecurring: true,
+          recurringId: recurringId,
+        );
+
+        await _service.createBlock(_userId!, block);
+      }
+      return true;
+    } catch (e) {
+      _error = 'Error creant els blocs setmanals: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// Selecciona un dia
   void selectDay(DateTime day) {
     _selectedDay = day;
@@ -239,6 +282,9 @@ class ScheduleProvider with ChangeNotifier {
     final gymMinutes = manualBlocks
         .where((b) => b.category == TimeBlockCategory.gimnas && b.done)
         .fold<int>(0, (sum, b) => sum + b.durationMinutes);
+    final gymBlockCount = manualBlocks
+        .where((b) => b.category == TimeBlockCategory.gimnas)
+        .length;
     final frogsCompleted = manualBlocks.where((b) => b.isFrog && b.done).length;
     final frogsTotal = manualBlocks.where((b) => b.isFrog).length;
     final designationsCount = _designationBlocks.length;
@@ -248,6 +294,8 @@ class ScheduleProvider with ChangeNotifier {
       'done': done,
       'percentage': total > 0 ? (done / total * 100).round() : 0,
       'gymMinutes': gymMinutes,
+      'gymBlockCount': gymBlockCount,
+      'gymGoalMet': gymBlockCount >= 3,
       'frogsCompleted': frogsCompleted,
       'frogsTotal': frogsTotal,
       'designationsCount': designationsCount,

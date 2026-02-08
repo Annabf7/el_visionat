@@ -194,12 +194,26 @@ class _EditDesignationDialogState extends State<EditDesignationDialog> {
     setState(() => _isLoading = true);
 
     try {
-      final oneWayKm = await DistanceCalculatorService.calculateDistance(
-        originAddress: _originAddressController.text,
-        destinationAddress: _venueAddressController.text,
+      // Netejar l'adreça del pavelló per millorar la geocodificació
+      final cleanedVenueAddress = DistanceCalculatorService.cleanVenueAddress(
+        _venueAddressController.text,
       );
 
+      // Debug: mostrar adreces que s'envien
+      debugPrint('=== RECALCULATE DISTANCE DEBUG ===');
+      debugPrint('Origin: ${_originAddressController.text}');
+      debugPrint('Venue (original): ${_venueAddressController.text}');
+      debugPrint('Venue (cleaned): $cleanedVenueAddress');
+
+      final oneWayKm = await DistanceCalculatorService.calculateDistance(
+        originAddress: _originAddressController.text,
+        destinationAddress: cleanedVenueAddress,
+      );
+
+      debugPrint('One-way km: $oneWayKm');
       final roundTripKm = oneWayKm * 2;
+      debugPrint('Round-trip km: $roundTripKm');
+      debugPrint('=================================');
       _kilometersController.text = roundTripKm.toStringAsFixed(2);
 
       if (mounted) {

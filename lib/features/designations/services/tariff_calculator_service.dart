@@ -39,7 +39,8 @@ class TariffCalculatorService {
   }) {
     final rights = _calculateRights(category, role);
     final kilometersAmount = _calculateKilometers(kilometers);
-    final allowance = _calculateAllowance(matchDate, matchTime, kilometers);
+    // Les dietes utilitzen la distància d'ANADA (domicili → camp), no anada i tornada
+    final allowance = _calculateAllowance(matchDate, matchTime, kilometers / 2);
     final total = rights + kilometersAmount + allowance;
 
     return EarningsModel(
@@ -76,6 +77,9 @@ class TariffCalculatorService {
         .replaceAll('2A.', '2A')
         .replaceAll('3A.', '3A')
         .replaceAll('1R.', '1R');
+
+    // Normalitzar guions a espais (SOTS-25 → SOTS 25, PRE-INFANTIL → PRE INFANTIL)
+    normalizedCategory = normalizedCategory.replaceAll('-', ' ');
 
     final cat = normalizedCategory;
     final isFemeni = cat.contains('FEMEN');
@@ -200,11 +204,13 @@ class TariffCalculatorService {
     return amount < _minDisplacement ? _minDisplacement : amount;
   }
 
-  /// Calcula les dietes segons horari i quilometratge
+  /// Calcula les dietes segons horari, quilometratge i dia de la setmana.
+  /// [oneWayKm] és la distància NOMÉS D'ANADA (domicili àrbitre → camp de joc),
+  /// tal com defineix la secció 3.5.3 de les tarifes FCBQ.
   static double _calculateAllowance(
     DateTime matchDate,
     String matchTime,
-    double kilometers,
+    double oneWayKm,
   ) {
     final time = _parseTime(matchTime);
     if (time == null) return 0.0;
@@ -214,38 +220,49 @@ class TariffCalculatorService {
     final isWeekend = matchDate.weekday == DateTime.saturday ||
                       matchDate.weekday == DateTime.sunday;
 
-    // Dietes de cap de setmana
+    // Dietes de cap de setmana / festiu
     if (isWeekend) {
-      // Abans de les 08:30
+      // ── 25€ (comprovar primer per retornar l'import més alt) ──
+
+      // Entre 12:00 i 16:30 (incloses) amb >90km d'anada
+      final isIn12To1630 = hour >= 12 &&
+          (hour < 16 || (hour == 16 && minute <= 30));
+      if (isIn12To1630 && oneWayKm >= 90) {
+        return 25.00;
+      }
+
+      // A partir de 20:00 (incloses) amb >90km d'anada
+      if (hour >= 20 && oneWayKm >= 90) {
+        return 25.00;
+      }
+
+      // A partir de 20:30 (incloses) amb >40km d'anada
+      if (((hour == 20 && minute >= 30) || hour > 20) && oneWayKm >= 40) {
+        return 25.00;
+      }
+
+      // A partir de 21:20 (incloses) amb >130km d'anada
+      if (((hour == 21 && minute >= 20) || hour > 21) && oneWayKm >= 130) {
+        return 25.00;
+      }
+
+      // ── 20€ ──
+
+      // Abans de les 08:30 (no incloses)
       if (hour < 8 || (hour == 8 && minute < 30)) {
         return 20.00;
       }
-      // Entre 13:46 i 15:29
+
+      // Entre 13:46 i 15:29 (incloses)
       if ((hour == 13 && minute >= 46) ||
           (hour == 14) ||
           (hour == 15 && minute <= 29)) {
         return 20.00;
       }
-      // Entre 12:00 i 16:30 amb més de 90km
-      if (hour >= 12 && hour <= 16 && kilometers >= 90) {
-        return 25.00;
-      }
-      // A partir de 20:00 amb més de 90km
-      if (hour >= 20 && kilometers >= 90) {
-        return 25.00;
-      }
-      // A partir de 20:30 amb més de 40km
-      if ((hour == 20 && minute >= 30) || hour > 20) {
-        if (kilometers >= 40) return 25.00;
-      }
-      // A partir de 21:20 amb més de 130km
-      if ((hour == 21 && minute >= 20) || hour > 21) {
-        if (kilometers >= 130) return 25.00;
-      }
     } else {
       // Dietes entre setmana
-      // Excepció: més de 90km sempre 25€
-      if (kilometers >= 90) {
+      // Si distància ≥90km d'anada: 25€ sempre
+      if (oneWayKm >= 90) {
         return 25.00;
       }
       // Altres casos: 20€

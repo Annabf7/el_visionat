@@ -34,9 +34,11 @@ class WeeklySummaryCard extends StatelessWidget {
                 ),
                 _SummaryItem(
                   icon: Icons.fitness_center,
-                  value: '${summary['gymMinutes']}',
-                  label: 'Min gimnàs',
-                  color: AppTheme.lilaMitja,
+                  value: '${summary['gymBlockCount'] ?? 0}/3',
+                  label: 'In Shape',
+                  color: (summary['gymGoalMet'] ?? false)
+                      ? AppTheme.verdeEncert
+                      : AppTheme.mostassa,
                 ),
                 _SummaryItem(
                   icon: null,

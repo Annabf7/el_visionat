@@ -386,7 +386,7 @@ class _RefereeTeamCardState extends State<RefereeTeamCard> {
                 SizedBox(width: 10),
                 Flexible(
                   child: Text(
-                    'VEURE ENTREVISTA',
+                    'LA TERTULIETA',
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontFamily: 'Geist',

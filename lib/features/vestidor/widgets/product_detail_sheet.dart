@@ -399,11 +399,7 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
               label: size,
               isSelected: isSelected,
               onTap: () {
-                final variant = provider.selectedVariants.firstWhere(
-                  (v) => v.sizeName == size,
-                  orElse: () => provider.selectedVariants.first,
-                );
-                provider.selectVariant(variant);
+                provider.selectSize(size);
               },
             );
           }).toList(),
@@ -436,11 +432,7 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
               label: color,
               isSelected: isSelected,
               onTap: () {
-                final variant = provider.selectedVariants.firstWhere(
-                  (v) => v.colorName == color,
-                  orElse: () => provider.selectedVariants.first,
-                );
-                provider.selectVariant(variant);
+                provider.selectColor(color);
                 // Reset galeria a primera imatge del nou color
                 if (_pageController.hasClients) {
                   _pageController.jumpToPage(0);

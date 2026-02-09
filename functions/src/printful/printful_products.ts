@@ -12,6 +12,7 @@ import {
   SyncProduct,
   SyncProductDetail,
   SyncVariant,
+  CatalogProductDetail,
 } from "./types";
 
 // Secret per la API key de Printful
@@ -217,21 +218,81 @@ export const getPrintfulProduct = onCall(
 
       const data = await response.json() as PrintfulResponse<SyncProductDetail>;
 
-      // Debug: log detalls del producte i variants
-      const sp = data.result.sync_product;
-      console.log(`[Printful DEBUG] Producte "${sp.name}" → thumbnail_url: ${sp.thumbnail_url ?? "NULL"}`);
-      for (const v of data.result.sync_variants) {
-        console.log(`[Printful DEBUG] Variant "${v.name}" → files: ${JSON.stringify(v.files.map((f) => ({type: f.type, preview_url: f.preview_url, thumbnail_url: f.thumbnail_url, url: f.url})))}`);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const raw = v as any;
-        if (raw.thumbnail_url || raw.preview_url) {
-          console.log(`[Printful DEBUG] Variant-level images → thumbnail_url: ${raw.thumbnail_url}, preview_url: ${raw.preview_url}`);
+      // --- Enriquiment amb dades del catàleg (color, talla, color_code) ---
+      const activeVariants = data.result.sync_variants.filter(
+        (v: SyncVariant) => !v.is_ignored
+      );
+      const catalogProductId = activeVariants.length > 0 ?
+        activeVariants[0].product.product_id :
+        null;
+
+      // Lookup: catalogVariantId → { color, size, color_code }
+      const catalogLookup: Record<
+        number,
+        { color: string; size: string; color_code: string }
+      > = {};
+
+      if (catalogProductId) {
+        try {
+          const catalogRes = await fetch(
+            `${PRINTFUL_BASE_URL}/products/${catalogProductId}`,
+            {
+              method: "GET",
+              headers: {
+                "Authorization": `Bearer ${printfulApiKey.value()}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          if (catalogRes.ok) {
+            const catalogData = await catalogRes.json() as
+              PrintfulResponse<CatalogProductDetail>;
+            for (const cv of catalogData.result.variants) {
+              catalogLookup[cv.id] = {
+                color: cv.color,
+                size: cv.size,
+                color_code: cv.color_code,
+              };
+            }
+            console.log(
+              `[Printful] Catàleg enriquit: ${Object.keys(catalogLookup).length} variants`
+            );
+          }
+        } catch (err) {
+          console.warn("[Printful] Error obtenint catàleg (degradació elegant):", err);
         }
       }
 
+      // Enriquir cada variant amb color/size/color_code + bestPreviewUrl
+      const enrichedVariants = data.result.sync_variants.map((v) => {
+        const catalog = catalogLookup[v.variant_id];
+        const previewFile = v.files.find((f) => f.type === "preview");
+        const bestPreviewUrl =
+          previewFile?.preview_url ?? previewFile?.url ?? null;
+
+        const base = catalog ? {
+          ...v,
+          product: {
+            ...v.product,
+            color: catalog.color,
+            size: catalog.size,
+            color_code: catalog.color_code,
+          },
+        } : v;
+
+        return {...base, bestPreviewUrl};
+      });
+
+      const sp = data.result.sync_product;
+      console.log(
+        `[Printful] Producte "${sp.name}" → ` +
+        `${enrichedVariants.length} variants, ` +
+        `${Object.keys(catalogLookup).length} enriquits amb catàleg`
+      );
+
       return {
         product: data.result.sync_product,
-        variants: data.result.sync_variants,
+        variants: enrichedVariants,
       };
     } catch (error) {
       if (error instanceof HttpsError) throw error;

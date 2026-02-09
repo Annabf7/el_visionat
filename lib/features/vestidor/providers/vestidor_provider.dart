@@ -3,6 +3,7 @@
 // ============================================================================
 // Gestiona la llista de productes, el detall del producte seleccionat,
 // paginació, selecció de variants i estats de càrrega/error.
+// Imatges principals de Firebase Storage, indexades per productId + color.
 // ============================================================================
 
 import 'package:flutter/foundation.dart';
@@ -10,100 +11,109 @@ import '../models/vestidor_product.dart';
 import '../services/vestidor_service.dart';
 
 class VestidorProvider extends ChangeNotifier {
-  // --- Imatges locals addicionals per producte (diferents plans/angles) ---
-  // Clau: patró que ha de coincidir amb el nom del producte (normalitzat)
-  // Valor: llista de paths d'assets locals
-  static const _localProductAssets = <String, List<String>>{
-    // Samarreta_1 (personalitzades per color, optimitzades)
-    'samarreta_1_white': [
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Funisex-militar.png?alt=media&token=e12c821c-b3ad-4341-97c6-c8bef18c6843',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Funisex-white.png?alt=media&token=17657673-8e85-4ecf-b82e-4cac1c36d181',
-    ],
-    'samarreta_1_militar': [
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Funisex-militar.png?alt=media&token=e12c821c-b3ad-4341-97c6-c8bef18c6843',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Funisex-white.png?alt=media&token=17657673-8e85-4ecf-b82e-4cac1c36d181',
-    ],
-    'tasa_1': ['assets/images/merchandising/tasa_1.png'],
-    'tasa_2': ['assets/images/merchandising/tasa_2.png'],
-    // Sudadera unisex — Caputxa (personalitzades per color, optimitzades)
-    // Color: blanc
-    'sudadera unisex — caputxa_white': [
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fwhite_women_back.png?alt=media&token=392cd634-ef6d-4d87-a615-0daa83407cb7',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fwhite_front.png?alt=media&token=97737550-7afa-4916-989e-32bfbc5d76bd',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fwhite_back_side.png?alt=media&token=c138f648-e4b2-42ef-beaa-308341f3a203',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fwhite_back.png?alt=media&token=2955da48-bce2-4943-a82b-dfc1329e83e3',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fwhite-product-details.png?alt=media&token=2cc09c81-1f2c-4ab1-a00a-4b3ab90befe0',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fwhite-front-smile.png?alt=media&token=609f5524-74c5-4837-99f1-85ae00048796',
-    ],
-    // Color: militar
-    'sudadera unisex — caputxa_militar': [
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fgreen_women_front.png?alt=media&token=123fac38-7535-48b3-9a9b-2ed0b301f159',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fgreen_front.png?alt=media&token=aac74c23-066d-4149-804d-56be9e9ba1db',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fgreen_back.png?alt=media&token=bba63d69-6b5c-4291-8fae-872f938790d1',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fback_green_man.png?alt=media&token=2f28f98c-3b2d-4a7c-9cce-f8dcd2941a35',
-    ],
-    // Sudadera unisex — coll rodo (personalitzades per color, optimitzades)
-    'sudadera unisex — coll rodo_white': [
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Fwomen_white_back.png?alt=media&token=1664ff00-ddb8-4f4b-9e54-ac096de5b72a',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Fwhite_front.png?alt=media&token=699f1b66-ff19-48ba-bb2f-065394d8f5a9',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Fwhite_back.png?alt=media&token=76076785-1c79-4909-b376-91b29c4e6c80',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Fback_man_white.png?alt=media&token=3b66bbb5-0ec0-480c-8776-3aee8319c075',
-    ],
-    'sudadera unisex — coll rodo_militar': [
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Ffront_militar.png?alt=media&token=44b96caa-7bed-4a52-9e28-4503a31d34c4',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Fboth_front_back.png?alt=media&token=136e5c5c-7f12-4148-a838-c65beca92cca',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Fback_militar_man.png?alt=media&token=ab82f114-6888-4c73-9929-5fcbb7fe0ad7',
-    ],
-    // TimeOut (xanclas) - personalitzades en ordre
-    'timeout_xanclas': [
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_1.png?alt=media&token=26db40ed-d96b-4ab9-bc25-39cbe61325bc',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_2.png?alt=media&token=61542a20-bef7-46f2-82fb-b4522a7bdd34',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_3.png?alt=media&token=24bbdc33-241f-431e-b977-fca469ca6101',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_4.png?alt=media&token=b283e831-3a97-4eb3-86d2-7779dddf9b1f',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_5.png?alt=media&token=cc7fcbe8-755d-4fb8-9081-a1cc7e7ef3f5',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_6.png?alt=media&token=9fd15905-073c-4f16-a77f-4586164e784b',
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_7.png?alt=media&token=8caa9454-da25-41cb-8d4e-9d3933b4a0b1',
-    ],
+  // --- Imatges de Firebase Storage per producte (clau: sync_product.id) ---
+  // Cada producte pot tenir imatges per color (_normalize del nom Printful)
+  // o '_default' si no depenen del color.
+  static const _localProductAssets = <int, Map<String, List<String>>>{
+    // Samarreta_1
+    417174810: {
+      'white': [
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Funisex-militar.png?alt=media&token=1a025f63-38c1-456c-9089-029d8d76ddda',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Funisex-white.png?alt=media&token=9b8c3952-7d2b-4b5b-9cea-e619ce0014ff',
+      ],
+      'militarygreen': [
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Funisex-militar.png?alt=media&token=1a025f63-38c1-456c-9089-029d8d76ddda',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Funisex-white.png?alt=media&token=9b8c3952-7d2b-4b5b-9cea-e619ce0014ff',
+      ],
+    },
+    // Sudadera unisex — Caputxa
+    417174402: {
+      'white': [
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fwhite_women_back.png?alt=media&token=392cd634-ef6d-4d87-a615-0daa83407cb7',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fwhite_front.png?alt=media&token=97737550-7afa-4916-989e-32bfbc5d76bd',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fwhite_back_side.png?alt=media&token=c138f648-e4b2-42ef-beaa-308341f3a203',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fwhite_back.png?alt=media&token=2955da48-bce2-4943-a82b-dfc1329e83e3',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fwhite-product-details.png?alt=media&token=2cc09c81-1f2c-4ab1-a00a-4b3ab90befe0',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fwhite-front-smile.png?alt=media&token=609f5524-74c5-4837-99f1-85ae00048796',
+      ],
+      'militarygreen': [
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fgreen_women_front.png?alt=media&token=123fac38-7535-48b3-9a9b-2ed0b301f159',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fgreen_front.png?alt=media&token=aac74c23-066d-4149-804d-56be9e9ba1db',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fgreen_back.png?alt=media&token=bba63d69-6b5c-4291-8fae-872f938790d1',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fback_green_man.png?alt=media&token=2f28f98c-3b2d-4a7c-9cce-f8dcd2941a35',
+      ],
+    },
+    // Sudadera unisex — Coll rodó
+    417175589: {
+      'white': [
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Fwomen_white_back.png?alt=media&token=1664ff00-ddb8-4f4b-9e54-ac096de5b72a',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Fwhite_front.png?alt=media&token=699f1b66-ff19-48ba-bb2f-065394d8f5a9',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Fwhite_back.png?alt=media&token=76076785-1c79-4909-b376-91b29c4e6c80',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Fback_man_white.png?alt=media&token=3b66bbb5-0ec0-480c-8776-3aee8319c075',
+      ],
+      'militarygreen': [
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Ffront_militar.png?alt=media&token=44b96caa-7bed-4a52-9e28-4503a31d34c4',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Fboth_front_back.png?alt=media&token=136e5c5c-7f12-4148-a838-c65beca92cca',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Fback_militar_man.png?alt=media&token=ab82f114-6888-4c73-9929-5fcbb7fe0ad7',
+      ],
+    },
+    // Swimsuit (peça de bany)
+    418002497: {
+      '_default': [
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fbany%2Fwhite_front_swim.png?alt=media&token=209f8f2e-fee9-48d5-9873-fec7c3ba2b1a',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fbany%2Fwhite_back_swim.png?alt=media&token=a4aa48cc-25f6-4662-aa15-a3ea0bd6fcd5',
+      ],
+    },
+    // TimeOut (xanclas)
+    416653701: {
+      '_default': [
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_1.png?alt=media&token=26db40ed-d96b-4ab9-bc25-39cbe61325bc',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_2.png?alt=media&token=61542a20-bef7-46f2-82fb-b4522a7bdd34',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_3.png?alt=media&token=24bbdc33-241f-431e-b977-fca469ca6101',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_4.png?alt=media&token=b283e831-3a97-4eb3-86d2-7779dddf9b1f',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_5.png?alt=media&token=cc7fcbe8-755d-4fb8-9081-a1cc7e7ef3f5',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_6.png?alt=media&token=9fd15905-073c-4f16-a77f-4586164e784b',
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_7.png?alt=media&token=8caa9454-da25-41cb-8d4e-9d3933b4a0b1',
+      ],
+    },
+    // tassa_1
+    416617132: {
+      '_default': ['assets/images/merchandising/tasa_1.png'],
+    },
+    // tassa_2
+    416618634: {
+      '_default': ['assets/images/merchandising/tasa_2.png'],
+    },
   };
+
+  // --- Thumbnails personalitzades per a la llista de productes ---
+  static const _customThumbnails = <int, String>{
+    417174402:
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fwhite_front.png?alt=media&token=97737550-7afa-4916-989e-32bfbc5d76bd',
+    417175589:
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Fwomen_white_back.png?alt=media&token=1664ff00-ddb8-4f4b-9e54-ac096de5b72a',
+    417174810:
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Funisex-militar.png?alt=media&token=1a025f63-38c1-456c-9089-029d8d76ddda',
+    416653701:
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_3.png?alt=media&token=24bbdc33-241f-431e-b977-fca469ca6101',
+    418002497:
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fbany%2Fwhite_front_swim.png?alt=media&token=209f8f2e-fee9-48d5-9873-fec7c3ba2b1a',
+    // Funda resistent MagSafe — male
+    418473545:
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Ffundas%20mobil%2Fiphone-16-male.png?alt=media&token=64f0d7dd-511e-47f2-8426-d0fca939a2e0',
+    // Funda resistent MagSafe — female
+    418462440:
+        'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Ffundas%20mobil%2Fiphone-16-female.png?alt=media&token=99bf506d-e877-4483-810a-2321f85b92af',
+  };
+
+  /// Retorna la thumbnail personalitzada per a la llista (o la de Printful)
+  String? getCustomThumbnail(VestidorProduct product) {
+    return _customThumbnails[product.id] ?? product.thumbnailUrl;
+  }
 
   // --- Estat de la llista de productes ---
   List<VestidorProduct> _products = [];
   List<VestidorProduct> get products => _products;
-  // Thumbnail personalitzada per a Sudadera unisex — Caputxa
-  static const _caputxaCustomThumbnail =
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fwhite_front.png?alt=media&token=97737550-7afa-4916-989e-32bfbc5d76bd';
-
-  /// Retorna la thumbnail personalitzada si el producte és Sudadera unisex — Caputxa
-  String? getCustomThumbnail(VestidorProduct product) {
-    String normalize(String s) {
-      final withNoAccents = s
-          .toLowerCase()
-          .replaceAll(RegExp(r'[àáäâ]'), 'a')
-          .replaceAll(RegExp(r'[èéëê]'), 'e')
-          .replaceAll(RegExp(r'[ìíïî]'), 'i')
-          .replaceAll(RegExp(r'[òóöô]'), 'o')
-          .replaceAll(RegExp(r'[ùúüû]'), 'u')
-          .replaceAll(RegExp(r'[ç]'), 'c');
-      return withNoAccents.replaceAll(RegExp(r'[\s_-]+'), '');
-    }
-
-    final normalizedName = normalize(product.name);
-    if (normalizedName == normalize('sudadera unisex — caputxa')) {
-      return _caputxaCustomThumbnail;
-    }
-    if (normalizedName == normalize('sudadera unisex — coll rodo')) {
-      return 'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsudaderas%2Fcoll%20rodo%2Fwomen_white_back.png?alt=media&token=1664ff00-ddb8-4f4b-9e54-ac096de5b72a';
-    }
-    if (normalizedName == normalize('samarreta_1')) {
-      // Mostra la nova imatge de mockup per Samarreta_1
-      return 'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fsamarreta%2Funisex-militar.png?alt=media&token=e12c821c-b3ad-4341-97c6-c8bef18c6843';
-    }
-    if (normalizedName == normalize('timeout')) {
-      // Thumbnail de TimeOut (xanclas)
-      return 'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/El%20vestidor%2Froba%2Fxanclas%2Fxanclas_3.png?alt=media&token=24bbdc33-241f-431e-b977-fca469ca6101';
-    }
-    return product.thumbnailUrl;
-  }
 
   bool _isLoadingProducts = false;
   bool get isLoadingProducts => _isLoadingProducts;
@@ -126,38 +136,58 @@ class VestidorProvider extends ChangeNotifier {
   bool _isLoadingDetail = false;
   bool get isLoadingDetail => _isLoadingDetail;
 
-  // --- Mockups per color (catalogVariantId → Storage URL) ---
-  Map<int, String> _mockups = {};
-  Map<int, String> get mockups => _mockups;
-
-  bool _isLoadingMockups = false;
-  bool get isLoadingMockups => _isLoadingMockups;
-
   // --- Error ---
   String? _error;
   String? get error => _error;
   bool get hasError => _error != null;
 
+  // --- Normalització ---
+
+  /// Normalitza una cadena (minúscules, sense accents, sense espais ni guions)
+  static String _normalize(String s) {
+    return s
+        .toLowerCase()
+        .replaceAll(RegExp(r'[àáäâ]'), 'a')
+        .replaceAll(RegExp(r'[èéëê]'), 'e')
+        .replaceAll(RegExp(r'[ìíïî]'), 'i')
+        .replaceAll(RegExp(r'[òóöô]'), 'o')
+        .replaceAll(RegExp(r'[ùúüû]'), 'u')
+        .replaceAll(RegExp(r'[ç]'), 'c')
+        .replaceAll(RegExp(r'[\s_\-—]+'), '');
+  }
+
   // --- Getters computats ---
 
-  /// Colors disponibles
+  /// Colors disponibles (del catàleg Printful, via variants)
   List<String> get availableColors {
     final colors = <String>{};
     for (final v in _selectedVariants) {
-      final color = v.colorName;
-      if (color.isNotEmpty) colors.add(color);
+      if (v.colorName.isNotEmpty) colors.add(v.colorName);
     }
     return colors.toList();
   }
 
-  /// Talles disponibles
+  /// Talles disponibles (filtrades pel color actiu, ordenades)
   List<String> get availableSizes {
+    final activeColor = _activeVariant?.colorName ?? '';
     final sizes = <String>{};
     for (final v in _selectedVariants) {
-      final size = v.sizeName;
-      if (size.isNotEmpty) sizes.add(size);
+      if (activeColor.isEmpty || v.colorName == activeColor) {
+        if (v.sizeName.isNotEmpty) sizes.add(v.sizeName);
+      }
     }
-    return sizes.toList();
+    const sizeOrder = [
+      'XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL',
+    ];
+    return sizes.toList()
+      ..sort((a, b) {
+        final ia = sizeOrder.indexOf(a);
+        final ib = sizeOrder.indexOf(b);
+        if (ia != -1 && ib != -1) return ia.compareTo(ib);
+        if (ia != -1) return -1;
+        if (ib != -1) return 1;
+        return a.compareTo(b);
+      });
   }
 
   /// Rang de preus del producte seleccionat (ex: "24,95 - 29,95 EUR")
@@ -173,151 +203,33 @@ class VestidorProvider extends ChangeNotifier {
   }
 
   /// Imatges del variant/color actiu (per a galeria).
-  /// Aquesta funció segueix la documentació de Printful per prioritzar imatges.
+  /// Prioritat: Firebase Storage locals → bestPreviewUrl → files Printful → thumbnail.
   List<String> get productImages {
-    final urls = <String>[];
-    final seen = <String>{};
-
-    // Normalitza una cadena (minuscules, sense accents, sense espais ni guions)
-    String normalize(String s) {
-      final withNoAccents = s
-          .toLowerCase()
-          .replaceAll(RegExp(r'[àáäâ]'), 'a')
-          .replaceAll(RegExp(r'[èéëê]'), 'e')
-          .replaceAll(RegExp(r'[ìíïî]'), 'i')
-          .replaceAll(RegExp(r'[òóöô]'), 'o')
-          .replaceAll(RegExp(r'[ùúüû]'), 'u')
-          .replaceAll(RegExp(r'[ç]'), 'c');
-      return withNoAccents.replaceAll(RegExp(r'[\s_-]+'), '');
-    }
-
-    final productName = _selectedProduct?.name ?? '';
-    final normalizedProductName = normalize(productName);
+    final productId = _selectedProduct?.id;
     final activeColor = _activeVariant?.colorName ?? '';
-    final normalizedColor = normalize(activeColor);
+    final colorKey = _normalize(activeColor);
 
-    // DEBUG: print keys and colors
-    debugPrint(
-      '[VestidorProvider] productName: "$productName" normalized: "$normalizedProductName"',
-    );
-    debugPrint(
-      '[VestidorProvider] activeColor: "$activeColor" normalized: "$normalizedColor"',
-    );
-    debugPrint(
-      '[VestidorProvider] availableColors: ${availableColors.join(", ")}',
-    );
-
-    // Si el producte és Sudadera unisex — Caputxa, Sudadera unisex — coll rodo o Samarreta_1, mostra totes les imatges personalitzades de blanc i militar (carrousel)
-    if (normalizedProductName == normalize('sudadera unisex — caputxa') ||
-        normalizedProductName == normalize('sudadera unisex — coll rodo') ||
-        normalizedProductName == normalize('samarreta_1')) {
-      final keys =
-          normalizedProductName == normalize('sudadera unisex — caputxa')
-          ? [
-              'sudadera unisex — caputxa_white',
-              'sudadera unisex — caputxa_militar',
-            ]
-          : normalizedProductName == normalize('sudadera unisex — coll rodo')
-          ? [
-              'sudadera unisex — coll rodo_white',
-              'sudadera unisex — coll rodo_militar',
-            ]
-          : ['samarreta_1_white', 'samarreta_1_militar'];
-      for (final key in keys) {
-        final localImages = _localProductAssets[key];
-        if (localImages != null && localImages.isNotEmpty) {
-          for (final url in localImages) {
-            if (seen.add(url)) {
-              urls.add(url);
-            }
-          }
-        }
-      }
-      if (urls.isNotEmpty) return urls;
-    }
-    // Si el producte és Sudadera unisex — Caputxa, Sudadera unisex — coll rodo, Samarreta_1 o TimeOut, mostra les imatges personalitzades corresponents (carrousel)
-    if (normalizedProductName == normalize('sudadera unisex — caputxa') ||
-        normalizedProductName == normalize('sudadera unisex — coll rodo') ||
-        normalizedProductName == normalize('samarreta_1') ||
-        normalizedProductName == normalize('timeout')) {
-      final keys =
-          normalizedProductName == normalize('sudadera unisex — caputxa')
-          ? [
-              'sudadera unisex — caputxa_white',
-              'sudadera unisex — caputxa_militar',
-            ]
-          : normalizedProductName == normalize('sudadera unisex — coll rodo')
-          ? [
-              'sudadera unisex — coll rodo_white',
-              'sudadera unisex — coll rodo_militar',
-            ]
-          : normalizedProductName == normalize('samarreta_1')
-          ? ['samarreta_1_white', 'samarreta_1_militar']
-          : ['timeout_xanclas'];
-      for (final key in keys) {
-        final localImages = _localProductAssets[key];
-        if (localImages != null && localImages.isNotEmpty) {
-          for (final url in localImages) {
-            if (seen.add(url)) {
-              urls.add(url);
-            }
-          }
-        }
-      }
-      if (urls.isNotEmpty) return urls;
+    // 1. Firebase Storage locals (per productId + color normalitzat)
+    final productAssets =
+        productId != null ? _localProductAssets[productId] : null;
+    if (productAssets != null) {
+      final images = productAssets[colorKey] ?? productAssets['_default'];
+      if (images != null && images.isNotEmpty) return images;
     }
 
-    // Lògica general (altres productes)
-    final variantsToShow = (activeColor.isNotEmpty)
-        ? _selectedVariants.where((v) => v.colorName == activeColor)
-        : _selectedVariants;
+    // 2. bestPreviewUrl del variant actiu (mockup Printful específic)
+    final bestPreview = _activeVariant?.bestPreviewUrl;
+    if (bestPreview != null && bestPreview.isNotEmpty) return [bestPreview];
 
-    for (final variant in variantsToShow) {
-      // Prioritat 1: Mockup generat manualment (si existeix)
-      final generatedMockupUrl = _mockups[variant.variantId];
-      if (generatedMockupUrl != null && seen.add(generatedMockupUrl)) {
-        urls.add(generatedMockupUrl);
-      }
+    // 3. Fallback: files Printful del variant actiu
+    final mockup = _activeVariant?.mockupUrl;
+    if (mockup != null && mockup.isNotEmpty) return [mockup];
 
-      // Prioritat 2: mockupUrl del model (personalitzada, ja fa la lògica de fallback)
-      final best = variant.mockupUrl;
-      if (best != null && best.isNotEmpty && seen.add(best)) {
-        urls.add(best);
-      }
-    }
+    // 4. Fallback final: thumbnail del producte
+    final thumb = _selectedProduct?.thumbnailUrl;
+    if (thumb != null && thumb.isNotEmpty) return [thumb];
 
-    // Prioritat 3: Imatges locals del projecte (altres productes)
-    if (productName.isNotEmpty) {
-      // Si el producte és Sudadera unisex — Caputxa, Sudadera unisex — coll rodo o Samarreta_1, mostra totes les imatges personalitzades de blanc i militar (carrousel)
-      if (normalizedProductName == normalize('sudadera unisex — caputxa') ||
-          normalizedProductName == normalize('sudadera unisex — coll rodo') ||
-          normalizedProductName == normalize('samarreta_1')) {
-        final keys =
-            normalizedProductName == normalize('sudadera unisex — caputxa')
-            ? [
-                'sudadera unisex — caputxa_white',
-                'sudadera unisex — caputxa_militar',
-              ]
-            : normalizedProductName == normalize('sudadera unisex — coll rodo')
-            ? [
-                'sudadera unisex — coll rodo_white',
-                'sudadera unisex — coll rodo_militar',
-              ]
-            : ['samarreta_1_white', 'samarreta_1_militar'];
-        for (final key in keys) {
-          final localImages = _localProductAssets[key];
-          if (localImages != null && localImages.isNotEmpty) {
-            for (final url in localImages) {
-              if (seen.add(url)) {
-                urls.add(url);
-              }
-            }
-          }
-        }
-        if (urls.isNotEmpty) return urls;
-      }
-    }
-    return urls;
+    return [];
   }
 
   // --- Mètodes d'acció ---
@@ -356,13 +268,11 @@ class VestidorProvider extends ChangeNotifier {
   }
 
   /// Carrega els detalls d'un producte (variants, imatges, talles).
-  /// Després de carregar el detall, llança la generació de mockups en segon pla.
   Future<void> loadProductDetail(int productId) async {
     _isLoadingDetail = true;
     _selectedProduct = null;
     _selectedVariants = [];
     _activeVariant = null;
-    _mockups = {};
     _error = null;
     notifyListeners();
 
@@ -371,36 +281,16 @@ class VestidorProvider extends ChangeNotifier {
       _selectedProduct = result.product;
       _selectedVariants = result.variants;
       if (_selectedVariants.isNotEmpty) {
-        // Si el producte és Sudadera Unisex — Caputxa, selecciona el primer color disponible
-        final productName = result.product.name.toLowerCase();
-        if (productName == 'sudadera unisex — caputxa') {
-          final firstColor = _selectedVariants.first.colorName;
-          final variantWithColor = _selectedVariants.firstWhere(
-            (v) => v.colorName == firstColor,
-            orElse: () => _selectedVariants.first,
-          );
-          _activeVariant = variantWithColor;
-        } else {
-          _activeVariant = _selectedVariants.first;
-        }
+        _activeVariant = _selectedVariants.first;
       }
       debugPrint(
-        '[VestidorProvider] Detall carregat: ${result.product.name} (${result.variants.length} variants)',
+        '[VestidorProvider] Detall carregat: ${result.product.name} '
+        '(${result.variants.length} variants)',
       );
-      // Debug: mostrar fitxers i imatges de cada variant per diagnosticar
-      for (final v in result.variants) {
-        final filesSummary = v.files
-            .map(
-              (f) =>
-                  '${f.type}(preview:${f.previewUrl != null}, url:${f.url != null})',
-            )
-            .join(', ');
-        debugPrint(
-          '[VestidorProvider] Variant "${v.name}" (catId:${v.variantId}) → '
-          'catalogImg: ${v.product.image.isNotEmpty ? "SÍ" : "NO"}, '
-          'files: [$filesSummary]',
-        );
-      }
+      debugPrint(
+        '[VestidorProvider] Colors: ${availableColors.join(", ")} | '
+        'Talles: ${availableSizes.join(", ")}',
+      );
     } catch (e) {
       _error = 'No s\'han pogut carregar els detalls del producte';
       debugPrint('[VestidorProvider] Error detall: $e');
@@ -408,37 +298,42 @@ class VestidorProvider extends ChangeNotifier {
 
     _isLoadingDetail = false;
     notifyListeners();
-
-    // Carregar mockups per color en segon pla (no bloqueja la UI)
-    _loadMockups(productId);
   }
 
-  /// Carrega els mockups generats per a un producte.
-  /// Actualitza la galeria automàticament quan estan llestos.
-  Future<void> _loadMockups(int productId) async {
-    _isLoadingMockups = true;
-
-    try {
-      final result = await VestidorService.getMockups(productId);
-
-      // Verificar que seguim mostrant el mateix producte
-      if (_selectedProduct?.id == productId) {
-        _mockups = result;
-        debugPrint(
-          '[VestidorProvider] Mockups carregats: ${result.length} per producte $productId',
-        );
-      }
-    } catch (e) {
-      debugPrint('[VestidorProvider] Error mockups: $e');
+  /// Selecciona un color: busca variant amb color + talla actual, o la primera del color
+  void selectColor(String color) {
+    final currentSize = _activeVariant?.sizeName ?? '';
+    // Prioritat: mateixa talla + nou color
+    final match = _selectedVariants.where(
+      (v) => v.colorName == color && v.sizeName == currentSize,
+    );
+    if (match.isNotEmpty) {
+      _activeVariant = match.first;
+    } else {
+      // Fallback: primera variant amb aquest color
+      final fallback = _selectedVariants.where((v) => v.colorName == color);
+      if (fallback.isNotEmpty) _activeVariant = fallback.first;
     }
-
-    _isLoadingMockups = false;
-    if (_selectedProduct?.id == productId) {
-      notifyListeners();
-    }
+    notifyListeners();
   }
 
-  /// Selecciona un variant actiu (quan l'usuari clica un chip de talla/color)
+  /// Selecciona una talla: busca variant amb talla + color actual
+  void selectSize(String size) {
+    final currentColor = _activeVariant?.colorName ?? '';
+    final match = _selectedVariants.where(
+      (v) => v.sizeName == size && v.colorName == currentColor,
+    );
+    if (match.isNotEmpty) {
+      _activeVariant = match.first;
+    } else {
+      // Fallback: primera variant amb aquesta talla
+      final fallback = _selectedVariants.where((v) => v.sizeName == size);
+      if (fallback.isNotEmpty) _activeVariant = fallback.first;
+    }
+    notifyListeners();
+  }
+
+  /// Selecciona un variant actiu directament
   void selectVariant(VestidorVariant variant) {
     _activeVariant = variant;
     notifyListeners();
@@ -449,7 +344,6 @@ class VestidorProvider extends ChangeNotifier {
     _selectedProduct = null;
     _selectedVariants = [];
     _activeVariant = null;
-    _mockups = {};
     notifyListeners();
   }
 

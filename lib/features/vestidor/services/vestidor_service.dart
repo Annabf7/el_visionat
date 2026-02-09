@@ -46,6 +46,10 @@ class VestidorService {
       file['thumbnail_url'] = _proxyUrl(file['thumbnail_url'] as String?);
       files[i] = file;
     }
+    // Proxy bestPreviewUrl (camp afegit per la CF)
+    if (map['bestPreviewUrl'] != null) {
+      map['bestPreviewUrl'] = _proxyUrl(map['bestPreviewUrl'] as String?);
+    }
     // Proxy la imatge del catàleg del variant
     final product = map['product'];
     if (product != null) {
@@ -94,36 +98,6 @@ class VestidorService {
     } catch (e) {
       debugPrint('[VestidorService] Error obtenint productes: $e');
       rethrow;
-    }
-  }
-
-  /// Obté els mockups generats per a un producte (un per color).
-  /// Retorna un mapa de catalogVariantId → URL de Firebase Storage.
-  static Future<Map<int, String>> getMockups(int productId) async {
-    try {
-      final callable = _functions.httpsCallable('getPrintfulProductMockups');
-      final result = await callable.call<Map<String, dynamic>>({
-        'productId': productId,
-      });
-
-      final data = result.data;
-      final mockupsRaw = (data['mockups'] as Map<dynamic, dynamic>?) ?? {};
-      final mockups = <int, String>{};
-      for (final entry in mockupsRaw.entries) {
-        final variantId = int.tryParse(entry.key.toString());
-        final url = entry.value.toString();
-        if (variantId != null && url.isNotEmpty) {
-          mockups[variantId] = url;
-        }
-      }
-
-      debugPrint(
-        '[VestidorService] getMockups($productId): ${mockups.length} mockups',
-      );
-      return mockups;
-    } catch (e) {
-      debugPrint('[VestidorService] Error obtenint mockups: $e');
-      return {};
     }
   }
 

@@ -61,6 +61,32 @@ export interface CatalogVariantInfo {
   product_id: number;
   image: string;
   name: string;
+  color?: string;
+  size?: string;
+  color_code?: string;
+}
+
+/** Variant del catàleg Printful (resposta de GET /products/{id}) */
+export interface CatalogVariant {
+  id: number;
+  product_id: number;
+  name: string;
+  size: string;
+  color: string;
+  color_code: string;
+  color_code2: string | null;
+  image: string;
+  in_stock: boolean;
+}
+
+/** Detall del producte del catàleg Printful */
+export interface CatalogProductDetail {
+  product: {
+    id: number;
+    title: string;
+    type: string;
+  };
+  variants: CatalogVariant[];
 }
 
 /** Fitxer associat a un variant (mockup, imatge de producte, etc.) */

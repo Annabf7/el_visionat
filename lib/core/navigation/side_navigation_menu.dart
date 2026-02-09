@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:math' as math;
 import 'package:provider/provider.dart';
 import 'package:el_visionat/core/navigation/navigation_provider.dart';
@@ -10,7 +9,7 @@ class SideNavigationMenu extends StatelessWidget {
 
   // La URL del logo que obtenim de Firebase Storage
   final String logoUrl =
-      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/xiulet.svg?alt=media&token=bfac6951-619d-4c2d-962b-ea4a301843ed';
+      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/foreground.png?alt=media&token=2ce5c7b4-1e03-43a0-8393-0e13da09135b';
 
   void _handleProfileTap(BuildContext context) {
     // Navigate to profile; RequireAuth will redirect unauthenticated users.
@@ -34,12 +33,17 @@ class SideNavigationMenu extends StatelessWidget {
               children: [
                 Transform.rotate(
                   angle: -2 * math.pi / 180.0,
-                  child: SvgPicture.network(
+                  child: Image.network(
                     logoUrl,
                     height: 80,
-                    placeholderBuilder: (BuildContext context) => const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
+                    cacheHeight: 240,
+                    filterQuality: FilterQuality.high,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -67,55 +71,68 @@ class SideNavigationMenu extends StatelessWidget {
                     (route == '/home' &&
                         (current == '/' || current == '/home'));
 
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _NavigationItem(
-                      icon: Icons.home,
-                      text: 'Inici',
-                      isSelected: isActive('/home'),
-                      onTap: () => Navigator.pushNamed(ctx, '/home'),
-                    ),
-                    _NavigationItem(
-                      icon: Icons.videocam,
-                      text: 'Visionats setmanals',
-                      isSelected: isActive('/visionat'),
-                      onTap: () => Navigator.pushNamed(ctx, '/visionat'),
-                    ),
-                    _NavigationItem(
-                      icon: Icons.assessment,
-                      text: 'Informes + Test',
-                      isSelected: isActive('/reports'),
-                      onTap: () => Navigator.pushNamed(ctx, '/reports'),
-                    ),
-                    _NavigationItem(
-                      icon: Icons.assignment,
-                      text: 'Les meves designacions',
-                      isSelected: isActive('/designations'),
-                      onTap: () => Navigator.pushNamed(ctx, '/designations'),
-                    ),
-                    _NavigationItem(
-                      icon: Icons.checklist,
-                      text: "Gestiona't",
-                      isSelected: isActive('/gestiona-t'),
-                      onTap: () => Navigator.pushNamed(ctx, '/gestiona-t'),
-                    ),
-                    _NavigationItem(
-                      icon: Icons.science,
-                      text: 'El Laboratori Arbitral',
-                    ),
-                    _NavigationItem(
-                      icon: Icons.psychology,
-                      text: 'Neurovisionat',
-                    ),
-                    _NavigationItem(icon: Icons.people, text: 'Mentoria'),
-                    _NavigationItem(
-                      icon: Icons.checkroom,
-                      text: 'El vestidor',
-                      isSelected: isActive('/vestidor'),
-                      onTap: () => Navigator.pushNamed(ctx, '/vestidor'),
-                    ),
-                  ],
+                final items = <Widget>[
+                  _NavigationItem(
+                    icon: Icons.home,
+                    text: 'Inici',
+                    isSelected: isActive('/home'),
+                    onTap: () => Navigator.pushNamed(ctx, '/home'),
+                  ),
+                  _NavigationItem(
+                    icon: Icons.videocam,
+                    text: 'Visionats setmanals',
+                    isSelected: isActive('/visionat'),
+                    onTap: () => Navigator.pushNamed(ctx, '/visionat'),
+                  ),
+                  _NavigationItem(
+                    icon: Icons.assessment,
+                    text: 'Informes + Test',
+                    isSelected: isActive('/reports'),
+                    onTap: () => Navigator.pushNamed(ctx, '/reports'),
+                  ),
+                  _NavigationItem(
+                    icon: Icons.assignment,
+                    text: 'Les meves designacions',
+                    isSelected: isActive('/designations'),
+                    onTap: () => Navigator.pushNamed(ctx, '/designations'),
+                  ),
+                  _NavigationItem(
+                    icon: Icons.checklist,
+                    text: "Gestiona't",
+                    isSelected: isActive('/gestiona-t'),
+                    onTap: () => Navigator.pushNamed(ctx, '/gestiona-t'),
+                  ),
+                  _NavigationItem(
+                    icon: Icons.science,
+                    text: 'El Laboratori Arbitral',
+                  ),
+                  _NavigationItem(
+                    icon: Icons.psychology,
+                    text: 'Neurovisionat',
+                  ),
+                  _NavigationItem(icon: Icons.people, text: 'Mentoria'),
+                  _NavigationItem(
+                    icon: Icons.checkroom,
+                    text: 'El vestidor',
+                    isSelected: isActive('/vestidor'),
+                    onTap: () => Navigator.pushNamed(ctx, '/vestidor'),
+                  ),
+                ];
+
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    // ~64px per ítem (margin 16 + padding 24 + contingut 24)
+                    final minHeight = items.length * 64.0;
+                    if (constraints.maxHeight >= minHeight) {
+                      // Desktop: distribució equitativa
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: items,
+                      );
+                    }
+                    // Mòbil: scroll vertical
+                    return ListView(children: items);
+                  },
                 );
               },
             ),
@@ -213,7 +230,7 @@ class _NavigationItem extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24),
+          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: backgroundColor,

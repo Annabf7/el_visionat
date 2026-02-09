@@ -57,6 +57,9 @@ class VestidorVariant {
   final List<PrintfulFile> files;
   final List<PrintfulOption> options;
   final String availabilityStatus;
+  final String color;
+  final String size;
+  final String? bestPreviewUrl;
 
   const VestidorVariant({
     required this.id,
@@ -73,6 +76,9 @@ class VestidorVariant {
     required this.files,
     required this.options,
     required this.availabilityStatus,
+    required this.color,
+    required this.size,
+    this.bestPreviewUrl,
   });
 
   factory VestidorVariant.fromMap(Map<String, dynamic> map) {
@@ -99,44 +105,31 @@ class VestidorVariant {
           )
           .toList(),
       availabilityStatus: (map['availability_status'] ?? '') as String,
+      color: (map['color'] ?? '') as String,
+      size: (map['size'] ?? '') as String,
+      bestPreviewUrl: map['bestPreviewUrl'] as String?,
     );
   }
 
   /// Preu com a double per a comparacions i ordenació
   double get priceAsDouble => double.tryParse(retailPrice) ?? 0.0;
 
-  /// Nom de la talla (extret del nom del variant).
-  /// Formats suportats:
-  ///   "Producte - Black / S" → "S"
-  ///   "Producte / Black"     → "" (sense talla, ex: gorres)
+  /// Talla: product.size (enriquit del catàleg) → variant.size (sync) → ''
   String get sizeName {
-    final dashParts = name.split(' - ');
-    if (dashParts.length > 1) {
-      final lastPart = dashParts.last.trim();
-      final slashParts = lastPart.split(' / ');
-      if (slashParts.length > 1) return slashParts.last.trim();
-      return lastPart;
-    }
-    // Format "Producte / Color" → no hi ha talla
+    if (product.size.isNotEmpty) return product.size;
+    if (size.isNotEmpty) return size;
     return '';
   }
 
-  /// Color del variant (extret del nom).
-  /// Formats suportats:
-  ///   "Producte - Black / S" → "Black"
-  ///   "Producte / Black"     → "Black"
+  /// Color: product.color (enriquit del catàleg) → variant.color (sync) → ''
   String get colorName {
-    final dashParts = name.split(' - ');
-    if (dashParts.length > 1) {
-      final lastPart = dashParts.last.trim();
-      final slashParts = lastPart.split(' / ');
-      if (slashParts.length > 1) return slashParts.first.trim();
-    }
-    // Format "Producte / Color" (sense separador " - ")
-    final slashParts = name.split(' / ');
-    if (slashParts.length > 1) return slashParts.last.trim();
+    if (product.color.isNotEmpty) return product.color;
+    if (color.isNotEmpty) return color;
     return '';
   }
+
+  /// Codi hex del color (ex: "#FFFFFF")
+  String get colorCode => product.colorCode;
 
   /// Retorna la millor URL d'imatge personalitzada (mockup) per aquest variant.
   /// Prioritza: mockup_url > previewUrl > url > thumbnailUrl dins de PrintfulFile amb type 'preview' o 'default'.
@@ -171,12 +164,18 @@ class CatalogVariantInfo {
   final int productId;
   final String image;
   final String name;
+  final String color;
+  final String size;
+  final String colorCode;
 
   const CatalogVariantInfo({
     required this.variantId,
     required this.productId,
     required this.image,
     required this.name,
+    required this.color,
+    required this.size,
+    required this.colorCode,
   });
 
   factory CatalogVariantInfo.fromMap(Map<String, dynamic> map) {
@@ -185,6 +184,9 @@ class CatalogVariantInfo {
       productId: (map['product_id'] ?? 0) as int,
       image: (map['image'] ?? '') as String,
       name: (map['name'] ?? '') as String,
+      color: (map['color'] ?? '') as String,
+      size: (map['size'] ?? '') as String,
+      colorCode: (map['color_code'] ?? '') as String,
     );
   }
 }

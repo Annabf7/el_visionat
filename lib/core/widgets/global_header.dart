@@ -79,10 +79,12 @@ class GlobalHeader extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       backgroundColor: AppTheme.porpraFosc,
       elevation: 0,
-      leading: showMenuButton ? IconButton(
-        onPressed: () => scaffoldKey?.currentState?.openDrawer(),
-        icon: const Icon(Icons.menu, color: AppTheme.white),
-      ) : null,
+      leading: showMenuButton
+          ? IconButton(
+              onPressed: () => scaffoldKey?.currentState?.openDrawer(),
+              icon: const Icon(Icons.menu, color: AppTheme.white),
+            )
+          : null,
       automaticallyImplyLeading: showMenuButton,
       title: showSearch
           ? const GlobalSearchBar()

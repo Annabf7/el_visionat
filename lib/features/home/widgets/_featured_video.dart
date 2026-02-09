@@ -9,19 +9,32 @@ class FeaturedVideo extends StatefulWidget {
   State<FeaturedVideo> createState() => _FeaturedVideoState();
 }
 
-class _FeaturedVideoState extends State<FeaturedVideo> {
+class _FeaturedVideoState extends State<FeaturedVideo>
+    with SingleTickerProviderStateMixin {
   VideoPlayerController? _controller;
   bool _isInitialized = false;
+  AnimationController? _textAnimController;
+
+  static const _words = ['El', 'visionat', 'que', 'et', 'fa', 'crèixer'];
 
   @override
   void initState() {
     super.initState();
+    _textAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    );
     _initializeVideo();
+    // Inicia l'animació del text després d'un breu retard
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) _textAnimController?.forward();
+    });
   }
 
   @override
   void dispose() {
     _controller?.dispose();
+    _textAnimController?.dispose();
     super.dispose();
   }
 
@@ -47,6 +60,56 @@ class _FeaturedVideoState extends State<FeaturedVideo> {
     } catch (e) {
       debugPrint('Error initializing featured video: $e');
     }
+  }
+
+  /// Text animat paraula per paraula amb fade-in + lliscament vertical
+  Widget _buildAnimatedTagline({required double fontSize}) {
+    final controller = _textAnimController;
+    if (controller == null) return const SizedBox.shrink();
+
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        return Wrap(
+          alignment: WrapAlignment.center,
+          children: List.generate(_words.length, (i) {
+            // Cada paraula té un interval esgraonat dins l'animació global
+            final start = i / (_words.length + 2);
+            final end = ((i + 3) / (_words.length + 2)).clamp(0.0, 1.0);
+
+            final t = controller.value;
+            final raw = ((t - start) / (end - start)).clamp(0.0, 1.0);
+            final progress = Curves.easeOutCubic.transform(raw);
+
+            return Opacity(
+              opacity: progress,
+              child: Transform.translate(
+                offset: Offset(0, 14 * (1 - progress)),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: fontSize * 0.08),
+                  child: Text(
+                    _words[i],
+                    style: TextStyle(
+                      fontFamily: 'Geist',
+                      fontSize: fontSize,
+                      color: AppTheme.grisPistacho,
+                      fontWeight: FontWeight.normal,
+                      letterSpacing: 1.2,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
   }
 
   @override
@@ -81,17 +144,7 @@ class _FeaturedVideoState extends State<FeaturedVideo> {
                 ),
               ),
               Center(
-                child: const Text(
-                  'El visionat que et fa crèixer',
-                  style: TextStyle(
-                    fontFamily: 'Geist',
-                    fontSize: 32,
-                    color: AppTheme.grisPistacho,
-                    fontWeight: FontWeight.normal,
-                    letterSpacing: 1.2,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
+                child: _buildAnimatedTagline(fontSize: 32),
               ),
             ],
           ),
@@ -114,17 +167,7 @@ class _FeaturedVideoState extends State<FeaturedVideo> {
             alignment: Alignment.topCenter,
             child: Padding(
               padding: const EdgeInsets.only(top: 84.0),
-              child: Text(
-                'El visionat que et fa crèixer',
-                style: const TextStyle(
-                  fontFamily: 'Geist',
-                  fontSize: 22,
-                  color: AppTheme.grisPistacho,
-                  fontWeight: FontWeight.normal,
-                  letterSpacing: 1.2,
-                ),
-                textAlign: TextAlign.center,
-              ),
+              child: _buildAnimatedTagline(fontSize: 22),
             ),
           ),
         ],

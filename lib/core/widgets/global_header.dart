@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:el_visionat/features/auth/providers/auth_provider.dart';
 import 'package:el_visionat/features/notifications/providers/notification_provider.dart';
+import 'package:el_visionat/features/vestidor/providers/cart_provider.dart';
 import 'package:el_visionat/features/notifications/widgets/notification_badge.dart';
 import 'package:el_visionat/features/notifications/widgets/notification_dropdown.dart';
 import 'package:el_visionat/features/search/widgets/global_search_bar.dart';
@@ -123,6 +124,24 @@ class GlobalHeader extends StatelessWidget implements PreferredSizeWidget {
           onPressed: () => Navigator.pushNamed(context, '/designations'),
           icon: const Icon(Icons.euro_outlined, color: AppTheme.mostassa),
           tooltip: 'Designacions',
+        ),
+
+        // Icona carretó (només si hi ha items)
+        Consumer<CartProvider>(
+          builder: (context, cart, _) {
+            if (cart.isEmpty) return const SizedBox.shrink();
+            return IconButton(
+              onPressed: () => Navigator.pushNamed(context, '/cart'),
+              icon: NotificationBadge(
+                count: cart.itemCount,
+                child: const Icon(
+                  Icons.shopping_cart_outlined,
+                  color: AppTheme.white,
+                ),
+              ),
+              tooltip: 'Carretó',
+            );
+          },
         ),
 
         // Icona campana (notificacions)

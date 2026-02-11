@@ -109,6 +109,8 @@ class SideNavigationMenu extends StatelessWidget {
                   _NavigationItem(
                     icon: Icons.psychology,
                     text: 'Neurovisionat',
+                    isSelected: isActive('/neurovisionat'),
+                    onTap: () => Navigator.pushNamed(ctx, '/neurovisionat'),
                   ),
                   _NavigationItem(icon: Icons.people, text: 'Mentoria'),
                   _NavigationItem(

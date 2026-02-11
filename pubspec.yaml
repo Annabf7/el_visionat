@@ -84,6 +84,8 @@ dependencies:
   timeago: ^3.7.1
   # Calendar for Gestiona't feature
   table_calendar: ^3.1.2
+  # Stripe per pagaments
+  flutter_stripe: ^11.3.0
 
 dev_dependencies:
   flutter_test:

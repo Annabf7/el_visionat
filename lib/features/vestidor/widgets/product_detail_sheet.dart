@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 import '../providers/vestidor_provider.dart';
+import '../providers/cart_provider.dart';
 
 /// Bottom sheet de detall de producte amb galeria d'imatges i selector de variants
 class ProductDetailSheet extends StatefulWidget {
@@ -208,7 +209,7 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                   left: 0,
                   child: IconButton(
                     icon: const Icon(Icons.chevron_left_rounded, size: 36),
-                    color: AppTheme.grisBody.withOpacity(
+                    color: AppTheme.grisBody.withValues(alpha:
                       _currentImageIndex > 0 ? 0.8 : 0.2,
                     ),
                     onPressed: _currentImageIndex > 0
@@ -230,7 +231,7 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                   right: 0,
                   child: IconButton(
                     icon: const Icon(Icons.chevron_right_rounded, size: 36),
-                    color: AppTheme.grisBody.withOpacity(
+                    color: AppTheme.grisBody.withValues(alpha:
                       _currentImageIndex < images.length - 1 ? 0.8 : 0.2,
                     ),
                     onPressed: _currentImageIndex < images.length - 1
@@ -526,35 +527,86 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
   }
 
   Widget _buildPurchaseButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Funcionalitat de compra properament disponible'),
-              backgroundColor: AppTheme.mostassa,
+    final provider = context.read<VestidorProvider>();
+    final cart = context.watch<CartProvider>();
+    final variant = provider.activeVariant;
+    final product = provider.selectedProduct;
+    final isEnabled = variant != null && product != null;
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            // Botó principal: Afegir al carretó
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: isEnabled
+                    ? () {
+                        context.read<CartProvider>().addItem(variant, product);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Producte afegit al carretó'),
+                            backgroundColor: AppTheme.verdeEncert,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    : null,
+                icon: const Icon(Icons.add_shopping_cart_rounded, size: 20),
+                label: const Text('Afegir al carretó'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.porpraFosc,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  textStyle: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  elevation: 4,
+                  shadowColor: AppTheme.porpraFosc.withValues(alpha: 0.3),
+                ),
+              ),
             ),
-          );
-        },
-        icon: const Icon(Icons.shopping_bag_rounded, size: 20),
-        label: const Text('Sol\u00b7licitar compra'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.porpraFosc,
-          foregroundColor: AppTheme.grisPistacho,
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          textStyle: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
-          elevation: 4,
-          shadowColor: AppTheme.porpraFosc.withValues(alpha: 0.3),
+            // Botó secundari: Veure el carretó (si té items)
+            if (cart.itemCount > 0) ...[
+              const SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context); // Tanca bottom sheet
+                  Navigator.pushNamed(context, '/cart');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.mostassa,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  textStyle: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  elevation: 4,
+                  shadowColor: AppTheme.mostassa.withValues(alpha: 0.3),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.shopping_cart_rounded, size: 18),
+                    const SizedBox(width: 6),
+                    Text('${cart.itemCount}'),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ),
-      ),
+      ],
     );
   }
 

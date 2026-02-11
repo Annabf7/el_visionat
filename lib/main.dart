@@ -10,6 +10,7 @@ import 'package:el_visionat/features/designations/pages/designations_page.dart';
 import 'package:el_visionat/features/reports/index.dart';
 import 'package:el_visionat/features/vestidor/index.dart';
 import 'package:el_visionat/features/gestiona_t/index.dart';
+import 'package:el_visionat/features/neurovisionat/pages/neurovisionat_page.dart';
 import 'package:el_visionat/features/notifications/providers/notification_provider.dart';
 import 'package:el_visionat/features/search/providers/search_provider.dart';
 import 'package:el_visionat/core/index.dart';
@@ -28,6 +29,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:flutter_stripe/flutter_stripe.dart';
 
 /// Escalfa les Cloud Functions en mode debug per evitar cold start
 Future<void> _warmUpFunctions() async {
@@ -46,6 +48,13 @@ void main() async {
   // --- Configuració Inicial ---
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Inicialitzar Stripe amb la publishable key (pública per disseny).
+  // flutter_stripe no suporta web — només inicialitzem en iOS/Android.
+  if (!kIsWeb) {
+    Stripe.publishableKey =
+        'pk_live_51QFKM62KU97iEHk7KaFDpOC1eat5sxA38Rpt9t969XTlMVr8emEpdliAbAlqkNf9xK3X3utqTGLeYHRafVS0ctDZ00hHyad4Gw';
+  }
 
   // Instanciem FirebaseFunctions sempre amb la regió correcte
   // IMPORTANT: Sempre usar europe-west1 per compatibilitat amb les Cloud Functions desplegades
@@ -71,7 +80,8 @@ void main() async {
   // Use --dart-define=USE_EMULATORS=true to enable emulators in debug mode.
   const useEmulators = bool.fromEnvironment(
     'USE_EMULATORS',
-    defaultValue: false, // Canviat a false per treballar en producció per defecte
+    defaultValue:
+        false, // Canviat a false per treballar en producció per defecte
   );
   if (kDebugMode && kIsWeb && useEmulators) {
     const emulatorHost = '127.0.0.1';
@@ -104,9 +114,7 @@ void main() async {
   await TeamMappingService.instance.initialize();
 
   // Instanciem el servei de dades d'equips amb Firestore
-  final teamDataService = TeamDataService(
-    FirebaseFirestore.instance,
-  );
+  final teamDataService = TeamDataService(FirebaseFirestore.instance);
 
   // Inicialitzem les dades de localització per a DateFormat (evita LocaleDataException)
   // Assegura't d'afegir la localització que utilitzis, p.ex. 'ca_ES'.
@@ -168,29 +176,21 @@ void main() async {
           create: (_) => YouTubeProvider(YouTubeService()),
         ),
         // Notification provider
-        ChangeNotifierProvider(
-          create: (_) => NotificationProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
         // Comment provider for highlights
-        ChangeNotifierProvider(
-          create: (_) => CommentProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => CommentProvider()),
         // Reports provider
-        ChangeNotifierProvider(
-          create: (_) => ReportsProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => ReportsProvider()),
         // Vestidor (botiga merchandising) provider
-        ChangeNotifierProvider(
-          create: (_) => VestidorProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => VestidorProvider()),
+        // Cart provider (carretó de compra)
+        ChangeNotifierProvider(create: (_) => CartProvider()),
+        // Checkout provider (flux de compra multi-step)
+        ChangeNotifierProvider(create: (_) => CheckoutProvider()),
         // Search provider per cerca global d'àrbitres
-        ChangeNotifierProvider(
-          create: (_) => SearchProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => SearchProvider()),
         // Schedule provider per Gestiona't
-        ChangeNotifierProvider(
-          create: (_) => ScheduleProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => ScheduleProvider()),
       ],
       child: const MyApp(), // L'aplicació principal
     ),
@@ -228,19 +228,23 @@ class MyApp extends StatelessWidget {
       // --- Configuració de Rutes ---
       initialRoute: '/', // La ruta inicial, gestionada per AuthWrapper
       routes: {
-        '/': (context) => const AuthWrapper(), // El widget que decideix on anar
+        '/': (context) => const AuthWrapper(),
         '/home': (context) => RequireAuth(child: const HomePage()),
         '/all-matches': (context) => RequireAuth(child: const AllMatchesPage()),
         '/profile': (context) => RequireAuth(child: const ProfilePage()),
         '/reports': (context) => RequireAuth(child: const ReportsPage()),
         '/visionat': (context) => RequireAuth(child: const VisionatMatchPage()),
-        '/designations': (context) => RequireAuth(child: const DesignationsPage()),
+        '/designations': (context) =>
+            RequireAuth(child: const DesignationsPage()),
         '/vestidor': (context) => RequireAuth(child: const VestidorPage()),
+        '/cart': (context) => RequireAuth(child: const CartPage()),
+        '/checkout': (context) => RequireAuth(child: const CheckoutPage()),
+        '/orders': (context) => RequireAuth(child: const OrdersPage()),
         '/gestiona-t': (context) => RequireAuth(child: const GestionaTPage()),
-        '/login': (context) => const LoginPage(), // Ruta explícita per a Login
-        '/create-password': (context) =>
-            const CreatePasswordPage(), // Ruta per crear contrasenya
-        // Pots afegir més rutes aquí si callen
+        '/neurovisionat': (context) =>
+            RequireAuth(child: const NeuroVisionatPage()),
+        '/login': (context) => const LoginPage(),
+        '/create-password': (context) => const CreatePasswordPage(),
       },
       onGenerateRoute: (settings) {
         // Ruta dinàmica per veure perfils públics d'usuaris
@@ -248,8 +252,19 @@ class MyApp extends StatelessWidget {
           final userId = settings.arguments as String?;
           if (userId != null) {
             return MaterialPageRoute(
+              builder: (context) =>
+                  RequireAuth(child: UserProfilePage(userId: userId)),
+            );
+          }
+        }
+        // Retorn de Stripe Checkout (web) — /checkout-success?orderId=...
+        final uri = Uri.tryParse(settings.name ?? '');
+        if (uri != null && uri.path == '/checkout-success') {
+          final orderId = uri.queryParameters['orderId'];
+          if (orderId != null && orderId.isNotEmpty) {
+            return MaterialPageRoute(
               builder: (context) => RequireAuth(
-                child: UserProfilePage(userId: userId),
+                child: CheckoutSuccessPage(orderId: orderId),
               ),
             );
           }
@@ -281,10 +296,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // Inicialitzar NotificationProvider quan l'usuari està autenticat
+    // Inicialitzar NotificationProvider i carretó quan l'usuari està autenticat
     if (auth.isAuthenticated && auth.currentUserUid != null) {
-      debugPrint('[AuthWrapper] build - Autenticat! UID: ${auth.currentUserUid}');
+      debugPrint(
+        '[AuthWrapper] build - Autenticat! UID: ${auth.currentUserUid}',
+      );
       notificationProvider.initialize(auth.currentUserUid!);
+      context.read<CartProvider>().loadCart(auth.currentUserUid!);
     }
 
     // If auth is initialized, decide between Login and Home. RequireAuth will

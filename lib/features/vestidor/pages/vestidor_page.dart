@@ -4,6 +4,7 @@ import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
 import 'package:el_visionat/core/widgets/global_header.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 import '../providers/vestidor_provider.dart';
+import '../providers/cart_provider.dart';
 import '../widgets/vestidor_hero.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_detail_sheet.dart';
@@ -44,6 +45,7 @@ class _VestidorPageState extends State<VestidorPage> {
         if (isLargeScreen) {
           return Scaffold(
             key: _scaffoldKey,
+            floatingActionButton: _buildCartFab(context),
             body: Row(
               children: [
                 SizedBox(
@@ -72,6 +74,7 @@ class _VestidorPageState extends State<VestidorPage> {
           return Scaffold(
             key: _scaffoldKey,
             drawer: const SideNavigationMenu(),
+            floatingActionButton: _buildCartFab(context),
             body: Column(
               children: [
                 GlobalHeader(
@@ -312,6 +315,27 @@ class _VestidorPageState extends State<VestidorPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// FAB amb badge del carretó
+  Widget? _buildCartFab(BuildContext context) {
+    final cart = context.watch<CartProvider>();
+    if (cart.isEmpty) return null;
+    return FloatingActionButton(
+      onPressed: () => Navigator.pushNamed(context, '/cart'),
+      backgroundColor: AppTheme.porpraFosc,
+      child: Badge(
+        label: Text(
+          '${cart.itemCount}',
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        child: const Icon(Icons.shopping_cart_rounded, color: Colors.white),
       ),
     );
   }

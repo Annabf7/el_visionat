@@ -63,7 +63,10 @@ import {
 } from "./reports/process_pdf";
 
 // Printful - Integració botiga merchandising
-import {getPrintfulProducts, getPrintfulProduct, proxyPrintfulImage, getPrintfulProductMockups} from "./printful";
+import {getPrintfulProducts, getPrintfulProduct, proxyPrintfulImage, getPrintfulProductMockups, calculateShipping, printfulWebhook} from "./printful";
+
+// Stripe - Pagaments
+import {createPaymentIntent, stripeWebhook} from "./stripe";
 
 // Export functions with the exact names expected by the client
 exports.lookupLicense = lookupLicense;
@@ -114,3 +117,9 @@ exports.getPrintfulProducts = getPrintfulProducts;
 exports.getPrintfulProduct = getPrintfulProduct;
 exports.proxyPrintfulImage = proxyPrintfulImage;
 exports.getPrintfulProductMockups = getPrintfulProductMockups;
+exports.calculateShipping = calculateShipping;
+exports.printfulWebhook = printfulWebhook;
+
+// Stripe - Pagaments exports
+exports.createPaymentIntent = createPaymentIntent;
+exports.stripeWebhook = stripeWebhook;

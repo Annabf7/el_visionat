@@ -98,40 +98,10 @@ class GlobalHeader extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
       actions: [
-        // Botó Perfil (només en desktop)
-        LayoutBuilder(
-          builder: (context, constraints) {
-            // Només mostrar en pantalles grans (desktop)
-            if (MediaQuery.of(context).size.width > 900) {
-              return TextButton(
-                onPressed: () => Navigator.pushNamed(context, '/profile'),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppTheme.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                ),
-                child: const Text(
-                  'Perfil',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                ),
-              );
-            }
-            return const SizedBox.shrink(); // No mostrar res en mòbil
-          },
-        ),
-
-        // Icona de designacions
-        IconButton(
-          onPressed: () => Navigator.pushNamed(context, '/designations'),
-          icon: const Icon(Icons.euro_outlined, color: AppTheme.mostassa),
-          tooltip: 'Designacions',
-        ),
-
-        // Icona carretó (només si hi ha items)
+        // Menú botiga (carretó + opcions e-commerce)
         Consumer<CartProvider>(
           builder: (context, cart, _) {
-            if (cart.isEmpty) return const SizedBox.shrink();
-            return IconButton(
-              onPressed: () => Navigator.pushNamed(context, '/cart'),
+            return PopupMenuButton<String>(
               icon: NotificationBadge(
                 count: cart.itemCount,
                 child: const Icon(
@@ -139,7 +109,63 @@ class GlobalHeader extends StatelessWidget implements PreferredSizeWidget {
                   color: AppTheme.white,
                 ),
               ),
-              tooltip: 'Carretó',
+              tooltip: 'Botiga',
+              color: AppTheme.textBlackLow,
+              offset: const Offset(0, 40),
+              onSelected: (value) {
+                switch (value) {
+                  case 'cart':
+                    Navigator.pushNamed(context, '/cart');
+                    break;
+                  case 'orders':
+                    Navigator.pushNamed(context, '/orders');
+                    break;
+                  case 'shop':
+                    Navigator.pushNamed(context, '/vestidor');
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'cart',
+                  child: Row(
+                    children: [
+                      Icon(Icons.shopping_cart_outlined, color: AppTheme.white, size: 20),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Carretó (${cart.itemCount})',
+                        style: TextStyle(color: AppTheme.white, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'orders',
+                  child: Row(
+                    children: [
+                      Icon(Icons.receipt_long_outlined, color: AppTheme.white, size: 20),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Les meves comandes',
+                        style: TextStyle(color: AppTheme.white, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'shop',
+                  child: Row(
+                    children: [
+                      Icon(Icons.checkroom_rounded, color: AppTheme.white, size: 20),
+                      const SizedBox(width: 12),
+                      Text(
+                        'El Vestidor',
+                        style: TextStyle(color: AppTheme.white, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             );
           },
         ),
@@ -200,9 +226,6 @@ class GlobalHeader extends StatelessWidget implements PreferredSizeWidget {
               case 'profile':
                 Navigator.pushNamed(context, '/profile');
                 break;
-              case 'history':
-                debugPrint('historial placeholder');
-                break;
               case 'accounting':
                 Navigator.pushNamed(context, '/designations');
                 break;
@@ -220,19 +243,6 @@ class GlobalHeader extends StatelessWidget implements PreferredSizeWidget {
                   const SizedBox(width: 12),
                   Text(
                     'Perfil',
-                    style: TextStyle(color: AppTheme.white, fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: 'history',
-              child: Row(
-                children: [
-                  Icon(Icons.history, color: AppTheme.white, size: 20),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Historial de compra',
                     style: TextStyle(color: AppTheme.white, fontSize: 14),
                   ),
                 ],

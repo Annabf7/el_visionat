@@ -87,6 +87,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Widget _buildContent(BuildContext context) {
     final checkout = context.watch<CheckoutProvider>();
     final cart = context.watch<CartProvider>();
+
+    // Si el carretó és buit i no estem a confirmació, redirigir
+    if (cart.isEmpty && checkout.currentStep != CheckoutStep.confirmation) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        checkout.reset();
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/cart');
+        }
+      });
+      return const Center(
+        child: CircularProgressIndicator(color: AppTheme.porpraFosc),
+      );
+    }
+
     final isDesktop = MediaQuery.of(context).size.width > 1100;
     final showSidebar =
         isDesktop && checkout.currentStep != CheckoutStep.confirmation;
@@ -1081,6 +1095,74 @@ class _ShippingStep extends StatelessWidget {
                     ),
                   ),
                 ),
+              const SizedBox(height: 20),
+              // Info: Pagament segur + Després del pagament
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: AppTheme.grisPistacho.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppTheme.grisPistacho.withValues(alpha: 0.10),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text('🔒 ', style: TextStyle(fontSize: 15)),
+                        Text(
+                          'Pagament segur',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.grisPistacho,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'El pagament es processa de forma segura a través de Stripe.\n'
+                      'Les dades de la teva targeta no es guarden als nostres servidors.',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        color: AppTheme.grisPistacho.withValues(alpha: 0.7),
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        const Text('📦 ', style: TextStyle(fontSize: 15)),
+                        Text(
+                          'Després del pagament',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.grisPistacho,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Rebràs un correu de confirmació un cop el pagament sigui acceptat.\n'
+                      'La comanda entrarà en producció i t\'enviarem la informació de seguiment quan estigui disponible.',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        color: AppTheme.grisPistacho.withValues(alpha: 0.7),
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 16),
               // Resum
               _buildSummaryCard(cart, checkout),
@@ -1668,8 +1750,8 @@ class _PaymentStep extends StatelessWidget {
       if (url == null) return;
       final uri = Uri.parse(url);
       if (await canLaunchUrl(uri)) {
-        // Buidem el carretó abans de redirigir (el webhook s'encarrega de la resta)
-        cart.clear();
+        // No buidem el carretó aquí — el webhook s'encarrega de la comanda,
+        // i el carretó es netejarà quan l'usuari torni (guard de carretó buit).
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
       return;

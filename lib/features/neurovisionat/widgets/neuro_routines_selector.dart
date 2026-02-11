@@ -12,80 +12,131 @@ class NeuroRoutinesSelector extends StatefulWidget {
 
 class _NeuroRoutinesSelectorState extends State<NeuroRoutinesSelector> {
   int? _selected;
+  final Map<int, bool> _hoverStates = {};
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Selecciona una rutina neuro-arbitral',
+            'Selecciona una rutina',
             style: TextStyle(
               fontFamily: 'Geist',
-              fontSize: 18,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: AppTheme.porpraFosc,
-              letterSpacing: 1.1,
+              color: AppTheme.grisPistacho,
+              letterSpacing: 0.5,
             ),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 8,
-            children: List.generate(widget.routines.length, (i) {
-              final routine = widget.routines[i];
-              final selected = _selected == i;
-              return ChoiceChip(
-                label: Text(
-                  routine.nom,
-                  style: TextStyle(
-                    fontFamily: 'Geist',
-                    fontSize: 15,
-                    color: selected ? AppTheme.white : AppTheme.porpraFosc,
-                  ),
-                ),
-                selected: selected,
-                onSelected: (val) {
-                  setState(() {
-                    _selected = val ? i : null;
-                  });
-                },
-                backgroundColor: AppTheme.white,
-                selectedColor: AppTheme.porpraFosc,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: selected
-                        ? AppTheme.porpraFosc
-                        : AppTheme.porpraFosc.withValues(alpha: 0.18),
-                    width: 2,
-                  ),
-                ),
-                elevation: selected ? 4 : 0,
+          const SizedBox(height: 20),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: List.generate(widget.routines.length, (i) {
+                  final routine = widget.routines[i];
+                  final selected = _selected == i;
+                  final isHovered = _hoverStates[i] ?? false;
+
+                  // Calculate width for 2 columns (accounting for spacing)
+                  final double itemWidth = (constraints.maxWidth - 12) / 2;
+
+                  return MouseRegion(
+                    onEnter: (_) => setState(() => _hoverStates[i] = true),
+                    onExit: (_) => setState(() => _hoverStates[i] = false),
+                    cursor: SystemMouseCursors.click,
+                    child: SizedBox(
+                      width: itemWidth,
+                      height: 75,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selected = selected ? null : i;
+                          });
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 0,
+                          ),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? AppTheme.mostassa
+                                : (isHovered
+                                      ? AppTheme.mostassa.withValues(alpha: 0.1)
+                                      : Colors.transparent),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppTheme.mostassa,
+                              width: 1,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            routine.nom,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Geist',
+                              fontSize: 14,
+                              fontWeight: FontWeight.normal,
+                              color: selected
+                                  ? AppTheme.porpraFosc
+                                  : AppTheme.grisPistacho,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
               );
-            }),
+            },
           ),
-          const SizedBox(height: 18),
-          if (_selected != null)
-            Card(
-              color: AppTheme.grisBody,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  widget.routines[_selected!].descripcio,
-                  style: TextStyle(
-                    fontFamily: 'Geist',
-                    fontSize: 15,
-                    color: AppTheme.porpraFosc,
-                  ),
-                ),
-              ),
-            ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: _selected != null
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 20),
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppTheme.grisPistacho,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.psychology,
+                            color: AppTheme.porpraFosc,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              widget.routines[_selected!].descripcio,
+                              style: TextStyle(
+                                fontFamily: 'Geist',
+                                fontSize: 15,
+                                color: AppTheme.porpraFosc,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
         ],
       ),
     );

@@ -15,17 +15,24 @@ class _NeuroMiniQuizState extends State<NeuroMiniQuiz> {
   int _score = 0;
   bool _answered = false;
   int? _selected;
+  final Map<int, bool> _hoverStates = {};
 
   @override
   Widget build(BuildContext context) {
     final q = widget.questions[_current];
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 0,
+        vertical: 0,
+      ), // Removed excess padding
       child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         color: AppTheme.grisBody,
+        elevation:
+            0, // Flat inside parent container if needed, or keeping it clean
+        margin: EdgeInsets.zero,
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(0), // Controlled by parent
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -33,10 +40,10 @@ class _NeuroMiniQuizState extends State<NeuroMiniQuiz> {
                 'Mini Quiz NeuroVisionat',
                 style: TextStyle(
                   fontFamily: 'Geist',
-                  fontSize: 18,
+                  fontSize: 20, // Increased slightly to standalone
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.porpraFosc,
-                  letterSpacing: 1.1,
+                  color: AppTheme.grisPistacho,
+                  letterSpacing: 0.5,
                 ),
               ),
               const SizedBox(height: 12),
@@ -44,63 +51,94 @@ class _NeuroMiniQuizState extends State<NeuroMiniQuiz> {
                 q.question,
                 style: TextStyle(
                   fontFamily: 'Geist',
-                  fontSize: 16,
+                  fontSize: 15, // Matched with Pillars body text
                   fontWeight: FontWeight.w500,
-                  color: AppTheme.porpraFosc,
+                  color: AppTheme.grisPistacho,
+                  height: 1.4,
                 ),
               ),
-              const SizedBox(height: 16),
-              ...List.generate(q.options.length, (i) {
-                final isSelected = _selected == i;
-                final isCorrect = _answered && i == q.correctIndex;
-                return GestureDetector(
-                  onTap: !_answered
-                      ? () {
-                          setState(() {
-                            _selected = i;
-                            _answered = true;
-                            if (i == q.correctIndex) _score++;
-                          });
-                        }
-                      : null,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? (isCorrect
-                                ? AppTheme.grisPistacho
-                                : AppTheme.porpraFosc.withValues(alpha: 0.15))
-                          : AppTheme.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isSelected
-                            ? (isCorrect
-                                  ? AppTheme.grisPistacho
-                                  : AppTheme.porpraFosc)
-                            : AppTheme.porpraFosc.withValues(alpha: 0.18),
-                        width: 2,
-                      ),
-                    ),
-                    child: Text(
-                      q.options[i],
-                      style: TextStyle(
-                        fontFamily: 'Geist',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w400,
-                        color: isSelected
-                            ? (isCorrect
-                                  ? AppTheme.porpraFosc
-                                  : AppTheme.porpraFosc)
-                            : AppTheme.porpraFosc,
-                      ),
-                    ),
-                  ),
-                );
-              }),
+              const SizedBox(height: 20),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  // Grid 2x2 logic
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: List.generate(q.options.length, (i) {
+                      final isSelected = _selected == i;
+                      final isCorrect = _answered && i == q.correctIndex;
+                      final isHovered = _hoverStates[i] ?? false;
+
+                      // Calculate width for 2 columns (accounting for spacing)
+                      final double itemWidth = (constraints.maxWidth - 12) / 2;
+
+                      return MouseRegion(
+                        onEnter: (_) => setState(() => _hoverStates[i] = true),
+                        onExit: (_) => setState(() => _hoverStates[i] = false),
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: !_answered
+                              ? () {
+                                  setState(() {
+                                    _selected = i;
+                                    _answered = true;
+                                    if (i == q.correctIndex) _score++;
+                                  });
+                                }
+                              : null,
+                          child: SizedBox(
+                            width: itemWidth,
+                            height: 75, // Fixed height for consistency
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 0, // Center vertically via alignment
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? (isCorrect
+                                          ? AppTheme.verdeEncert
+                                          : Colors.redAccent)
+                                    : (isHovered
+                                          ? AppTheme.mostassa.withValues(
+                                              alpha: 0.1,
+                                            )
+                                          : Colors.transparent),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? (isCorrect
+                                            ? AppTheme.verdeEncert
+                                            : Colors.redAccent)
+                                      : AppTheme.mostassa,
+                                  width: 1, // Thin stroke
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                q.options[i],
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: 'Geist',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.normal, // Sense bold
+                                  color: isSelected
+                                      ? AppTheme.white
+                                      : AppTheme
+                                            .grisPistacho, // Gris pistacho text
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  );
+                },
+              ),
               const SizedBox(height: 18),
               if (_answered)
                 Row(
@@ -128,7 +166,8 @@ class _NeuroMiniQuizState extends State<NeuroMiniQuiz> {
                     const Spacer(),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.porpraFosc,
+                        backgroundColor: AppTheme.mostassa, // Button highlight
+                        foregroundColor: AppTheme.porpraFosc,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -149,7 +188,7 @@ class _NeuroMiniQuizState extends State<NeuroMiniQuiz> {
                         style: TextStyle(
                           fontFamily: 'Geist',
                           fontSize: 15,
-                          color: AppTheme.white,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
@@ -164,7 +203,8 @@ class _NeuroMiniQuizState extends State<NeuroMiniQuiz> {
                       fontFamily: 'Geist',
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.porpraFosc,
+                      color:
+                          AppTheme.grisPistacho, // Changed to improve contrast
                     ),
                   ),
                 ),

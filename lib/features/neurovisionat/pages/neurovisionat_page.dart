@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
+import 'package:video_player/video_player.dart';
 import '../models/neurovisionat_models.dart';
 import '../widgets/neuro_pillars_section.dart';
 import '../widgets/neuro_tip_card.dart';
@@ -7,6 +8,7 @@ import '../widgets/neuro_mini_quiz.dart';
 import '../widgets/neuro_routines_selector.dart';
 import '../widgets/neuro_scientific_framework_section.dart';
 import '../widgets/neuro_cta_section.dart';
+import '../widgets/neuro_video_resources_section.dart';
 import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
 import 'package:el_visionat/core/widgets/global_header.dart';
 
@@ -15,14 +17,14 @@ class NeuroVisionatPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
     return LayoutBuilder(
       builder: (context, constraints) {
         final isLargeScreen = constraints.maxWidth > 900;
         if (isLargeScreen) {
           // Desktop layout: SideNavigationMenu + GlobalHeader + content
           return Scaffold(
-            key: _scaffoldKey,
+            key: scaffoldKey,
             backgroundColor: AppTheme.grisBody,
             body: Row(
               children: [
@@ -35,138 +37,11 @@ class NeuroVisionatPage extends StatelessWidget {
                   child: Column(
                     children: [
                       GlobalHeader(
-                        scaffoldKey: _scaffoldKey,
+                        scaffoldKey: scaffoldKey,
                         title: 'NeuroVisionat',
                         showMenuButton: false,
                       ),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Hero header
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: _NeuroHeroHeader(),
-                              ),
-                              // Neuro-tip
-                              Card(
-                                color: AppTheme.porpraFosc.withValues(
-                                  alpha: 0.92,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                elevation: 2,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 16,
-                                  ),
-                                  child: const NeuroTipCard(),
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              // Mini quiz
-                              Card(
-                                color: AppTheme.grisBody,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                elevation: 2,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 16,
-                                  ),
-                                  child: NeuroMiniQuiz(
-                                    questions: neuroQuizQuestions,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              // Routines selector
-                              Card(
-                                color: AppTheme.grisBody,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                elevation: 2,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 16,
-                                  ),
-                                  child: NeuroRoutinesSelector(
-                                    routines: neuroRoutines,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              // Divider for pillars
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8,
-                                ),
-                                child: Divider(
-                                  color: AppTheme.porpraFosc.withValues(
-                                    alpha: 0.18,
-                                  ),
-                                  thickness: 2,
-                                ),
-                              ),
-                              // Pillars section
-                              NeuroPillarsSection(sections: neuroPillars),
-                              const SizedBox(height: 18),
-                              // Divider for scientific framework
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8,
-                                ),
-                                child: Divider(
-                                  color: AppTheme.porpraFosc.withValues(
-                                    alpha: 0.18,
-                                  ),
-                                  thickness: 2,
-                                ),
-                              ),
-                              // Scientific framework
-                              Card(
-                                color: AppTheme.grisBody,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                elevation: 2,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 16,
-                                  ),
-                                  child:
-                                      const NeuroScientificFrameworkSection(),
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              // CTA final
-                              Card(
-                                color: AppTheme.porpraFosc,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                elevation: 4,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 24,
-                                  ),
-                                  child: const NeuroCTASection(),
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                            ],
-                          ),
-                        ),
-                      ),
+                      Expanded(child: _NeuroWebLayout()),
                     ],
                   ),
                 ),
@@ -174,62 +49,150 @@ class NeuroVisionatPage extends StatelessWidget {
             ),
           );
         } else {
-          // Mobile layout: Drawer + GlobalHeader + content
+          // Mobile layout
           return Scaffold(
-            key: _scaffoldKey,
+            key: scaffoldKey,
             backgroundColor: AppTheme.grisBody,
             drawer: const SideNavigationMenu(),
             body: Column(
               children: [
                 GlobalHeader(
-                  scaffoldKey: _scaffoldKey,
+                  scaffoldKey: scaffoldKey,
                   title: 'NeuroVisionat',
                   showMenuButton: true,
                 ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 400),
-                          switchInCurve: Curves.easeIn,
-                          switchOutCurve: Curves.easeOut,
-                          child: _NeuroHeroHeader(),
-                        ),
-                        const SizedBox(height: 8),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 350),
-                          child: const NeuroTipCard(),
-                        ),
-                        const SizedBox(height: 8),
-                        AnimatedSize(
-                          duration: const Duration(milliseconds: 350),
-                          curve: Curves.easeInOut,
-                          child: NeuroMiniQuiz(questions: neuroQuizQuestions),
-                        ),
-                        const SizedBox(height: 8),
-                        AnimatedSize(
-                          duration: const Duration(milliseconds: 350),
-                          curve: Curves.easeInOut,
-                          child: NeuroRoutinesSelector(routines: neuroRoutines),
-                        ),
-                        const SizedBox(height: 8),
-                        NeuroPillarsSection(sections: neuroPillars),
-                        const SizedBox(height: 8),
-                        const NeuroScientificFrameworkSection(),
-                        const SizedBox(height: 8),
-                        const NeuroCTASection(),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
-                  ),
-                ),
+                Expanded(child: _buildMobileLayout(context)),
               ],
             ),
           );
         }
       },
+    );
+  }
+
+  Widget _buildMobileLayout(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _NeuroHeroHeader(),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                _buildCard(
+                  color: AppTheme.porpraFosc.withValues(alpha: 0.95),
+                  child: const NeuroTipCard(),
+                ),
+                const SizedBox(height: 8),
+                _buildCard(child: NeuroMiniQuiz(questions: neuroQuizQuestions)),
+                const SizedBox(height: 8),
+                _buildCard(
+                  child: NeuroRoutinesSelector(routines: neuroRoutines),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: const NeuroVideoResourcesSection(),
+          ),
+          const SizedBox(height: 8),
+          NeuroPillarsSection(sections: neuroPillars),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                _buildCard(
+                  color: AppTheme.porpraFosc,
+                  child: const NeuroCTASection(),
+                ),
+                const SizedBox(height: 8),
+                _buildCard(child: const NeuroScientificFrameworkSection()),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  // Consistent Card Builder helper
+  Widget _buildCard({required Widget child, Color? color}) {
+    return Card(
+      color: color ?? AppTheme.grisBody,
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(padding: const EdgeInsets.all(24), child: child),
+    );
+  }
+}
+
+/// Layout web: hero + pilars/sidebar + vídeo
+class _NeuroWebLayout extends StatelessWidget {
+  static Widget _buildCard({required Widget child, Color? color}) {
+    return Card(
+      color: color ?? AppTheme.grisBody,
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(padding: const EdgeInsets.all(24), child: child),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Left Column (Hero + Pillars + Video)
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _NeuroHeroHeader(),
+                const SizedBox(height: 24),
+                NeuroPillarsSection(sections: neuroPillars),
+                const SizedBox(height: 32),
+                const NeuroVideoResourcesSection(),
+              ],
+            ),
+          ),
+          const SizedBox(width: 24),
+          // Right Column (Sidebar Tools)
+          Expanded(
+            flex: 1,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildCard(
+                  color: AppTheme.porpraFosc.withValues(alpha: 0.95),
+                  child: const NeuroTipCard(),
+                ),
+                const SizedBox(height: 16),
+                _buildCard(child: NeuroMiniQuiz(questions: neuroQuizQuestions)),
+                const SizedBox(height: 16),
+                _buildCard(
+                  child: NeuroRoutinesSelector(routines: neuroRoutines),
+                ),
+                const SizedBox(height: 16),
+                _buildCard(
+                  color: AppTheme.porpraFosc,
+                  child: const NeuroCTASection(),
+                ),
+                const SizedBox(height: 16),
+                _buildCard(child: const NeuroScientificFrameworkSection()),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -393,65 +356,83 @@ final List<NeuroSection> neuroPillars = [
   ),
 ];
 
-class _NeuroHeroHeader extends StatelessWidget {
+class _NeuroHeroHeader extends StatefulWidget {
+  @override
+  State<_NeuroHeroHeader> createState() => _NeuroHeroHeaderState();
+}
+
+class _NeuroHeroHeaderState extends State<_NeuroHeroHeader> {
+  late VideoPlayerController _controller;
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller =
+        VideoPlayerController.networkUrl(
+            Uri.parse(
+              'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/neurovisionat%2Fneurovisionat_header.mp4?alt=media&token=4dfe9f07-51dd-4f08-8815-5604c3fd2340',
+            ),
+          )
+          ..initialize().then((_) {
+            setState(() {
+              _initialized = true;
+            });
+            _controller.setLooping(true);
+            _controller.setVolume(0);
+            _controller.play();
+          });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppTheme.porpraFosc, AppTheme.grisBody],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    if (!_initialized) {
+      return Container(
+        height: 250,
+        decoration: BoxDecoration(
+          color: AppTheme.porpraFosc,
+          borderRadius: const BorderRadius.only(
+            bottomLeft: Radius.circular(32),
+            bottomRight: Radius.circular(32),
+          ),
         ),
+        child: Center(
+          child: CircularProgressIndicator(color: AppTheme.mostassa),
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      height: 500, // Alçada ajustada a 500 per veure millor el contingut
+      decoration: BoxDecoration(
+        color: AppTheme.porpraFosc,
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(32),
           bottomRight: Radius.circular(32),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'NeuroVisionat',
-            style: TextStyle(
-              fontFamily: 'Geist',
-              fontSize: 36,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.white,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Neurociència aplicada a l’arbitratge de bàsquet',
-            style: TextStyle(
-              fontFamily: 'Geist',
-              fontSize: 20,
-              fontWeight: FontWeight.w500,
-              color: AppTheme.grisPistacho,
-              letterSpacing: 1.1,
-            ),
-          ),
-          const SizedBox(height: 18),
-          Text(
-            'La ment també s’entrena. Entrena el cervell que decideix.',
-            style: TextStyle(
-              fontFamily: 'Geist',
-              fontSize: 16,
-              fontWeight: FontWeight.w400,
-              color: AppTheme.white.withValues(alpha: 0.85),
-              letterSpacing: 1.05,
-            ),
-          ),
-        ],
+      clipBehavior: Clip.antiAlias,
+      child: FittedBox(
+        fit: BoxFit.cover, // Això fa que ocupi tot l'ample sense deformar-se
+        child: SizedBox(
+          width: _controller.value.size.width,
+          height: _controller.value.size.height,
+          child: VideoPlayer(_controller),
+        ),
       ),
     );
   }

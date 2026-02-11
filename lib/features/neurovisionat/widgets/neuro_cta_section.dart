@@ -7,72 +7,77 @@ class NeuroCTASection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-      child: Card(
-        color: AppTheme.porpraFosc,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        elevation: 4,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Icon(Icons.psychology, color: AppTheme.grisPistacho, size: 40),
-              const SizedBox(height: 12),
-              Text(
-                'Entrena la ment, arbitra amb neurociència',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Geist',
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.white,
-                  letterSpacing: 1.1,
+      padding: EdgeInsets.zero,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppTheme.porpraFosc,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(Icons.psychology, color: AppTheme.mostassa, size: 40),
+            const SizedBox(height: 16),
+            Text(
+              'Entrena la ment, arbitra amb neurociència',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Geist',
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.white,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Aplica una rutina neuro-arbitral avui mateix i comparteix la teva experiència amb l’equip. La ment també s’entrena!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Geist',
+                fontSize: 15,
+                color: AppTheme.grisPistacho,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                side: const BorderSide(color: AppTheme.mostassa, width: 1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
                 ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                'Aplica una rutina neuro-arbitral avui mateix i comparteix la teva experiència amb l’equip. La ment també s’entrena!',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Geist',
-                  fontSize: 15,
-                  color: AppTheme.grisPistacho,
-                ),
-              ),
-              const SizedBox(height: 18),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.grisPistacho,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 14,
-                  ),
-                ),
-                onPressed: () {
-                  // Acció: compartir, obrir feedback, etc.
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Gràcies per entrenar la ment!'),
-                      backgroundColor: AppTheme.porpraFosc,
+              onPressed: () {
+                // Acció: compartir, obrir feedback, etc.
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Sessió d’entrenament iniciada!',
+                      style: TextStyle(color: AppTheme.porpraFosc),
                     ),
-                  );
-                },
-                child: Text(
-                  'Entrena ara',
-                  style: TextStyle(
-                    fontFamily: 'Geist',
-                    fontSize: 16,
-                    color: AppTheme.porpraFosc,
-                    fontWeight: FontWeight.bold,
+                    backgroundColor: AppTheme.grisPistacho,
                   ),
+                );
+              },
+              child: Text(
+                'Entrena ara',
+                style: TextStyle(
+                  fontFamily: 'Geist',
+                  fontSize: 16,
+                  color: AppTheme.grisPistacho,
+                  fontWeight: FontWeight.normal,
+                  letterSpacing: 0.5,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

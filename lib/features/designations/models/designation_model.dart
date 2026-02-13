@@ -12,13 +12,17 @@ class DesignationModel {
   final String visitantTeam;
   final String location;
   final String locationAddress;
-  final String? originAddress; // Adreça d'origen (opcional, si null s'usa l'adreça de casa)
+  final String?
+  originAddress; // Adreça d'origen (opcional, si null s'usa l'adreça de casa)
   final double kilometers;
   final EarningsModel earnings;
   final String? pdfUrl;
   final String? notes;
-  final String? refereePartner; // Nom del company/companya àrbitre (arbitratge a dobles)
-  final String? refereePartnerNotes; // Anotacions sobre el company/companya àrbitre
+  final String?
+  refereePartner; // Nom del company/companya àrbitre (arbitratge a dobles)
+  final String? refereePartnerPhone; // Telèfon del company/companya
+  final String?
+  refereePartnerNotes; // Anotacions sobre el company/companya àrbitre
   final DateTime createdAt;
 
   DesignationModel({
@@ -38,6 +42,7 @@ class DesignationModel {
     this.pdfUrl,
     this.notes,
     this.refereePartner,
+    this.refereePartnerPhone,
     this.refereePartnerNotes,
     required this.createdAt,
   });
@@ -59,6 +64,7 @@ class DesignationModel {
       'earnings': earnings.toMap(),
       'pdfUrl': pdfUrl,
       'notes': notes,
+      'refereePartnerPhone': refereePartnerPhone,
       'refereePartner': refereePartner,
       'refereePartnerNotes': refereePartnerNotes,
       'createdAt': Timestamp.fromDate(createdAt),
@@ -87,6 +93,7 @@ class DesignationModel {
       ),
       pdfUrl: data['pdfUrl'],
       notes: data['notes'],
+      refereePartnerPhone: data['refereePartnerPhone'],
       refereePartner: data['refereePartner'],
       refereePartnerNotes: data['refereePartnerNotes'],
       createdAt: (data['createdAt'] as Timestamp).toDate(),
@@ -111,6 +118,7 @@ class DesignationModel {
     String? pdfUrl,
     String? notes,
     String? refereePartner,
+    String? refereePartnerPhone,
     String? refereePartnerNotes,
     DateTime? createdAt,
   }) {
@@ -131,6 +139,7 @@ class DesignationModel {
       pdfUrl: pdfUrl ?? this.pdfUrl,
       notes: notes ?? this.notes,
       refereePartner: refereePartner ?? this.refereePartner,
+      refereePartnerPhone: refereePartnerPhone ?? this.refereePartnerPhone,
       refereePartnerNotes: refereePartnerNotes ?? this.refereePartnerNotes,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -143,7 +152,8 @@ class EarningsModel {
   final double kilometersAmount; // Quilometratge (brut)
   final double allowance; // Dietes (brut)
   final double total; // Total brut
-  final double kilometerDistance; // Distància en km (per calcular retenció desplaçament)
+  final double
+  kilometerDistance; // Distància en km (per calcular retenció desplaçament)
 
   /// Taxa IRPF aplicable (2% per activitats < 15.000€/any)
   static const double irpfRate = 0.02;
@@ -183,7 +193,8 @@ class EarningsModel {
   double get netAllowance => _roundToTwo(allowance - allowanceRetention);
 
   /// Quilometratge net
-  double get netKilometersAmount => _roundToTwo(kilometersAmount - displacementRetention);
+  double get netKilometersAmount =>
+      _roundToTwo(kilometersAmount - displacementRetention);
 
   // Mantenir getter antic per compatibilitat
   double get irpfRetention => totalRetention;
@@ -212,7 +223,10 @@ class EarningsModel {
     };
   }
 
-  factory EarningsModel.fromMap(Map<String, dynamic> map, {double kilometerDistance = 0.0}) {
+  factory EarningsModel.fromMap(
+    Map<String, dynamic> map, {
+    double kilometerDistance = 0.0,
+  }) {
     return EarningsModel(
       rights: (map['rights'] ?? 0).toDouble(),
       kilometersAmount: (map['kilometers'] ?? 0).toDouble(),

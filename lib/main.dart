@@ -11,6 +11,7 @@ import 'package:el_visionat/features/reports/index.dart';
 import 'package:el_visionat/features/vestidor/index.dart';
 import 'package:el_visionat/features/gestiona_t/index.dart';
 import 'package:el_visionat/features/neurovisionat/pages/neurovisionat_page.dart';
+import 'package:el_visionat/features/laboratori_arbitral/presentation/laboratori_arbitral_page.dart';
 import 'package:el_visionat/features/notifications/providers/notification_provider.dart';
 import 'package:el_visionat/features/search/providers/search_provider.dart';
 import 'package:el_visionat/core/index.dart';
@@ -242,6 +243,8 @@ class MyApp extends StatelessWidget {
         '/checkout': (context) => RequireAuth(child: const CheckoutPage()),
         '/orders': (context) => RequireAuth(child: const OrdersPage()),
         '/gestiona-t': (context) => RequireAuth(child: const GestionaTPage()),
+        '/laboratori': (context) =>
+            RequireAuth(child: const LaboratoriArbitralPage()),
         '/neurovisionat': (context) =>
             RequireAuth(child: const NeuroVisionatPage()),
         '/login': (context) => const LoginPage(),
@@ -264,9 +267,8 @@ class MyApp extends StatelessWidget {
           final orderId = uri.queryParameters['orderId'];
           if (orderId != null && orderId.isNotEmpty) {
             return MaterialPageRoute(
-              builder: (context) => RequireAuth(
-                child: CheckoutSuccessPage(orderId: orderId),
-              ),
+              builder: (context) =>
+                  RequireAuth(child: CheckoutSuccessPage(orderId: orderId)),
             );
           }
         }

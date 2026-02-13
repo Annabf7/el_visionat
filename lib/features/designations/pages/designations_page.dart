@@ -95,7 +95,9 @@ class _DesignationsPageState extends State<DesignationsPage>
       }
 
       // Parsejar el PDF
-      final matches = await PdfParserService.parsePdfDesignationFromBytes(fileBytes);
+      final matches = await PdfParserService.parsePdfDesignationFromBytes(
+        fileBytes,
+      );
 
       if (matches.isEmpty) {
         if (mounted) {
@@ -176,7 +178,9 @@ class _DesignationsPageState extends State<DesignationsPage>
 
         // Comprovar si ja s'ha cobrat desplaçament per aquest pavelló
         final originalVenueAddress = matchData['locationAddress']!;
-        final bool shouldChargeTravel = !venuesWithTravelPaid.containsKey(originalVenueAddress);
+        final bool shouldChargeTravel = !venuesWithTravelPaid.containsKey(
+          originalVenueAddress,
+        );
 
         if (userHomeAddress.isNotEmpty && venueAddress.isNotEmpty) {
           if (shouldChargeTravel) {
@@ -196,7 +200,9 @@ class _DesignationsPageState extends State<DesignationsPage>
             venuesWithTravelPaid[originalVenueAddress] = true;
           } else {
             // Aquest pavelló ja ha tingut un partit amb desplaçament cobrat
-            print('  ⚠️ Travel already charged for this venue - setting kilometers to 0');
+            print(
+              '  ⚠️ Travel already charged for this venue - setting kilometers to 0',
+            );
             kilometers = 0.0;
           }
         } else {
@@ -233,7 +239,13 @@ class _DesignationsPageState extends State<DesignationsPage>
           locationAddress: matchData['locationAddress']!,
           kilometers: kilometers,
           earnings: earnings,
-          refereePartner: matchData['refereePartner']?.isNotEmpty == true ? matchData['refereePartner'] : null,
+          refereePartner: matchData['refereePartner']?.isNotEmpty == true
+              ? matchData['refereePartner']
+              : null,
+          refereePartnerPhone:
+              matchData['refereePartnerPhone']?.isNotEmpty == true
+              ? matchData['refereePartnerPhone']
+              : null,
           createdAt: DateTime.now(),
         );
 
@@ -253,12 +265,15 @@ class _DesignationsPageState extends State<DesignationsPage>
         Color backgroundColor = Colors.green;
 
         if (successCount > 0 && duplicateCount == 0) {
-          message = '$successCount ${successCount == 1 ? "partit processat" : "partits processats"} correctament';
+          message =
+              '$successCount ${successCount == 1 ? "partit processat" : "partits processats"} correctament';
         } else if (successCount > 0 && duplicateCount > 0) {
-          message = '$successCount ${successCount == 1 ? "partit processat" : "partits processats"} correctament. '
+          message =
+              '$successCount ${successCount == 1 ? "partit processat" : "partits processats"} correctament. '
               '$duplicateCount ${duplicateCount == 1 ? "duplicat omès" : "duplicats omesos"}.';
         } else if (successCount == 0 && duplicateCount > 0) {
-          message = 'Tots els partits ($duplicateCount) ja existeixen a la base de dades';
+          message =
+              'Tots els partits ($duplicateCount) ja existeixen a la base de dades';
           backgroundColor = Colors.orange;
         }
 
@@ -319,9 +334,7 @@ class _DesignationsPageState extends State<DesignationsPage>
                       ),
 
                       // Contingut principal
-                      Expanded(
-                        child: _buildDesktopContent(),
-                      ),
+                      Expanded(child: _buildDesktopContent()),
                     ],
                   ),
                 ),
@@ -387,8 +400,22 @@ class _DesignationsPageState extends State<DesignationsPage>
 
     // Calcular dates per cada període
     final weekStartDate = now.subtract(Duration(days: now.weekday - 1));
-    final weekStart = DateTime(weekStartDate.year, weekStartDate.month, weekStartDate.day, 0, 0, 0);
-    final weekEnd = DateTime(weekStartDate.year, weekStartDate.month, weekStartDate.day + 6, 23, 59, 59);
+    final weekStart = DateTime(
+      weekStartDate.year,
+      weekStartDate.month,
+      weekStartDate.day,
+      0,
+      0,
+      0,
+    );
+    final weekEnd = DateTime(
+      weekStartDate.year,
+      weekStartDate.month,
+      weekStartDate.day + 6,
+      23,
+      59,
+      59,
+    );
     final monthStart = DateTime(now.year, now.month, 1, 0, 0, 0);
     final monthEnd = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
     final yearStart = DateTime(now.year, 1, 1, 0, 0, 0);
@@ -431,13 +458,9 @@ class _DesignationsPageState extends State<DesignationsPage>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: EarningsSummaryWidget(inRow: true),
-                ),
+                Expanded(child: EarningsSummaryWidget(inRow: true)),
                 SizedBox(width: 16),
-                Expanded(
-                  child: CategoryStatsWidget(inRow: true),
-                ),
+                Expanded(child: CategoryStatsWidget(inRow: true)),
               ],
             ),
           ),
@@ -447,18 +470,9 @@ class _DesignationsPageState extends State<DesignationsPage>
             child: TabBarView(
               controller: _tabController,
               children: [
-                DesignationsTabView(
-                  startDate: weekStart,
-                  endDate: weekEnd,
-                ),
-                DesignationsTabView(
-                  startDate: monthStart,
-                  endDate: monthEnd,
-                ),
-                DesignationsTabView(
-                  startDate: yearStart,
-                  endDate: yearEnd,
-                ),
+                DesignationsTabView(startDate: weekStart, endDate: weekEnd),
+                DesignationsTabView(startDate: monthStart, endDate: monthEnd),
+                DesignationsTabView(startDate: yearStart, endDate: yearEnd),
                 const DesignationsTabView(),
               ],
             ),
@@ -473,8 +487,22 @@ class _DesignationsPageState extends State<DesignationsPage>
 
     // Calcular dates per cada període
     final weekStartDate = now.subtract(Duration(days: now.weekday - 1));
-    final weekStart = DateTime(weekStartDate.year, weekStartDate.month, weekStartDate.day, 0, 0, 0);
-    final weekEnd = DateTime(weekStartDate.year, weekStartDate.month, weekStartDate.day + 6, 23, 59, 59);
+    final weekStart = DateTime(
+      weekStartDate.year,
+      weekStartDate.month,
+      weekStartDate.day,
+      0,
+      0,
+      0,
+    );
+    final weekEnd = DateTime(
+      weekStartDate.year,
+      weekStartDate.month,
+      weekStartDate.day + 6,
+      23,
+      59,
+      59,
+    );
     final monthStart = DateTime(now.year, now.month, 1, 0, 0, 0);
     final monthEnd = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
     final yearStart = DateTime(now.year, 1, 1, 0, 0, 0);

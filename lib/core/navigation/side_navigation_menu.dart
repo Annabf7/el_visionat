@@ -105,6 +105,8 @@ class SideNavigationMenu extends StatelessWidget {
                   _NavigationItem(
                     icon: Icons.science,
                     text: 'El Laboratori Arbitral',
+                    isSelected: isActive('/laboratori'),
+                    onTap: () => Navigator.pushNamed(ctx, '/laboratori'),
                   ),
                   _NavigationItem(
                     icon: Icons.psychology,

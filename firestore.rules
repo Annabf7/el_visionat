@@ -292,14 +292,14 @@ service cloud.firestore {
       allow update: if request.auth != null
         && (
           // Usuaris poden toggle reaccions
-          isValidReactionToggle(request.resource.data, resource.data, request.auth.uid)
+          isValidReactionToggle(request.resource.data, resource.data)
           ||
           // Creador pot modificar el highlight
           (request.auth.uid == resource.data.createdBy
            && isValidHighlightPlayUpdate(request.resource.data, resource.data))
           ||
           // Cloud Functions poden canviar status (server-side)
-          isServerSideStatusUpdate(request.resource.data, resource.data)
+          isServerSideStatusUpdate(request.resource.data)
         );
 
       // ❌ 5. Permisos d'eliminació: Només el creador pot eliminar
@@ -375,7 +375,7 @@ service cloud.firestore {
         && newData.id == oldData.id;
     }
 
-    function isValidReactionToggle(newData, oldData, userId) {
+    function isValidReactionToggle(newData, oldData) {
       // Només canvien reactions i reactionsSummary
       let unchangedFields = newData.diff(oldData).unchangedKeys();
       let requiredUnchanged = [
@@ -386,7 +386,7 @@ service cloud.firestore {
         && newData.reactionsSummary is map;
     }
 
-    function isServerSideStatusUpdate(newData, oldData) {
+    function isServerSideStatusUpdate(newData) {
       // Només canvia status, reviewNotifiedAt, resolvedAt, officialCommentId
       // Aquest check és relaxat perquè les Cloud Functions usen Admin SDK
       return newData.status is string

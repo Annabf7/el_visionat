@@ -104,9 +104,7 @@ class _WeeklyGridViewState extends State<WeeklyGridView> {
                   ),
                 const SizedBox(height: 8),
                 // Graella principal
-                Expanded(
-                  child: _buildGrid(provider, dayWidth, isDesktop),
-                ),
+                Expanded(child: _buildGrid(provider, dayWidth, isDesktop)),
               ],
             );
           },
@@ -150,7 +148,10 @@ class _WeeklyGridViewState extends State<WeeklyGridView> {
           const SizedBox(width: 8),
           TextButton(
             onPressed: () => provider.selectDay(DateTime.now()),
-            child: const Text('Avui', style: TextStyle(color: AppTheme.mostassa)),
+            child: const Text(
+              'Avui',
+              style: TextStyle(color: AppTheme.mostassa),
+            ),
           ),
         ],
       ),
@@ -168,14 +169,15 @@ class _WeeklyGridViewState extends State<WeeklyGridView> {
     }
   }
 
-  Widget _buildGrid(ScheduleProvider provider, double dayWidth, bool isDesktop) {
+  Widget _buildGrid(
+    ScheduleProvider provider,
+    double dayWidth,
+    bool isDesktop,
+  ) {
     return Row(
       children: [
         // Columna d'hores (fixa)
-        SizedBox(
-          width: timeColumnWidth,
-          child: _buildTimeColumn(),
-        ),
+        SizedBox(width: timeColumnWidth, child: _buildTimeColumn()),
         // Graella de dies (scroll horitzontal en mòbil)
         Expanded(
           child: isDesktop
@@ -260,7 +262,12 @@ class _WeeklyGridViewState extends State<WeeklyGridView> {
                 children: days.asMap().entries.map((entry) {
                   return SizedBox(
                     width: dayWidth,
-                    child: _buildDayColumn(entry.value, provider, dayWidth, entry.key),
+                    child: _buildDayColumn(
+                      entry.value,
+                      provider,
+                      dayWidth,
+                      entry.key,
+                    ),
                   );
                 }).toList(),
               ),
@@ -341,7 +348,12 @@ class _WeeklyGridViewState extends State<WeeklyGridView> {
     );
   }
 
-  Widget _buildDayColumn(DateTime day, ScheduleProvider provider, double dayWidth, int dayIndex) {
+  Widget _buildDayColumn(
+    DateTime day,
+    ScheduleProvider provider,
+    double dayWidth,
+    int dayIndex,
+  ) {
     final blocks = provider.getBlocksForDay(day);
     final key = _dayColumnKeys.putIfAbsent(dayIndex, () => GlobalKey());
 
@@ -381,7 +393,8 @@ class _WeeklyGridViewState extends State<WeeklyGridView> {
                 );
               }),
               // Línia de l'hora actual (si és avui)
-              if (DateUtils.isSameDay(day, DateTime.now())) _buildCurrentTimeLine(),
+              if (DateUtils.isSameDay(day, DateTime.now()))
+                _buildCurrentTimeLine(),
               // Blocs de temps
               ...blocks.map((block) => _buildBlockWidget(block, dayWidth)),
             ],
@@ -412,12 +425,7 @@ class _WeeklyGridViewState extends State<WeeklyGridView> {
               shape: BoxShape.circle,
             ),
           ),
-          Expanded(
-            child: Container(
-              height: 2,
-              color: Colors.redAccent,
-            ),
-          ),
+          Expanded(child: Container(height: 2, color: Colors.redAccent)),
         ],
       ),
     );
@@ -425,14 +433,27 @@ class _WeeklyGridViewState extends State<WeeklyGridView> {
 
   Widget _buildBlockWidget(TimeBlock block, double dayWidth) {
     // Calcular posició i alçada
-    final startMinutes = (block.startAt.hour - startHour) * 60 + block.startAt.minute;
+    final startMinutes =
+        (block.startAt.hour - startHour) * 60 + block.startAt.minute;
     final top = startMinutes * (hourHeight / 60);
-    final height = (block.durationMinutes * (hourHeight / 60)).clamp(20.0, double.infinity);
+
+    // Si és una designació, forcem la durada a 1h 45m visualment
+    // Això assegura que es vegi correctament encara que la dada antiga tingui 2h
+    final isDesignation = block.source == TimeBlockSource.designation;
+    final effectiveDuration = isDesignation ? 105 : block.durationMinutes;
+    final effectiveEndAt = isDesignation
+        ? block.startAt.add(const Duration(hours: 1, minutes: 45))
+        : block.endAt;
+
+    final height = (effectiveDuration * (hourHeight / 60)).clamp(
+      20.0,
+      double.infinity,
+    );
 
     // Si el bloc comença abans de l'hora d'inici visible, no el mostrem
-    if (block.startAt.hour < startHour) return const SizedBox();
-
-    final isDesignation = block.source == TimeBlockSource.designation;
+    if (block.startAt.hour < startHour) {
+      return const SizedBox();
+    }
     final isGym = block.category == TimeBlockCategory.gimnas;
     final color = TimeblockCard.getCategoryColor(block.category);
 
@@ -453,13 +474,19 @@ class _WeeklyGridViewState extends State<WeeklyGridView> {
         decoration: BoxDecoration(
           color: isGym
               ? null
-              : (block.done ? color.withValues(alpha: 0.3) : color.withValues(alpha: 0.8)),
+              : (block.done
+                    ? color.withValues(alpha: 0.3)
+                    : color.withValues(alpha: 0.8)),
           image: isGym
               ? DecorationImage(
-                  image: CachedNetworkImageProvider(TimeblockCard.gymBackgroundUrl),
+                  image: CachedNetworkImageProvider(
+                    TimeblockCard.gymBackgroundUrl,
+                  ),
                   fit: BoxFit.cover,
                   colorFilter: ColorFilter.mode(
-                    AppTheme.verdeEncert.withValues(alpha: block.done ? 0.3 : 0.7),
+                    AppTheme.verdeEncert.withValues(
+                      alpha: block.done ? 0.3 : 0.7,
+                    ),
                     BlendMode.multiply,
                   ),
                 )
@@ -501,7 +528,9 @@ class _WeeklyGridViewState extends State<WeeklyGridView> {
                             color: block.done
                                 ? Colors.white.withValues(alpha: 0.6)
                                 : Colors.white,
-                            decoration: block.done ? TextDecoration.lineThrough : null,
+                            decoration: block.done
+                                ? TextDecoration.lineThrough
+                                : null,
                           ),
                           maxLines: height > 40 ? 2 : 1,
                           overflow: TextOverflow.ellipsis,
@@ -517,12 +546,28 @@ class _WeeklyGridViewState extends State<WeeklyGridView> {
                   ),
                   if (height > 35)
                     Text(
-                      '${_formatTime(block.startAt)} - ${_formatTime(block.endAt)}',
+                      '${_formatTime(block.startAt)} - ${_formatTime(effectiveEndAt)}',
                       style: TextStyle(
                         fontSize: 9,
                         color: Colors.white.withValues(alpha: 0.8),
                       ),
                     ),
+
+                  // Només Categoria per designacions (la resta al clickar)
+                  if (isDesignation && height > 55) ...[
+                    const SizedBox(height: 4),
+                    if (block.matchCategory != null)
+                      Text(
+                        block.matchCategory!,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white.withValues(alpha: 0.95),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
                 ],
               ),
             ),
@@ -548,9 +593,12 @@ class _WeeklyGridViewState extends State<WeeklyGridView> {
         left: 2,
         right: 2,
         height: height,
-        child: GestureDetector(
-          onTap: () => _showDesignationInfo(block),
-          child: blockContent(),
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: () => _openBlockEditor(block),
+            child: blockContent(),
+          ),
         ),
       );
     }
@@ -578,9 +626,7 @@ class _WeeklyGridViewState extends State<WeeklyGridView> {
         ),
         childWhenDragging: Container(
           decoration: BoxDecoration(
-            border: Border.all(
-              color: color.withValues(alpha: 0.3),
-            ),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
             borderRadius: BorderRadius.circular(4),
             color: color.withValues(alpha: 0.1),
           ),
@@ -593,7 +639,11 @@ class _WeeklyGridViewState extends State<WeeklyGridView> {
     );
   }
 
-  void _handleBlockDrop(DragTargetDetails<TimeBlock> details, DateTime targetDay, int dayIndex) {
+  void _handleBlockDrop(
+    DragTargetDetails<TimeBlock> details,
+    DateTime targetDay,
+    int dayIndex,
+  ) {
     final block = details.data;
     final duration = block.endAt.difference(block.startAt);
 
@@ -607,35 +657,33 @@ class _WeeklyGridViewState extends State<WeeklyGridView> {
     // Calcular hora des de la posició Y dins la columna
     final totalMinutes = (localOffset.dy / hourHeight * 60).round();
     final snappedMinutes = (totalMinutes ~/ 15) * 15; // Snap a 15 minuts
-    final clampedMinutes = snappedMinutes.clamp(0, (endHour - startHour) * 60 - duration.inMinutes);
+    final clampedMinutes = snappedMinutes.clamp(
+      0,
+      (endHour - startHour) * 60 - duration.inMinutes,
+    );
     final newHour = startHour + clampedMinutes ~/ 60;
     final newMinute = clampedMinutes % 60;
 
-    final newStart = DateTime(targetDay.year, targetDay.month, targetDay.day, newHour, newMinute);
+    final newStart = DateTime(
+      targetDay.year,
+      targetDay.month,
+      targetDay.day,
+      newHour,
+      newMinute,
+    );
     final newEnd = newStart.add(duration);
 
     // No moure si mateixa posició
     if (newStart == block.startAt) return;
 
     // No permetre que el bloc sobrepassi el final de la graella
-    if (newEnd.hour > endHour || (newEnd.hour == endHour && newEnd.minute > 0)) return;
+    if (newEnd.hour > endHour ||
+        (newEnd.hour == endHour && newEnd.minute > 0)) {
+      return;
+    }
 
     final updatedBlock = block.copyWith(startAt: newStart, endAt: newEnd);
     context.read<ScheduleProvider>().updateBlock(updatedBlock);
-  }
-
-  void _showDesignationInfo(TimeBlock block) {
-    // Navegar a la pàgina de designacions per veure més detalls
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Partit: ${block.title.replaceFirst('🏀 ', '')}'),
-        action: SnackBarAction(
-          label: 'Veure detalls',
-          onPressed: () => Navigator.pushNamed(context, '/designations'),
-        ),
-        duration: const Duration(seconds: 3),
-      ),
-    );
   }
 
   String _formatTime(DateTime time) {
@@ -645,10 +693,7 @@ class _WeeklyGridViewState extends State<WeeklyGridView> {
   void _openBlockEditor(TimeBlock block) {
     showDialog(
       context: context,
-      builder: (context) => TimeblockEditorDialog(
-        block: block,
-        isNew: false,
-      ),
+      builder: (context) => TimeblockEditorDialog(block: block, isNew: false),
     );
   }
 }

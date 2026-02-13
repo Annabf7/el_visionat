@@ -24,6 +24,7 @@ export interface OrderItem {
   quantity: number;
   retail_price: string; // ex: "24.95"
   name: string;
+  imageUrl?: string;
 }
 
 /** Tarifa d'enviament retornada per Printful */

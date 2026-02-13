@@ -33,11 +33,18 @@ class ScheduleProvider with ChangeNotifier {
   /// Blocs del dia seleccionat (incloent designacions)
   List<TimeBlock> get selectedDayBlocks {
     return weekBlocks.where((block) {
-      final blockDay = DateTime(block.startAt.year, block.startAt.month, block.startAt.day);
-      final selectedDayStart = DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day);
+      final blockDay = DateTime(
+        block.startAt.year,
+        block.startAt.month,
+        block.startAt.day,
+      );
+      final selectedDayStart = DateTime(
+        _selectedDay.year,
+        _selectedDay.month,
+        _selectedDay.day,
+      );
       return blockDay.isAtSameMomentAs(selectedDayStart);
-    }).toList()
-      ..sort((a, b) => a.startAt.compareTo(b.startAt));
+    }).toList()..sort((a, b) => a.startAt.compareTo(b.startAt));
   }
 
   /// Calcula l'inici de la setmana (dilluns)
@@ -64,52 +71,64 @@ class ScheduleProvider with ChangeNotifier {
     notifyListeners();
 
     // Subscriu als blocs manuals
-    _weekSubscription = _service.getBlocksForWeek(_userId!, _weekStart).listen(
-      (blocks) {
-        _weekBlocks = blocks;
-        _isLoading = false;
-        _error = null;
-        notifyListeners();
-      },
-      onError: (e) {
-        _error = 'Error carregant els blocs: $e';
-        _isLoading = false;
-        notifyListeners();
-      },
-    );
+    _weekSubscription = _service
+        .getBlocksForWeek(_userId!, _weekStart)
+        .listen(
+          (blocks) {
+            _weekBlocks = blocks;
+            _isLoading = false;
+            _error = null;
+            notifyListeners();
+          },
+          onError: (e) {
+            _error = 'Error carregant els blocs: $e';
+            _isLoading = false;
+            notifyListeners();
+          },
+        );
 
     // Subscriu a les designacions de la setmana
     final weekEnd = _weekStart.add(const Duration(days: 7));
-    _designationsSubscription = _designationsRepo.getDesignationsByPeriod(
-      startDate: _weekStart,
-      endDate: weekEnd,
-    ).listen(
-      (designations) {
-        _designationBlocks = designations.map(_designationToTimeBlock).toList();
-        notifyListeners();
-      },
-      onError: (e) {
-        // No mostrar error si falla les designacions, no és crític
-        debugPrint('Error carregant designacions: $e');
-      },
-    );
+    _designationsSubscription = _designationsRepo
+        .getDesignationsByPeriod(startDate: _weekStart, endDate: weekEnd)
+        .listen(
+          (designations) {
+            _designationBlocks = designations
+                .map(_designationToTimeBlock)
+                .toList();
+            notifyListeners();
+          },
+          onError: (e) {
+            // No mostrar error si falla les designacions, no és crític
+            debugPrint('Error carregant designacions: $e');
+          },
+        );
   }
 
   /// Converteix una designació a un TimeBlock
   TimeBlock _designationToTimeBlock(DesignationModel designation) {
-    // Les designacions típicament duren 2 hores (partit + temps extra)
-    final endAt = designation.date.add(const Duration(hours: 2));
+    // Les designacions duren 1h 45m (105 minuts) per evitar solapaments en partits consecutius
+    final endAt = designation.date.add(const Duration(hours: 1, minutes: 45));
     final roleText = designation.role == 'principal' ? '(P)' : '(A)';
 
     return TimeBlock(
       id: 'designation_${designation.id}', // Prefix per identificar-lo
-      title: '🏀 $roleText ${designation.localTeam} vs ${designation.visitantTeam}',
+      title:
+          '🏀 $roleText ${designation.localTeam} vs ${designation.visitantTeam}',
       category: TimeBlockCategory.arbitratge,
       priority: TimeBlockPriority.alta,
       startAt: designation.date,
       endAt: endAt,
       source: TimeBlockSource.designation,
-      done: designation.date.isBefore(DateTime.now()), // Marcat com a fet si ja ha passat
+      done: designation.date.isBefore(
+        DateTime.now(),
+      ), // Marcat com a fet si ja ha passat
+      location: designation.location,
+      address: designation.locationAddress,
+      matchCategory: designation.category,
+      refereePartner: designation.refereePartner,
+      refereePartnerPhone: designation.refereePartnerPhone,
+      refereeRole: designation.role,
     );
   }
 
@@ -263,15 +282,16 @@ class ScheduleProvider with ChangeNotifier {
   /// Obté la granota d'avui
   TimeBlock? getTodayFrog() {
     final today = DateTime.now();
-    return weekBlocks.cast<TimeBlock?>().firstWhere(
-      (block) {
-        if (block == null || !block.isFrog) return false;
-        final blockDay = DateTime(block.startAt.year, block.startAt.month, block.startAt.day);
-        final todayStart = DateTime(today.year, today.month, today.day);
-        return blockDay.isAtSameMomentAs(todayStart);
-      },
-      orElse: () => null,
-    );
+    return weekBlocks.cast<TimeBlock?>().firstWhere((block) {
+      if (block == null || !block.isFrog) return false;
+      final blockDay = DateTime(
+        block.startAt.year,
+        block.startAt.month,
+        block.startAt.day,
+      );
+      final todayStart = DateTime(today.year, today.month, today.day);
+      return blockDay.isAtSameMomentAs(todayStart);
+    }, orElse: () => null);
   }
 
   /// Obté el resum setmanal (només blocs manuals, no designacions)
@@ -305,7 +325,11 @@ class ScheduleProvider with ChangeNotifier {
   /// Obté els blocs d'un dia específic (per al calendari)
   List<TimeBlock> getBlocksForDay(DateTime day) {
     return weekBlocks.where((block) {
-      final blockDay = DateTime(block.startAt.year, block.startAt.month, block.startAt.day);
+      final blockDay = DateTime(
+        block.startAt.year,
+        block.startAt.month,
+        block.startAt.day,
+      );
       final dayStart = DateTime(day.year, day.month, day.day);
       return blockDay.isAtSameMomentAs(dayStart);
     }).toList();
@@ -323,7 +347,9 @@ class ScheduleProvider with ChangeNotifier {
 
   /// Comprova si un dia té designacions
   bool hasDesignationForDay(DateTime day) {
-    return getBlocksForDay(day).any((b) => b.source == TimeBlockSource.designation);
+    return getBlocksForDay(
+      day,
+    ).any((b) => b.source == TimeBlockSource.designation);
   }
 
   /// Neteja l'error

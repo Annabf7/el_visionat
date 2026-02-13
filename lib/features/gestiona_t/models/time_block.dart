@@ -41,6 +41,14 @@ class TimeBlock {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  // Camps opcionals per a designacions (Maps & Info Extra)
+  final String? location;
+  final String? address;
+  final String? matchCategory;
+  final String? refereePartner;
+  final String? refereePartnerPhone;
+  final String? refereeRole;
+
   TimeBlock({
     this.id,
     required this.title,
@@ -52,10 +60,16 @@ class TimeBlock {
     this.source = TimeBlockSource.manual,
     this.isRecurring = false,
     this.recurringId,
+    this.location,
+    this.address,
+    this.matchCategory,
+    this.refereePartner,
+    this.refereePartnerPhone,
+    this.refereeRole,
     DateTime? createdAt,
     DateTime? updatedAt,
-  })  : createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   /// Duració en minuts
   int get durationMinutes => endAt.difference(startAt).inMinutes;
@@ -75,6 +89,12 @@ class TimeBlock {
     TimeBlockSource? source,
     bool? isRecurring,
     String? recurringId,
+    String? location,
+    String? address,
+    String? matchCategory,
+    String? refereePartnerPhone,
+    String? refereePartner,
+    String? refereeRole,
   }) {
     return TimeBlock(
       id: id ?? this.id,
@@ -87,6 +107,12 @@ class TimeBlock {
       source: source ?? this.source,
       isRecurring: isRecurring ?? this.isRecurring,
       recurringId: recurringId ?? this.recurringId,
+      location: location ?? this.location,
+      address: address ?? this.address,
+      matchCategory: matchCategory ?? this.matchCategory,
+      refereePartnerPhone: refereePartnerPhone ?? this.refereePartnerPhone,
+      refereePartner: refereePartner ?? this.refereePartner,
+      refereeRole: refereeRole ?? this.refereeRole,
       createdAt: createdAt,
       updatedAt: DateTime.now(),
     );
@@ -104,6 +130,13 @@ class TimeBlock {
       'source': source.name,
       'isRecurring': isRecurring,
       if (recurringId != null) 'recurringId': recurringId,
+      if (location != null) 'location': location,
+      if (address != null) 'address': address,
+      if (matchCategory != null) 'matchCategory': matchCategory,
+      if (refereePartnerPhone != null)
+        'refereePartnerPhone': refereePartnerPhone,
+      if (refereePartner != null) 'refereePartner': refereePartner,
+      if (refereeRole != null) 'refereeRole': refereeRole,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     };
@@ -131,6 +164,12 @@ class TimeBlock {
       ),
       isRecurring: map['isRecurring'] ?? false,
       recurringId: map['recurringId'],
+      location: map['location'],
+      address: map['address'],
+      matchCategory: map['matchCategory'],
+      refereePartnerPhone: map['refereePartnerPhone'],
+      refereePartner: map['refereePartner'],
+      refereeRole: map['refereeRole'],
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );

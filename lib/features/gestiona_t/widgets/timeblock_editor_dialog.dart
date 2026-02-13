@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 import '../models/time_block.dart';
 import '../providers/schedule_provider.dart';
@@ -142,7 +143,7 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.mostassa),
             child: const Text('Eliminar'),
           ),
         ],
@@ -157,6 +158,30 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
     if (!mounted) return;
     if (success) {
       Navigator.pop(context);
+    }
+  }
+
+  Future<void> _openMap(String address) async {
+    final uri = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}',
+    );
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      debugPrint('Error obrint mapa: $e');
+    }
+  }
+
+  Future<void> _callPhone(String phone) async {
+    final uri = Uri.parse('tel:$phone');
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      }
+    } catch (e) {
+      debugPrint('Error trucant: $e');
     }
   }
 
@@ -183,7 +208,7 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
       isRecurring: isRecurring,
       recurringId: isRecurring
           ? (widget.block.recurringId ??
-              DateTime.now().millisecondsSinceEpoch.toString())
+                DateTime.now().millisecondsSinceEpoch.toString())
           : null,
     );
 
@@ -245,7 +270,7 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
                       IconButton(
                         onPressed: _isSaving ? null : _delete,
                         icon: const Icon(Icons.delete_outline),
-                        color: Colors.redAccent,
+                        color: AppTheme.mostassa,
                         tooltip: 'Eliminar bloc',
                       ),
                   ],
@@ -264,6 +289,190 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
                   textCapitalization: TextCapitalization.sentences,
                 ),
                 const SizedBox(height: 16),
+
+                // Informació extra per a designacions
+                if (widget.block.source == TimeBlockSource.designation) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.lilaClar.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppTheme.lilaMitja.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Detalls del partit',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.grisPistacho,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Categoria i Rol
+                        if (widget.block.matchCategory != null ||
+                            widget.block.refereeRole != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.sports_basketball,
+                                  size: 14,
+                                  color: AppTheme.lilaMitja,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    [
+                                      if (widget.block.matchCategory != null)
+                                        widget.block.matchCategory,
+                                      if (widget.block.refereeRole != null)
+                                        widget.block.refereeRole == 'principal'
+                                            ? 'Principal'
+                                            : 'Auxiliar',
+                                    ].join(' • '),
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        // Company/a
+                        if (widget.block.refereePartner != null &&
+                            widget.block.refereePartner!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 2),
+                                  child: Icon(
+                                    Icons.person,
+                                    size: 14,
+                                    color: AppTheme.lilaMitja,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Company/a: ${widget.block.refereePartner}',
+                                        style: const TextStyle(fontSize: 13),
+                                      ),
+                                      if (widget.block.refereePartnerPhone !=
+                                          null)
+                                        InkWell(
+                                          onTap: () => _callPhone(
+                                            widget.block.refereePartnerPhone!,
+                                          ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 2,
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(
+                                                  Icons.phone,
+                                                  size: 12,
+                                                  color: AppTheme.mostassa,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  widget
+                                                      .block
+                                                      .refereePartnerPhone!,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: AppTheme.mostassa,
+                                                    decoration: TextDecoration
+                                                        .underline,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        // Adreça / Mapa
+                        if (widget.block.location != null ||
+                            widget.block.address != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: InkWell(
+                              onTap: () {
+                                if (widget.block.address != null ||
+                                    widget.block.location != null) {
+                                  _openMap(
+                                    widget.block.address ??
+                                        widget.block.location!,
+                                  );
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(4),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(
+                                    Icons.location_on,
+                                    size: 14,
+                                    color: AppTheme.mostassa,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        if (widget.block.location != null)
+                                          Text(
+                                            widget.block.location!,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppTheme.grisPistacho,
+                                              decoration:
+                                                  TextDecoration.underline,
+                                            ),
+                                          ),
+                                        if (widget.block.address != null)
+                                          Text(
+                                            widget.block.address!,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppTheme.mostassa,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
                 // Selecció de categoria
                 Text(
@@ -292,9 +501,9 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
                         }
                       },
                       selectedColor: color.withValues(alpha: 0.3),
-                      labelStyle: TextStyle(
-                        color: isSelected ? color : AppTheme.grisPistacho,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      labelStyle: const TextStyle(
+                        color: AppTheme.grisPistacho,
+                        fontWeight: FontWeight.normal,
                       ),
                     );
                   }).toList(),
@@ -310,7 +519,9 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
                     ),
                     value: _isRecurring,
                     onChanged: (value) => setState(() => _isRecurring = value),
-                    activeTrackColor: AppTheme.verdeEncert.withValues(alpha: 0.5),
+                    activeTrackColor: AppTheme.verdeEncert.withValues(
+                      alpha: 0.5,
+                    ),
                     thumbColor: WidgetStatePropertyAll(AppTheme.verdeEncert),
                     secondary: const Icon(
                       Icons.repeat,
@@ -349,7 +560,9 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
                 // Selecció de data i hora
                 Text(
                   'Quan',
-                  style: Theme.of(context).textTheme.titleSmall,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: AppTheme.grisPistacho,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -363,6 +576,9 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
                           dateFormat.format(_startAt),
                           overflow: TextOverflow.ellipsis,
                         ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.grisPistacho,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -370,6 +586,9 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
                     OutlinedButton(
                       onPressed: _selectStartTime,
                       child: Text(timeFormat.format(_startAt)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.grisPistacho,
+                      ),
                     ),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 8),
@@ -379,6 +598,9 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
                     OutlinedButton(
                       onPressed: _selectEndTime,
                       child: Text(timeFormat.format(_endAt)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.grisPistacho,
+                      ),
                     ),
                   ],
                 ),
@@ -397,7 +619,12 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: _isSaving ? null : () => Navigator.pop(context),
+                      onPressed: _isSaving
+                          ? null
+                          : () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppTheme.grisPistacho,
+                      ),
                       child: const Text('Cancel·lar'),
                     ),
                     const SizedBox(width: 12),

@@ -67,5 +67,6 @@ class CartItem {
     'quantity': quantity,
     'retail_price': retailPrice.toStringAsFixed(2),
     'name': variantName,
+    if (imageUrl != null) 'imageUrl': imageUrl,
   };
 }

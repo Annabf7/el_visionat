@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:video_player/video_player.dart';
 
 import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
@@ -21,9 +22,34 @@ class _ReportsPageState extends State<ReportsPage> {
   String _selectedSeason = '2025-2026'; // Temporada actual per defecte
   String _userCategory = ''; // Categoria de l'àrbitre
 
+  static const _videoBgUrl =
+      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/informes_test%2Floading-bar.mp4?alt=media&token=e3fb2619-3f33-4fc9-89bc-8044c55b4c05';
+
+  late final VideoPlayerController _videoReportsController;
+  late final VideoPlayerController _videoTestsController;
+  bool _videoReportsReady = false;
+  bool _videoTestsReady = false;
+
   @override
   void initState() {
     super.initState();
+
+    // Inicialitzar dos controllers de vídeo independents (un per cada stat card)
+    final uri = Uri.parse(_videoBgUrl);
+    _videoReportsController = VideoPlayerController.networkUrl(uri)
+      ..initialize().then((_) {
+          _videoReportsController.setLooping(true);
+          _videoReportsController.setVolume(0);
+          _videoReportsController.play();
+          if (mounted) setState(() => _videoReportsReady = true);
+        });
+    _videoTestsController = VideoPlayerController.networkUrl(uri)
+      ..initialize().then((_) {
+          _videoTestsController.setLooping(true);
+          _videoTestsController.setVolume(0);
+          _videoTestsController.play();
+          if (mounted) setState(() => _videoTestsReady = true);
+        });
 
     // Inicialitzar ReportsProvider després que el widget estigui creat
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -42,6 +68,13 @@ class _ReportsPageState extends State<ReportsPage> {
         );
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _videoReportsController.dispose();
+    _videoTestsController.dispose();
+    super.dispose();
   }
 
   /// Carrega la categoria de l'usuari des de Firestore
@@ -335,7 +368,8 @@ class _ReportsPageState extends State<ReportsPage> {
             title: 'Informes',
             value: provider.totalReports.toString(),
             subtitle: 'aquesta temporada',
-            color: AppTheme.porpraFosc,
+            videoController: _videoReportsController,
+            videoReady: _videoReportsReady,
           ),
         ),
         const SizedBox(width: 12),
@@ -347,7 +381,8 @@ class _ReportsPageState extends State<ReportsPage> {
             value: provider.totalTests.toString(),
             subtitle:
                 'mitjana ${provider.averageTestScore.toStringAsFixed(1)}/10',
-            color: AppTheme.porpraFosc,
+            videoController: _videoTestsController,
+            videoReady: _videoTestsReady,
           ),
         ),
       ],
@@ -360,57 +395,73 @@ class _ReportsPageState extends State<ReportsPage> {
     required String title,
     required String value,
     required String subtitle,
-    required Color color,
+    required VideoPlayerController videoController,
+    required bool videoReady,
   }) {
-    return Card(
-      elevation: 2,
-      color: AppTheme.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      clipBehavior: Clip.antiAlias,
-      child: Row(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Stack(
         children: [
-          // Línia vertical accent mostassa
-          Container(
-            width: 4,
-            height: 100,
-            color: AppTheme.mostassa,
-          ),
-          // Contingut de la card
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(icon, color: color, size: 24),
-                      const SizedBox(width: 8),
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.textBlackLow,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    value,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: color,
+          // Fons: vídeo o color sòlid mentre carrega
+          Positioned.fill(
+            child: videoReady
+                ? FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: videoController.value.size.width,
+                      height: videoController.value.size.height,
+                      child: VideoPlayer(videoController),
                     ),
+                  )
+                : Container(color: AppTheme.porpraFosc),
+          ),
+          // Capa fosca semi-transparent per llegibilitat
+          Positioned.fill(
+            child: Container(
+              color: AppTheme.porpraFosc.withValues(alpha: 0.55),
+            ),
+          ),
+          // Contingut
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon, color: AppTheme.mostassa, size: 22),
+                    const SizedBox(width: 10),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontFamily: 'Geist',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.white.withValues(alpha: 0.9),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontFamily: 'Geist',
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.white,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: AppTheme.textBlackLow),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontFamily: 'Geist',
+                    fontSize: 13,
+                    color: AppTheme.white.withValues(alpha: 0.7),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -422,35 +473,12 @@ class _ReportsPageState extends State<ReportsPage> {
     // Comprovar si és categoria FEB/ACB (Federació Espanyola)
     final isFebAcb = TestRequirements.isFederacioEspanyola(_userCategory);
 
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: SizedBox(
-        height: double.infinity,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.description_outlined, color: AppTheme.lilaMitja),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Últims Informes',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Punts de millora identificats pels informadors',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-
+    return _buildDarkSection(
+      icon: Icons.description_outlined,
+      title: 'Últims Informes',
+      subtitle: 'Punts de millora identificats pels informadors',
+      badge: 'INFORMES',
+      children: [
               // Per FEB/ACB: mostrar NOMÉS el banner (no processem els seus PDFs)
               if (isFebAcb && _userCategory.isNotEmpty) ...[
                 Expanded(child: _buildFebAcbReportsBanner(context)),
@@ -554,10 +582,7 @@ class _ReportsPageState extends State<ReportsPage> {
                   ),
                 ),
               ],
-            ],
-          ),
-        ),
-      ),
+      ],
     );
   }
 
@@ -567,38 +592,14 @@ class _ReportsPageState extends State<ReportsPage> {
     // Comprovar si és categoria FEB/ACB (Federació Espanyola)
     final isFebAcb = TestRequirements.isFederacioEspanyola(userCategory);
 
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: SizedBox(
-        height: double.infinity,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header fix (no fa scroll)
-              Row(
-                children: [
-                  Icon(Icons.quiz_outlined, color: AppTheme.lilaMitja),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Tests Realitzats',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                isFebAcb
-                    ? 'Seguiment de tests'
-                    : 'Resultats segons normativa FCBQ',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-
+    return _buildDarkSection(
+      icon: Icons.quiz_outlined,
+      title: 'Tests Realitzats',
+      subtitle: isFebAcb
+          ? 'Seguiment de tests'
+          : 'Resultats segons normativa FCBQ',
+      badge: 'TESTS',
+      children: [
               // Per FEB/ACB: mostrar NOMÉS el banner (no processem els seus PDFs)
               if (isFebAcb && userCategory.isNotEmpty) ...[
                 Expanded(child: _buildFebAcbTestsBanner(context)),
@@ -707,10 +708,7 @@ class _ReportsPageState extends State<ReportsPage> {
                   ),
                 ),
               ],
-            ],
-          ),
-        ),
-      ),
+      ],
     );
   }
 
@@ -745,9 +743,9 @@ class _ReportsPageState extends State<ReportsPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.grisBody.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.grisPistacho.withValues(alpha: 0.2)),
+        color: AppTheme.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.white.withValues(alpha: 0.08)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -923,9 +921,9 @@ class _ReportsPageState extends State<ReportsPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.grisBody.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.grisPistacho.withValues(alpha: 0.2)),
+        color: AppTheme.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.white.withValues(alpha: 0.08)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1067,9 +1065,9 @@ class _ReportsPageState extends State<ReportsPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.lilaMitja.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.lilaMitja.withValues(alpha: 0.3)),
+        color: AppTheme.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.lilaMitja.withValues(alpha: 0.2)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1111,9 +1109,9 @@ class _ReportsPageState extends State<ReportsPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.lilaMitja.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.lilaMitja.withValues(alpha: 0.3)),
+        color: AppTheme.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.lilaMitja.withValues(alpha: 0.2)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1202,6 +1200,134 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 
+  /// Secció amb fons fosc estil NeuroVisionat pilars
+  Widget _buildDarkSection({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String badge,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.porpraFosc,
+            AppTheme.porpraFosc.withValues(alpha: 0.85),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.porpraFosc.withValues(alpha: 0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          children: [
+            Positioned(
+              top: -30,
+              right: -30,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppTheme.mostassa.withValues(alpha: 0.06),
+                ),
+              ),
+            ),
+            SizedBox(
+              height: double.infinity,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppTheme.mostassa.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Icon(icon, color: AppTheme.mostassa, size: 22),
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.mostassa.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            badge,
+                            style: TextStyle(
+                              fontFamily: 'Geist',
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.2,
+                              color: AppTheme.mostassa.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontFamily: 'Geist',
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.white,
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontFamily: 'Geist',
+                        fontSize: 13,
+                        color: AppTheme.grisPistacho.withValues(alpha: 0.7),
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: 40,
+                      height: 2,
+                      decoration: BoxDecoration(
+                        color: AppTheme.mostassa.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(1),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ...children,
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildStudyMaterial(BuildContext context, ReportsProvider provider) {
     // Comprovar si és àrbitre FEB/ACB (no auxiliar)
     final isFebAcbArbitre = TestRequirements.isFederacioEspanyolaArbitre(
@@ -1213,80 +1339,269 @@ class _ReportsPageState extends State<ReportsPage> {
       return const SizedBox.shrink();
     }
 
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    final isWide = MediaQuery.of(context).size.width > 900;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header de la secció (estil neuro_tip_card)
+        Container(
+          decoration: BoxDecoration(
+            color: AppTheme.porpraFosc.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(
-                  Icons.school_outlined,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  'Material d\'Estudi',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Contingut generat automàticament segons els teus punts febles',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 20),
-            // Punts de millora més recurrents
-            if (provider.isLoadingTracking)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            else if (provider.topImprovements.isEmpty &&
-                provider.topWeakAreas.isEmpty)
-              _buildPlaceholder(
-                'El material d\'estudi es generarà automàticament quan tinguis informes i tests',
-              )
-            else ...[
-              // Punts de millora d'informes
-              if (provider.topImprovements.isNotEmpty) ...[
-                Text(
-                  'Punts de Millora Recurrents',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ...provider.topImprovements
-                    .take(3)
-                    .map(
-                      (improvement) =>
-                          ImprovementItem(improvement: improvement),
+                Container(width: 2, color: AppTheme.mostassa),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Material d\'Estudi',
+                                style: TextStyle(
+                                  fontFamily: 'Geist',
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.normal,
+                                  color: AppTheme.mostassa,
+                                  letterSpacing: 1.1,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Icon(
+                              Icons.auto_stories_outlined,
+                              color: AppTheme.mostassa,
+                              size: 24,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Contingut generat automàticament segons els teus punts febles',
+                          style: TextStyle(
+                            fontFamily: 'Geist',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
+                            color: AppTheme.white.withValues(alpha: 0.92),
+                            letterSpacing: 0.5,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                     ),
-                const SizedBox(height: 24),
-              ],
-              // Àrees febles en tests
-              if (provider.topWeakAreas.isNotEmpty) ...[
-                Text(
-                  'Àrees Febles en Tests',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 12),
-                ...provider.topWeakAreas
-                    .take(3)
-                    .map((weakArea) => WeakAreaItem(weakArea: weakArea)),
               ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Contingut
+        if (provider.isLoadingTracking)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (provider.topImprovements.isEmpty &&
+            provider.topWeakAreas.isEmpty)
+          _buildPlaceholder(
+            'El material d\'estudi es generarà automàticament quan tinguis informes i tests',
+          )
+        else if (isWide)
+          // Desktop: dues columnes costat a costat
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (provider.topImprovements.isNotEmpty)
+                  Expanded(
+                    child: _buildStudySubsection(
+                      context,
+                      icon: Icons.trending_up_rounded,
+                      title: 'Punts de Millora Recurrents',
+                      accentColor: AppTheme.mostassa,
+                      children: provider.topImprovements
+                          .take(3)
+                          .map((i) => ImprovementItem(improvement: i))
+                          .toList(),
+                    ),
+                  ),
+                if (provider.topImprovements.isNotEmpty &&
+                    provider.topWeakAreas.isNotEmpty)
+                  const SizedBox(width: 20),
+                if (provider.topWeakAreas.isNotEmpty)
+                  Expanded(
+                    child: _buildStudySubsection(
+                      context,
+                      icon: Icons.report_problem_outlined,
+                      title: 'Àrees Febles en Tests',
+                      accentColor: Colors.redAccent,
+                      children: provider.topWeakAreas
+                          .take(3)
+                          .map((w) => WeakAreaItem(weakArea: w))
+                          .toList(),
+                    ),
+                  ),
+              ],
+            ),
+          )
+        else
+          // Mòbil: apilades verticalment
+          Column(
+            children: [
+              if (provider.topImprovements.isNotEmpty)
+                _buildStudySubsection(
+                  context,
+                  icon: Icons.trending_up_rounded,
+                  title: 'Punts de Millora Recurrents',
+                  accentColor: AppTheme.mostassa,
+                  children: provider.topImprovements
+                      .take(3)
+                      .map((i) => ImprovementItem(improvement: i))
+                      .toList(),
+                ),
+              if (provider.topImprovements.isNotEmpty &&
+                  provider.topWeakAreas.isNotEmpty)
+                const SizedBox(height: 16),
+              if (provider.topWeakAreas.isNotEmpty)
+                _buildStudySubsection(
+                  context,
+                  icon: Icons.report_problem_outlined,
+                  title: 'Àrees Febles en Tests',
+                  accentColor: Colors.redAccent,
+                  children: provider.topWeakAreas
+                      .take(3)
+                      .map((w) => WeakAreaItem(weakArea: w))
+                      .toList(),
+                ),
             ],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildStudySubsection(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required Color accentColor,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.porpraFosc,
+            AppTheme.porpraFosc.withValues(alpha: 0.85),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.porpraFosc.withValues(alpha: 0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          children: [
+            // Cercle decoratiu
+            Positioned(
+              top: -30,
+              right: -30,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: accentColor.withValues(alpha: 0.06),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header amb icona i badge
+                  Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: accentColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Icon(icon, color: accentColor, size: 22),
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: accentColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${children.length} DETECTATS',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.0,
+                            color: accentColor.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Títol
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.white,
+                      height: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Barra separadora
+                  Container(
+                    width: 40,
+                    height: 2,
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(1),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ...children,
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -1297,9 +1612,9 @@ class _ReportsPageState extends State<ReportsPage> {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: AppTheme.grisBody.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.grisPistacho.withValues(alpha: 0.3)),
+        color: AppTheme.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.white.withValues(alpha: 0.08)),
       ),
       child: Center(
         child: Text(

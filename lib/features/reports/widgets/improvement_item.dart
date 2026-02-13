@@ -3,7 +3,7 @@ import 'package:el_visionat/core/models/improvement_tracking.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 import 'package:intl/intl.dart';
 
-/// Widget per mostrar un punt de millora recurrent
+/// Widget per mostrar un punt de millora recurrent (tema fosc, estil NeuroVisionat)
 class ImprovementItem extends StatelessWidget {
   final CategoryImprovement improvement;
 
@@ -16,13 +16,12 @@ class ImprovementItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppTheme.mostassa.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        color: AppTheme.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppTheme.mostassa.withValues(alpha: 0.3),
-          width: 1,
+          color: AppTheme.white.withValues(alpha: 0.08),
         ),
       ),
       child: Column(
@@ -32,38 +31,60 @@ class ImprovementItem extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(
-                  improvement.categoryName,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.porpraFosc,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: AppTheme.mostassa,
+                        borderRadius: BorderRadius.circular(2),
                       ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        improvement.categoryName,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              _buildOccurrenceBadge(context),
+              _buildOccurrenceBadge(),
             ],
           ),
-          const SizedBox(height: 8),
           if (improvement.descriptions.isNotEmpty) ...[
+            const SizedBox(height: 10),
             ...improvement.descriptions.take(2).map(
                   (description) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.only(bottom: 6),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.arrow_right,
-                          size: 16,
-                          color: AppTheme.grisPistacho,
+                        const SizedBox(width: 14),
+                        Container(
+                          margin: const EdgeInsets.only(top: 6),
+                          width: 5,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: AppTheme.grisPistacho.withValues(alpha: 0.5),
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             description,
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppTheme.grisPistacho,
-                                    ),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.grisPistacho.withValues(alpha: 0.7),
+                              height: 1.4,
+                            ),
                           ),
                         ),
                       ],
@@ -71,37 +92,56 @@ class ImprovementItem extends StatelessWidget {
                   ),
                 ),
           ],
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                Icons.access_time,
-                size: 14,
-                color: AppTheme.grisPistacho,
+                Icons.schedule_rounded,
+                size: 13,
+                color: AppTheme.grisPistacho.withValues(alpha: 0.6),
               ),
               const SizedBox(width: 4),
               Text(
-                'Última vegada: ${DateFormat('dd/MM/yyyy').format(improvement.lastOccurrence)}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.grisPistacho,
-                      fontSize: 11,
-                    ),
+                'Última: ${DateFormat('dd/MM/yyyy').format(improvement.lastOccurrence)}',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppTheme.grisPistacho.withValues(alpha: 0.6),
+                ),
               ),
               if (improvement.isImproving) ...[
-                const Spacer(),
-                Icon(
-                  Icons.trending_down,
-                  size: 14,
-                  color: AppTheme.verdeEncert,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Millorant',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.verdeEncert.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppTheme.verdeEncert.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.trending_down_rounded,
+                        size: 13,
                         color: AppTheme.verdeEncert,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
                       ),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Millorant',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.verdeEncert,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ],
@@ -111,26 +151,29 @@ class ImprovementItem extends StatelessWidget {
     );
   }
 
-  Widget _buildOccurrenceBadge(BuildContext context) {
+  Widget _buildOccurrenceBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: AppTheme.mostassa,
-        borderRadius: BorderRadius.circular(12),
+        color: AppTheme.mostassa.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppTheme.mostassa.withValues(alpha: 0.15),
+        ),
       ),
       child: Text(
         '${improvement.occurrences}x',
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 11,
-            ),
+        style: TextStyle(
+          color: AppTheme.mostassa,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
       ),
     );
   }
 }
 
-/// Widget per mostrar una àrea feble detectada en tests
+/// Widget per mostrar una àrea feble detectada en tests (tema fosc, estil NeuroVisionat)
 class WeakAreaItem extends StatelessWidget {
   final WeakArea weakArea;
 
@@ -141,15 +184,17 @@ class WeakAreaItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final badgeColor =
+        weakArea.errorRate >= 50 ? Colors.redAccent : AppTheme.mostassa;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppTheme.mostassa.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        color: AppTheme.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppTheme.mostassa.withValues(alpha: 0.3),
-          width: 1,
+          color: AppTheme.white.withValues(alpha: 0.08),
         ),
       ),
       child: Column(
@@ -159,67 +204,104 @@ class WeakAreaItem extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(
-                  weakArea.category,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.porpraFosc,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: badgeColor,
+                        borderRadius: BorderRadius.circular(2),
                       ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        weakArea.category,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              _buildErrorRateBadge(context),
+              _buildErrorRateBadge(badgeColor),
             ],
           ),
           const SizedBox(height: 12),
-          // Estadístiques
+          // Estadístiques en una fila
           Row(
             children: [
+              const SizedBox(width: 14),
               _buildStat(
-                context,
                 label: 'Errors',
                 value: '${weakArea.incorrectAnswers}/${weakArea.totalQuestions}',
-                color: AppTheme.mostassa,
+                color: AppTheme.grisPistacho.withValues(alpha: 0.8),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 24),
               _buildStat(
-                context,
                 label: 'Taxa d\'error',
                 value: '${weakArea.errorRate.toStringAsFixed(0)}%',
-                color: AppTheme.mostassa,
+                color: badgeColor,
               ),
             ],
           ),
           if (weakArea.conflictiveTopics.isNotEmpty) ...[
             const SizedBox(height: 12),
-            const Divider(),
-            const SizedBox(height: 8),
-            Text(
-              'Temes conflictius:',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.grisPistacho,
-                  ),
+            Container(
+              height: 1,
+              color: AppTheme.grisPistacho.withValues(alpha: 0.15),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.only(left: 14),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: AppTheme.mostassa.withValues(alpha: 0.6),
+                    size: 14,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Temes conflictius',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.grisPistacho.withValues(alpha: 0.8),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
             ...weakArea.conflictiveTopics.take(3).map(
                   (topic) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.only(bottom: 6, left: 14),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.arrow_right,
-                          size: 16,
-                          color: AppTheme.grisPistacho,
+                        Container(
+                          margin: const EdgeInsets.only(top: 6),
+                          width: 5,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: AppTheme.grisPistacho.withValues(alpha: 0.5),
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             topic,
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppTheme.grisPistacho,
-                                    ),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.grisPistacho.withValues(alpha: 0.7),
+                              height: 1.4,
+                            ),
                           ),
                         ),
                       ],
@@ -232,41 +314,39 @@ class WeakAreaItem extends StatelessWidget {
     );
   }
 
-  Widget _buildErrorRateBadge(BuildContext context) {
-    final color = weakArea.errorRate >= 50
-        ? AppTheme.mostassa
-        : AppTheme.mostassa;
-
+  Widget _buildErrorRateBadge(Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(12),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: color.withValues(alpha: 0.15),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.trending_down,
-            size: 12,
-            color: Colors.white,
+            Icons.trending_down_rounded,
+            size: 13,
+            color: color,
           ),
           const SizedBox(width: 4),
           Text(
             '${weakArea.errorRate.toStringAsFixed(0)}%',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                ),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStat(
-    BuildContext context, {
+  Widget _buildStat({
     required String label,
     required String value,
     required Color color,
@@ -276,18 +356,19 @@ class WeakAreaItem extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.grisPistacho,
-                fontSize: 11,
-              ),
+          style: TextStyle(
+            color: AppTheme.grisPistacho.withValues(alpha: 0.6),
+            fontSize: 11,
+          ),
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: color,
+            fontSize: 14,
+          ),
         ),
       ],
     );

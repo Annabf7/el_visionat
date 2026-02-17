@@ -1,81 +1,173 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Protect the emails collection from client-side writes. Cloud Functions
-    // using the Admin SDK bypass security rules, so functions can still
-    // create these documents while clients are prevented from doing so.
+
+    // ============================================================
+    // FUNCIONS AUXILIARS GLOBALS
+    // ============================================================
+
+    // Comprova si l'usuari està autenticat
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Comprova si l'usuari és el propietari (comparant amb un camp userId)
+    function isOwner(userId) {
+      return isAuth() && request.auth.uid == userId;
+    }
+
+    // ============================================================
+    // 📧 EMAILS (reservats pel sistema)
+    // ============================================================
     match /emails/{email} {
-      // Allow reads if your app needs to read the reserved emails list.
       allow read: if true;
-      // Disallow all client-side writes to emails/*. Only server-side
-      // operations (Admin SDK used by Cloud Functions) should create these.
       allow create, update, delete: if false;
     }
 
-    // 🗳️ Regles per Votació Setmanal
-    // Col·lecció: voting_meta/{docId} - Metadades de votació
+    // ============================================================
+    // 👤 USERS (perfils d'usuari)
+    // ============================================================
+    match /users/{uid} {
+      // Qualsevol autenticat pot llegir perfils (per mentoria, perfils públics)
+      allow read: if isAuth();
+      // Només el propi usuari pot modificar el seu perfil
+      allow update: if isOwner(uid);
+      // Creació i eliminació només via Cloud Functions (completeRegistration)
+      allow create, delete: if false;
+
+      // Subcol·lecció: timeblocks (Gestiona't)
+      match /timeblocks/{blockId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      // Subcol·lecció: designacions
+      match /designations/{designationId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      // Subcol·lecció: sessions de mentoria
+      match /mentorship_sessions/{sessionId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      // Subcol·lecció: video clips
+      match /video_clips/{clipId} {
+        allow read: if isAuth();
+        allow write: if isOwner(uid);
+      }
+    }
+
+    // ============================================================
+    // 🗳️ VOTACIÓ SETMANAL
+    // ============================================================
+
+    // Metadades de votació (només lectura per clients)
     match /voting_meta/{docId} {
-      // Qualsevol usuari autenticat pot llegir les metadades
-      allow read: if request.auth != null;
-      // Només el backend (Cloud Functions) pot escriure
+      allow read: if isAuth();
       allow write: if false;
     }
 
-    // Col·lecció: voting_jornades/{jornada} - Dades de cada jornada
+    // Dades de cada jornada (només lectura per clients)
     match /voting_jornades/{jornada} {
-      // Qualsevol usuari autenticat pot llegir les jornades
-      allow read: if request.auth != null;
-      // Només el backend (Cloud Functions) pot escriure
+      allow read: if isAuth();
       allow write: if false;
     }
 
-    // Col·lecció: vote_counts/{matchId} - Comptadors de vots
-    match /vote_counts/{matchId} {
-      // Qualsevol usuari autenticat pot llegir els vots
-      allow read: if request.auth != null;
-      // Els usuaris autenticats poden incrementar/decrementar vots
-      allow write: if request.auth != null;
+    // Comptadors de vots (actualitzats pel trigger onVoteWrite, no pel client)
+    match /vote_counts/{countId} {
+      allow read: if isAuth();
+      allow write: if false;
     }
 
-    // Col·lecció: weekly_focus/{docId} - Focus setmanal (guanyador)
+    // Vots individuals: doc ID = {jornada}_{userId}
+    match /votes/{voteId} {
+      allow read: if isAuth()
+        && resource.data.userId == request.auth.uid;
+
+      allow create: if isAuth()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.jornada is number
+        && request.resource.data.matchId is string;
+
+      allow update: if isAuth()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid;
+
+      allow delete: if isAuth()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // Focus setmanal - guanyador (només lectura per clients)
     match /weekly_focus/{docId} {
-      // Qualsevol usuari autenticat pot llegir el focus
-      allow read: if request.auth != null;
-      // Només el backend (Cloud Functions) pot escriure
+      allow read: if isAuth();
       allow write: if false;
     }
 
-    // 🗨️ Regles per Comentaris Col·lectius de la feature Visionat
-    // Col·lecció: collective_comments/{matchId}/comments/{commentId}
-    match /collective_comments/{matchId}/comments/{commentId} {
-      
-      // 🔐 1. Requisit general: Totes les operacions requereixen autenticació
-      // 🟩 2. Permisos de lectura: Qualsevol usuari autenticat pot llegir comentaris
-      allow read: if request.auth != null;
+    // ============================================================
+    // 📊 INFORMES I TESTS
+    // ============================================================
 
-      // 🟧 3. Permisos de creació: Només el creador pot afegir comentaris
-      allow create: if request.auth != null
+    // Informes d'avaluació arbitral
+    match /reports/{reportId} {
+      // Cada usuari llegeix/escriu només els seus propis informes
+      allow read: if isAuth()
+        && resource.data.userId == request.auth.uid;
+      allow create: if isAuth()
+        && request.resource.data.userId == request.auth.uid;
+      // Permetre update perquè processPdfOnUpload (Admin SDK) actualitza,
+      // però el client també fa set() que pot ser create o update
+      allow update: if isAuth()
+        && resource.data.userId == request.auth.uid;
+      allow delete: if isAuth()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // Tests teòrics
+    match /tests/{testId} {
+      allow read: if isAuth()
+        && resource.data.userId == request.auth.uid;
+      allow create: if isAuth()
+        && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuth()
+        && resource.data.userId == request.auth.uid;
+      allow delete: if isAuth()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // Seguiment de millora: doc ID = {userId}_{season}
+    match /improvement_tracking/{trackingId} {
+      allow read: if isAuth()
+        && resource.data.userId == request.auth.uid;
+      allow create: if isAuth()
+        && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuth()
+        && resource.data.userId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // 🗨️ COMENTARIS COL·LECTIUS (feature Visionat)
+    // ============================================================
+    match /collective_comments/{matchId}/comments/{commentId} {
+      allow read: if isAuth();
+
+      allow create: if isAuth()
         && request.auth.uid == request.resource.data.createdBy
         && request.time == request.resource.data.createdAt
         && isValidCommentCreate(request.resource.data, matchId);
 
-      // 🟥 4. Permisos d'actualització: El creador pot modificar el contingut, qualsevol pot fer like
-      allow update: if request.auth != null
+      allow update: if isAuth()
         && (
-          // El creador pot modificar el contingut del comentari
-          (request.auth.uid == resource.data.createdBy 
+          (request.auth.uid == resource.data.createdBy
            && isValidCommentUpdate(request.resource.data, resource.data))
           ||
-          // Qualsevol usuari pot fer/desfer like (només canvien likes i likedBy)
           isValidLikeToggle(request.resource.data, resource.data, request.auth.uid)
         );
 
-      // ❌ 5. Permisos d'eliminació: Només el creador pot eliminar els seus comentaris
-      allow delete: if request.auth != null
+      allow delete: if isAuth()
         && request.auth.uid == resource.data.createdBy;
     }
 
-    // 📦 Funcions auxiliars per validació de comentaris col·lectius
     function isValidCommentCreate(data, matchId) {
       return hasRequiredFieldsCommentCreate(data)
         && hasCorrectTypesCommentCreate(data)
@@ -89,7 +181,6 @@ service cloud.firestore {
       return hasRequiredFieldsCommentUpdate(newData)
         && hasCorrectTypesCommentUpdate(newData)
         && isImmutableCommentFieldsPreserved(newData, oldData)
-        // Si s'edita el contingut, marcar com editat
         && (newData.content == oldData.content || newData.isEdited == true);
     }
 
@@ -98,37 +189,32 @@ service cloud.firestore {
         && isValidLikeOperation(newData, oldData, userId);
     }
 
-    // Validació que només canviïn els camps de like
     function onlyLikeFieldsChanged(newData, oldData) {
       let unchangedFields = newData.diff(oldData).unchangedKeys();
       let requiredUnchanged = [
-        'id', 'matchId', 'content', 'tagId', 'tagLabel', 
+        'id', 'matchId', 'content', 'tagId', 'tagLabel',
         'createdBy', 'createdByName', 'createdAt', 'isEdited'
       ];
       return unchangedFields.hasAll(requiredUnchanged);
     }
 
-    // Validació de l'operació de like (afegir o treure like)
     function isValidLikeOperation(newData, oldData, userId) {
       let oldLikedBy = oldData.likedBy;
       let newLikedBy = newData.likedBy;
       let wasLiked = oldLikedBy.hasAny([userId]);
       let isNowLiked = newLikedBy.hasAny([userId]);
-      
-      // Afegir like: l'usuari no tenia like i ara sí
-      let addingLike = !wasLiked && isNowLiked 
+
+      let addingLike = !wasLiked && isNowLiked
         && newData.likes == oldData.likes + 1
         && newLikedBy.toSet().difference(oldLikedBy.toSet()) == [userId].toSet();
-      
-      // Treure like: l'usuari tenia like i ara no
-      let removingLike = wasLiked && !isNowLiked 
+
+      let removingLike = wasLiked && !isNowLiked
         && newData.likes == oldData.likes - 1
         && oldLikedBy.toSet().difference(newLikedBy.toSet()) == [userId].toSet();
-      
+
       return addingLike || removingLike;
     }
 
-    // Validació de camps obligatoris per creació de comentaris
     function hasRequiredFieldsCommentCreate(data) {
       return data.keys().hasAll([
         'id', 'matchId', 'content', 'tagId', 'tagLabel',
@@ -136,7 +222,6 @@ service cloud.firestore {
       ]);
     }
 
-    // Validació de camps obligatoris per actualització de comentaris
     function hasRequiredFieldsCommentUpdate(data) {
       return data.keys().hasAll([
         'id', 'matchId', 'content', 'tagId', 'tagLabel',
@@ -144,7 +229,6 @@ service cloud.firestore {
       ]);
     }
 
-    // Validació de tipus correctes per creació de comentaris
     function hasCorrectTypesCommentCreate(data) {
       return data.id is string
         && data.matchId is string
@@ -159,7 +243,6 @@ service cloud.firestore {
         && data.isEdited is bool;
     }
 
-    // Validació de tipus correctes per actualització de comentaris
     function hasCorrectTypesCommentUpdate(data) {
       return data.id is string
         && data.matchId is string
@@ -174,7 +257,6 @@ service cloud.firestore {
         && data.isEdited is bool;
     }
 
-    // Validació que els camps immutables de comentaris no es modifiquin
     function isImmutableCommentFieldsPreserved(newData, oldData) {
       return newData.createdBy == oldData.createdBy
         && newData.createdAt == oldData.createdAt
@@ -185,33 +267,24 @@ service cloud.firestore {
         && newData.tagLabel == oldData.tagLabel;
     }
 
-    // 🔒 Regles per Personal Analysis de la feature Visionat
-    // Col·lecció: personal_analysis/{analysisId}
-    match /personal_analysis/{analysisId} {
-      
-      // 🔐 1. Requisit general: Totes les operacions requereixen autenticació
-      // 📚 2. Permisos de lectura: Només l'usuari propietari pot llegir els seus apunts
-      allow read: if request.auth != null
-        && request.auth.uid == resource.data.userId;
+    // ============================================================
+    // 🔒 PERSONAL ANALYSIS (feature Visionat)
+    // Path real: personal_analysis/{userId}/entries/{analysisId}
+    // ============================================================
+    match /personal_analysis/{userId}/entries/{analysisId} {
+      allow read: if isOwner(userId);
 
-      // 🆕 3. Permisos de creació: Només l'usuari pot crear els seus propis apunts
-      allow create: if request.auth != null
+      allow create: if isOwner(userId)
         && request.auth.uid == request.resource.data.userId
-        && request.time == request.resource.data.createdAt
         && isValidPersonalAnalysisCreate(request.resource.data);
 
-      // ✏️ 4. Permisos d'actualització: Només l'usuari propietari pot modificar els seus apunts
-      allow update: if request.auth != null
-        && request.auth.uid == resource.data.userId
+      allow update: if isOwner(userId)
         && request.auth.uid == request.resource.data.userId
         && isValidPersonalAnalysisUpdate(request.resource.data, resource.data);
 
-      // 🗑️ 5. Permisos d'eliminació: Només l'usuari propietari pot eliminar els seus apunts
-      allow delete: if request.auth != null
-        && request.auth.uid == resource.data.userId;
+      allow delete: if isOwner(userId);
     }
 
-    // 📦 Funcions auxiliars per validació d'apunts personals
     function isValidPersonalAnalysisCreate(data) {
       return hasRequiredFieldsPersonalAnalysisCreate(data)
         && hasCorrectTypesPersonalAnalysisCreate(data);
@@ -223,7 +296,6 @@ service cloud.firestore {
         && isImmutablePersonalAnalysisFieldsPreserved(newData, oldData);
     }
 
-    // Validació de camps obligatoris per creació d'apunts personals
     function hasRequiredFieldsPersonalAnalysisCreate(data) {
       return data.keys().hasAll([
         'userId', 'matchId', 'jornadaId', 'text', 'tags',
@@ -231,7 +303,6 @@ service cloud.firestore {
       ]);
     }
 
-    // Validació de camps obligatoris per actualització d'apunts personals
     function hasRequiredFieldsPersonalAnalysisUpdate(data) {
       return data.keys().hasAll([
         'userId', 'matchId', 'jornadaId', 'text', 'tags',
@@ -239,7 +310,6 @@ service cloud.firestore {
       ]);
     }
 
-    // Validació de tipus correctes per creació d'apunts personals
     function hasCorrectTypesPersonalAnalysisCreate(data) {
       return data.userId is string
         && data.matchId is string
@@ -251,7 +321,6 @@ service cloud.firestore {
         && data.isEdited is bool;
     }
 
-    // Validació de tipus correctes per actualització d'apunts personals
     function hasCorrectTypesPersonalAnalysisUpdate(data) {
       return data.userId is string
         && data.matchId is string
@@ -263,7 +332,6 @@ service cloud.firestore {
         && data.isEdited is bool;
     }
 
-    // Validació que els camps immutables d'apunts personals no es modifiquin
     function isImmutablePersonalAnalysisFieldsPreserved(newData, oldData) {
       return newData.userId == oldData.userId
         && newData.matchId == oldData.matchId
@@ -272,94 +340,79 @@ service cloud.firestore {
         && newData.userDisplayName == oldData.userDisplayName;
     }
 
-    // 🎮 Regles per Highlights amb Sistema de Reaccions i Comentaris
-    // Col·lecció: entries/{matchId}/entries/{highlightId}
+    // ============================================================
+    // 📈 ANALYZED MATCHES (partits analitzats per usuari)
+    // Path: analyzed_matches/{userId}/entries/{matchId}
+    // ============================================================
+    match /analyzed_matches/{userId}/entries/{matchId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    // ============================================================
+    // 🎮 HIGHLIGHTS amb Reaccions i Comentaris
+    // ============================================================
     match /entries/{matchId}/entries/{highlightId} {
+      allow read: if isAuth();
 
-      // 🔐 1. Requisit general: Totes les operacions requereixen autenticació
-      // 🟩 2. Permisos de lectura: Qualsevol usuari autenticat pot llegir highlights
-      allow read: if request.auth != null;
-
-      // 🟧 3. Permisos de creació: Qualsevol àrbitre autenticat pot crear highlights
-      allow create: if request.auth != null
+      allow create: if isAuth()
         && request.auth.uid == request.resource.data.createdBy
         && isValidHighlightPlayCreate(request.resource.data, matchId);
 
-      // 🟥 4. Permisos d'actualització:
-      // - Qualsevol pot afegir/treure reaccions
-      // - Només creador pot modificar contingut
-      // - Cloud Functions poden canviar status
-      allow update: if request.auth != null
+      allow update: if isAuth()
         && (
-          // Usuaris poden toggle reaccions
           isValidReactionToggle(request.resource.data, resource.data)
           ||
-          // Creador pot modificar el highlight
           (request.auth.uid == resource.data.createdBy
            && isValidHighlightPlayUpdate(request.resource.data, resource.data))
           ||
-          // Cloud Functions poden canviar status (server-side)
           isServerSideStatusUpdate(request.resource.data)
         );
 
-      // ❌ 5. Permisos d'eliminació: Només el creador pot eliminar
-      allow delete: if request.auth != null
+      allow delete: if isAuth()
         && request.auth.uid == resource.data.createdBy;
 
-      // Subcoŀlecció de comentaris d'àrbitres (sistema antic)
+      // Comentaris d'àrbitres (sistema antic)
       match /referee_comments/{commentId} {
-        // Qualsevol autenticat pot llegir comentaris
-        allow read: if request.auth != null;
-
-        // Només àrbitres registrats poden crear comentaris
-        allow create: if request.auth != null
+        allow read: if isAuth();
+        allow create: if isAuth()
           && request.auth.uid == request.resource.data.userId
           && isValidRefereeComment(request.resource.data, commentId);
-
-        // Només el creador pot editar (si no és oficial)
-        allow update: if request.auth != null
+        allow update: if isAuth()
           && request.auth.uid == resource.data.userId
           && !resource.data.isOfficial
           && isValidCommentEdit(request.resource.data, resource.data);
-
-        // Només el creador pot eliminar (si no és oficial)
-        allow delete: if request.auth != null
+        allow delete: if isAuth()
           && request.auth.uid == resource.data.userId
           && !resource.data.isOfficial;
       }
 
-      // Subcoŀlecció de comentaris amb debat (sistema nou)
+      // Comentaris amb debat (sistema nou)
       match /comments/{commentId} {
-        // Qualsevol autenticat pot llegir comentaris
-        allow read: if request.auth != null;
-
-        // Qualsevol autenticat pot crear comentaris
-        allow create: if request.auth != null
+        allow read: if isAuth();
+        allow create: if isAuth()
           && request.auth.uid == request.resource.data.userId
           && isValidDebateCommentCreate(request.resource.data);
-
-        // El creador pot editar el seu comentari (només el text)
-        allow update: if request.auth != null
+        allow update: if isAuth()
           && request.auth.uid == resource.data.userId
           && isValidDebateCommentUpdate(request.resource.data, resource.data);
-
-        // El creador pot eliminar el seu comentari
-        allow delete: if request.auth != null
+        allow delete: if isAuth()
           && request.auth.uid == resource.data.userId;
 
-        // Subcoŀlecció de likes
+        // Likes de comentaris
         match /likes/{likeId} {
-          allow read: if request.auth != null;
-          allow create: if request.auth != null
+          allow read: if isAuth();
+          allow create: if isAuth()
             && likeId == request.auth.uid
             && request.resource.data.userId == request.auth.uid;
-          allow delete: if request.auth != null
+          allow delete: if isAuth()
             && likeId == request.auth.uid;
         }
       }
     }
 
-    // 📦 Funcions auxiliars per validació de highlights amb reaccions
     function isValidHighlightPlayCreate(data, matchId) {
       return data.matchId == matchId
         && data.createdBy is string
@@ -376,7 +429,6 @@ service cloud.firestore {
     }
 
     function isValidReactionToggle(newData, oldData) {
-      // Només canvien reactions i reactionsSummary
       let unchangedFields = newData.diff(oldData).unchangedKeys();
       let requiredUnchanged = [
         'id', 'matchId', 'title', 'timestamp', 'createdBy', 'createdAt'
@@ -387,8 +439,6 @@ service cloud.firestore {
     }
 
     function isServerSideStatusUpdate(newData) {
-      // Només canvia status, reviewNotifiedAt, resolvedAt, officialCommentId
-      // Aquest check és relaxat perquè les Cloud Functions usen Admin SDK
       return newData.status is string
         && newData.status in ['open', 'under_review', 'resolved'];
     }
@@ -414,38 +464,6 @@ service cloud.firestore {
         && newData.comment.size() >= 50;
     }
 
-    // 🔔 Regles per Notificacions In-App
-    // Col·lecció: notifications/{notificationId}
-    match /notifications/{notificationId} {
-      // Només el destinatari pot llegir les seves notificacions
-      allow read: if request.auth != null
-        && request.auth.uid == resource.data.userId;
-
-      // Només Cloud Functions poden crear notificacions (client-side NO)
-      allow create: if false;
-
-      // El destinatari pot marcar com llegida
-      allow update: if request.auth != null
-        && request.auth.uid == resource.data.userId
-        && request.resource.data.userId == resource.data.userId
-        && isValidNotificationUpdate(request.resource.data, resource.data);
-
-      // El destinatari pot eliminar les seves notificacions
-      allow delete: if request.auth != null
-        && request.auth.uid == resource.data.userId;
-    }
-
-    function isValidNotificationUpdate(newData, oldData) {
-      // Només pot canviar isRead
-      let unchangedFields = newData.diff(oldData).unchangedKeys();
-      let requiredUnchanged = [
-        'id', 'userId', 'type', 'title', 'message', 'data', 'createdAt', 'expiresAt'
-      ];
-      return unchangedFields.hasAll(requiredUnchanged)
-        && newData.isRead is bool;
-    }
-
-    // 📦 Funcions auxiliars per validació de comentaris de debat
     function isValidDebateCommentCreate(data) {
       return data.keys().hasAll([
         'id', 'matchId', 'highlightId', 'userId', 'userName',
@@ -467,7 +485,6 @@ service cloud.firestore {
     }
 
     function isValidDebateCommentUpdate(newData, oldData) {
-      // Només pot canviar el text i updatedAt
       return newData.id == oldData.id
         && newData.matchId == oldData.matchId
         && newData.highlightId == oldData.highlightId
@@ -480,52 +497,109 @@ service cloud.firestore {
         && newData.text.size() > 0;
     }
 
-    // 📺 Regles per Tracking de Clips Vistos de YouTube
-    // Col·lecció: watched_clips/{userId_videoId}
-    match /watched_clips/{clipId} {
-      // Només l'usuari propietari pot llegir els seus clips vistos
-      allow read: if request.auth != null
+    // ============================================================
+    // 🔔 NOTIFICACIONS IN-APP
+    // ============================================================
+    match /notifications/{notificationId} {
+      allow read: if isAuth()
         && request.auth.uid == resource.data.userId;
+      allow create: if false;
+      allow update: if isAuth()
+        && request.auth.uid == resource.data.userId
+        && request.resource.data.userId == resource.data.userId
+        && isValidNotificationUpdate(request.resource.data, resource.data);
+      allow delete: if isAuth()
+        && request.auth.uid == resource.data.userId;
+    }
 
-      // Només l'usuari pot marcar els seus propis clips com a vistos
-      allow create: if request.auth != null
+    function isValidNotificationUpdate(newData, oldData) {
+      let unchangedFields = newData.diff(oldData).unchangedKeys();
+      let requiredUnchanged = [
+        'id', 'userId', 'type', 'title', 'message', 'data', 'createdAt', 'expiresAt'
+      ];
+      return unchangedFields.hasAll(requiredUnchanged)
+        && newData.isRead is bool;
+    }
+
+    // ============================================================
+    // 📺 TRACKING CLIPS VISTOS (YouTube)
+    // ============================================================
+    match /watched_clips/{clipId} {
+      allow read: if isAuth()
+        && request.auth.uid == resource.data.userId;
+      allow create: if isAuth()
         && request.auth.uid == request.resource.data.userId
         && isValidWatchedClipCreate(request.resource.data, clipId);
-
-      // No es permet actualització (només creació i eliminació)
       allow update: if false;
-
-      // Només l'usuari propietari pot desmarcar els seus clips vistos
-      allow delete: if request.auth != null
+      allow delete: if isAuth()
         && request.auth.uid == resource.data.userId;
     }
 
-    // ❓ Regles per Laboratori Arbitral (Quiz)
-    // Col·lecció: quiz_questions/{questionId}
-    match /quiz_questions/{questionId} {
-      // Qualsevol usuari autenticat pot llegir (per fer el quiz)
-      allow read: if request.auth != null;
-      
-      // Qualsevol usuari autenticat pot actualitzar (per col·laborar en l'Editor)
-      // TODO: En futur restringir a admins o testers específics
-      allow update: if request.auth != null;
-      
-      // Creació i eliminació restringida (només admins o scripts)
-      allow create, delete: if true; // Mantinc el "true" del catch-all per ara
-    }
-
-    // 📦 Funcions auxiliars per validació de clips vistos
     function isValidWatchedClipCreate(data, clipId) {
       return data.keys().hasAll(['userId', 'videoId', 'watchedAt'])
         && data.userId is string
         && data.videoId is string
         && data.watchedAt is timestamp
-        && clipId == data.userId + '_' + data.videoId; // Validar format del document ID
+        && clipId == data.userId + '_' + data.videoId;
     }
 
+    // ============================================================
+    // ❓ LABORATORI ARBITRAL (Quiz)
+    // ============================================================
+
+    // Preguntes del quiz
+    match /quiz_questions/{questionId} {
+      // Qualsevol autenticat pot llegir (per fer el quiz)
+      allow read: if isAuth();
+      // Autenticats poden actualitzar (col·laboració beta per omplir opcions falses)
+      allow update: if isAuth();
+      // Creació i eliminació només via scripts/Admin SDK
+      allow create, delete: if false;
+    }
+
+    // Estadístiques de preguntes
+    match /questions_stats/{questionId} {
+      allow read: if isAuth();
+      // El client actualitza stats via transacció quan respon preguntes
+      allow create, update: if isAuth();
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // 🛍️ COMANDES (Vestidor / Stripe)
+    // ============================================================
+    match /orders/{orderId} {
+      // Cada usuari pot llegir les seves comandes
+      allow read: if isAuth()
+        && resource.data.uid == request.auth.uid;
+      // Només Cloud Functions (stripeWebhook) poden escriure
+      allow write: if false;
+    }
+
+    // ============================================================
+    // 📋 REGISTRE D'ÀRBITRES I SOL·LICITUDS
+    // ============================================================
+
+    // Registre d'àrbitres (lookup de llicències)
+    match /referees_registry/{registryId} {
+      // Lectura per autenticats (cerques de llicència, mentoria)
+      allow read: if isAuth();
+      // Només Cloud Functions (completeRegistration) pot escriure
+      allow write: if false;
+    }
+
+    // Sol·licituds de registre (completament server-side)
+    match /registration_requests/{requestId} {
+      allow read, write: if false;
+    }
+
+    // ============================================================
+    // 🚫 DENY-ALL PER DEFECTE
+    // Qualsevol col·lecció no mencionada explícitament queda bloquejada
+    // Les Cloud Functions amb Admin SDK bypassen aquestes regles
+    // ============================================================
     match /{document=**} {
-      // ⚠️ Només per desenvolupament local (altres col·leccions continuen obertes)
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

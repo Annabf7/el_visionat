@@ -7,12 +7,17 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:110254435620:android:51a114850c418a5dc997b1",
+        "mobilesdk_app_id": "1:110254435620:android:4a9ae328b1ec2531c997b1",
         "android_client_info": {
-          "package_name": "com.example.el_visionat"
+          "package_name": "com.elvisionat.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "110254435620-t9kku63mtohh0nr9faakavfd4av9mbs4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAEqhN9-7UrLLrMIcOfUtCXLhqaKMwpm3I"
@@ -20,7 +25,63 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "110254435620-t9kku63mtohh0nr9faakavfd4av9mbs4.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "110254435620-tvf60q39cugr3uuf82ueg9f9eq5qfaev.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.elVisionat"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:110254435620:android:51a114850c418a5dc997b1",
+        "android_client_info": {
+          "package_name": "com.example.el_visionat"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "110254435620-l1c2pcg4gn7lf9et7lehr62o2rh7ckio.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.el_visionat",
+            "certificate_hash": "b786e7f34265791eab4747e77316b74389c1d37d"
+          }
+        },
+        {
+          "client_id": "110254435620-t9kku63mtohh0nr9faakavfd4av9mbs4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAEqhN9-7UrLLrMIcOfUtCXLhqaKMwpm3I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "110254435620-t9kku63mtohh0nr9faakavfd4av9mbs4.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "110254435620-tvf60q39cugr3uuf82ueg9f9eq5qfaev.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.elVisionat"
+              }
+            }
+          ]
         }
       }
     }

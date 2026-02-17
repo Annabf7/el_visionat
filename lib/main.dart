@@ -54,9 +54,8 @@ void main() async {
   // Inicialitzar Stripe amb la publishable key (pública per disseny).
   // flutter_stripe no suporta web — només inicialitzem en iOS/Android.
   if (!kIsWeb) {
-    // TODO: Tornar a pk_live abans de producció
     Stripe.publishableKey =
-        'pk_test_51QFKM62KU97iEHk7wEnB6ebDp4H8u1pw2hOQNfRgtlsXGvnKo4nedhGYpAGVi3gYtVnBsFziPgLPFyhlC8rEh78800fljsYHQJ';
+        'pk_live_51QFKM62KU97iEHk7KaFDpOC1eat5sxA38Rpt9t969XTlMVr8emEpdliAbAlqkNf9xK3X3utqTGLeYHRafVS0ctDZ00hHyad4Gw';
   }
 
   // Instanciem FirebaseFunctions sempre amb la regió correcte

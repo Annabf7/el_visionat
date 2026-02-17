@@ -58,18 +58,18 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAEqhN9-7UrLLrMIcOfUtCXLhqaKMwpm3I',
-    appId: '1:110254435620:android:51a114850c418a5dc997b1',
+    appId: '1:110254435620:android:4a9ae328b1ec2531c997b1',
     messagingSenderId: '110254435620',
     projectId: 'el-visionat',
     storageBucket: 'el-visionat.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBUersbm1jbiXxyEQB-UAO7yWefsdw_UV4',
-    appId: '1:110254435620:ios:d2d0a6a82ad64e60c997b1',
+    apiKey: 'AIzaSyBZp5209DL7sjWwffT6I5CZJRKBZF-KgsI',
+    appId: '1:110254435620:ios:69c67713fd99c738c997b1',
     messagingSenderId: '110254435620',
     projectId: 'el-visionat',
     storageBucket: 'el-visionat.firebasestorage.app',
-    iosBundleId: 'com.example.elVisionat',
+    iosBundleId: 'com.elvisionat.app',
   );
 }

@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>El Visionat necessita accés a la galeria per seleccionar fotos i vídeos de perfil i clips arbitrals.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>El Visionat necessita accés a la càmera per fer fotos de perfil.</string>
 </dict>
 </plist>

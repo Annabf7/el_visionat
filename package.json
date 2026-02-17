@@ -8,6 +8,7 @@
   },
   "scripts": {
     "seed": "node --loader ts-node/esm --no-warnings scripts/seed_registry.ts",
+    "seed:quiz": "node --loader ts-node/esm --no-warnings scripts/seed_quiz.ts",
     "seed:voting": "node --loader ts-node/esm --no-warnings scripts/seed_voting.ts",
     "seed:emu": "cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 npm run seed && cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 npm run seed:voting"
   },

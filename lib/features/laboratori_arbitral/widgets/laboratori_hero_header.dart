@@ -94,33 +94,13 @@ class _LaboratoriHeroHeaderState extends State<LaboratoriHeroHeader> {
 
   @override
   Widget build(BuildContext context) {
-    // Si el vídeo està carregat, utilitzem el seu aspect ratio original
-    // Si no, usem una proporció per defecte de 16:9
-    double aspectRatio = 16 / 9;
-    if (_initialized &&
-        !_hasError &&
-        _controller != null &&
-        _controller!.value.aspectRatio > 0) {
-      aspectRatio = _controller!.value.aspectRatio;
-    }
+    final bool videoReady = _initialized && !_hasError && _controller != null;
 
-    // Usem AspectRatio per desktop per mantenir la proporció perfecta.
-    // Però en MÒBIL (o pantalles estretes), l'AspectRatio pot fer que l'alçada sigui massa
-    // petita per contenir el text, provocant overflow.
-
-    // MILLOR ESTRATÈGIA HÍBRIDA:
-    // En lloc de AspectRatio rígid, usem un Container que intenta respectar el ratio
-    // però creix si cal (minHeight).
-    //
-    // Com que AspectRatio és rígid, el traiem i calculem l'alçada nosaltres.
-    // MOD: Use local variable for ratio
-    double effectiveRatio = aspectRatio;
-    if (MediaQuery.of(context).size.width <= 600) {
-      effectiveRatio = 1.1; // Make it more square on mobile
-    }
+    // Ratio fix del clip: 1600×650
+    const double clipRatio = 1600 / 650;
 
     return AspectRatio(
-      aspectRatio: effectiveRatio,
+      aspectRatio: clipRatio,
       child: Container(
         width: double.infinity,
         clipBehavior: Clip.hardEdge,
@@ -128,31 +108,37 @@ class _LaboratoriHeroHeaderState extends State<LaboratoriHeroHeader> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Capa 1: Fons (Imatge)
-            Image.network(
-              widget.fallbackImageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(color: Colors.black),
+            // Capa 1: Imatge poster (mateixa proporció que el clip → 0 diferència)
+            Positioned.fill(
+              child: Image.network(
+                widget.fallbackImageUrl,
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+                errorBuilder: (_, __, ___) => const SizedBox(),
+              ),
             ),
 
-            // Capa 2: Fons (Vídeo)
-            if (_initialized && !_hasError && _controller != null)
-              FadeTransition(
-                opacity: const AlwaysStoppedAnimation(1.0),
-                child: SizedBox.expand(
-                  child: FittedBox(
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
-                    child: SizedBox(
-                      width: _controller!.value.size.width,
-                      height: _controller!.value.size.height,
-                      child: VideoPlayer(_controller!),
-                    ),
-                  ),
-                ),
+            // Capa 2: Vídeo amb crossfade suau
+            Positioned.fill(
+              child: AnimatedOpacity(
+                opacity: videoReady ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 600),
+                curve: Curves.easeIn,
+                child: videoReady
+                    ? FittedBox(
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                        child: SizedBox(
+                          width: _controller!.value.size.width,
+                          height: _controller!.value.size.height,
+                          child: VideoPlayer(_controller!),
+                        ),
+                      )
+                    : const SizedBox(),
               ),
+            ),
 
-            // Capa 3: Overlay Gradient fosc
+            // Capa 3: Overlay gradient fosc
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
@@ -161,7 +147,7 @@ class _LaboratoriHeroHeaderState extends State<LaboratoriHeroHeader> {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.black.withValues(alpha: 0.3),
-                      Colors.black.withValues(alpha: 0.9), // Més opac a baix
+                      Colors.black.withValues(alpha: 0.9),
                     ],
                   ),
                 ),

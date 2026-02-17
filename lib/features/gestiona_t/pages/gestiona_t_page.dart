@@ -25,6 +25,7 @@ class GestionaTPage extends StatefulWidget {
 }
 
 class _GestionaTPageState extends State<GestionaTPage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _showSummary = true;
   ViewMode _viewMode = ViewMode.grid; // Per defecte, vista graella
 
@@ -74,10 +75,7 @@ class _GestionaTPageState extends State<GestionaTPage> {
 
     showDialog(
       context: context,
-      builder: (context) => TimeblockEditorDialog(
-        block: newBlock,
-        isNew: true,
-      ),
+      builder: (context) => TimeblockEditorDialog(block: newBlock, isNew: true),
     );
   }
 
@@ -106,10 +104,11 @@ class _GestionaTPageState extends State<GestionaTPage> {
           );
         } else {
           return Scaffold(
+            key: _scaffoldKey,
             drawer: const SideNavigationMenu(),
             body: Column(
               children: [
-                const GlobalHeader(showMenuButton: true),
+                GlobalHeader(scaffoldKey: _scaffoldKey, showMenuButton: true),
                 Expanded(child: _buildContent()),
               ],
             ),
@@ -154,7 +153,11 @@ class _GestionaTPageState extends State<GestionaTPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+                const Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: Colors.redAccent,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   provider.error!,
@@ -205,13 +208,15 @@ class _GestionaTPageState extends State<GestionaTPage> {
                           icon: Icons.view_list,
                           label: 'Llista',
                           isSelected: _viewMode == ViewMode.list,
-                          onTap: () => setState(() => _viewMode = ViewMode.list),
+                          onTap: () =>
+                              setState(() => _viewMode = ViewMode.list),
                         ),
                         _buildViewToggle(
                           icon: Icons.calendar_view_week,
                           label: 'Setmana',
                           isSelected: _viewMode == ViewMode.grid,
-                          onTap: () => setState(() => _viewMode = ViewMode.grid),
+                          onTap: () =>
+                              setState(() => _viewMode = ViewMode.grid),
                         ),
                       ],
                     ),

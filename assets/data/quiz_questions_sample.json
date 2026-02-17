@@ -1,0 +1,58 @@
+[
+  {
+    "id": "1",
+    "question": "A1 realitza un moviment de revers en el que aixeca el peu de pivot i després el retorna a terra abans de deixar anar la pilota per començar un regateig. És correcte?",
+    "options": [
+      "Sí, és un moviment legal",
+      "No, és invasió de passes",
+      "Només si no canvia de direcció",
+      "Depèn del criteri de l'àrbitre"
+    ],
+    "correctOptionIndex": 1,
+    "explanation": "Per començar un regateig, la pilota ha de sortir de les mans del jugador abans que el peu de pivot es torni a posar en contacte amb el terra.",
+    "reference": "Art. 25.2.2",
+    "category": "reglament"
+  },
+  {
+    "id": "2",
+    "question": "Després d'un tir a cistella fallat, la pilota queda atrapada entre l'anella i el tauler. Com es reprèn el joc?",
+    "options": [
+      "Salt entre dos a la línia de tirs lliures",
+      "Servei de banda per l'equip defensor",
+      "Situació de salt",
+      "Servei de fons per l'equip atacant"
+    ],
+    "correctOptionIndex": 2,
+    "explanation": "Quan la pilota queda morta en el suport de la cistella es produeix una situació de salt. La possessió s'atorga segons la fletxa de possessió alterna.",
+    "reference": "Art. 12.1.2",
+    "category": "reglament"
+  },
+  {
+    "id": "3",
+    "question": "En Mecànica de 2 Àrbitres (2PO), on s'ha de situar l'àrbitre de Cua (Trail) quan la pilota està a la part frontal, a prop de la línia de 3 punts?",
+    "options": [
+      "A l'alçada de la línia de fons",
+      "A la línia de tirs lliures estesa",
+      "Per darrere de la línia de 3 punts (28 peus)",
+      "Al cercle central"
+    ],
+    "correctOptionIndex": 2,
+    "explanation": "L'àrbitre de Cua ha de treballar profund (28 peus / línia de 3 punts estesa) per tenir una visió oberta del joc i poder jutjar els tirs de 3 punts.",
+    "reference": "Mecànica 2PO - Posicionament",
+    "category": "mecanica"
+  },
+  {
+    "id": "4",
+    "question": "B1 fa falta a A1 durant un tir a cistella convertit. Després es sanciona una falta tècnica a A1. Com es procedeix?",
+    "options": [
+      "Es compta la cistella. 1 tir lliure (A1) i possessió per B.",
+      "Es compta la cistella. Les penalitzacions es cancel·len. Servei de fons per l'equip B.",
+      "S'anul·la la cistella. Tècnica a A1 (1 tir i banda).",
+      "Es compta la cistella. 1 tir lliure (A1) + 1 tir lliure (Tècnica)."
+    ],
+    "correctOptionIndex": 1,
+    "explanation": "La cistella d’A1 comptarà. Les penalitzacions per ambdues faltes són iguals i s'han de cancel·lar entre si. El partit es reprendrà com després de qualsevol cistella convertida.",
+    "reference": "Interpretació 42-5",
+    "category": "interpretacions"
+  }
+]

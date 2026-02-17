@@ -500,6 +500,20 @@ service cloud.firestore {
         && request.auth.uid == resource.data.userId;
     }
 
+    // ❓ Regles per Laboratori Arbitral (Quiz)
+    // Col·lecció: quiz_questions/{questionId}
+    match /quiz_questions/{questionId} {
+      // Qualsevol usuari autenticat pot llegir (per fer el quiz)
+      allow read: if request.auth != null;
+      
+      // Qualsevol usuari autenticat pot actualitzar (per col·laborar en l'Editor)
+      // TODO: En futur restringir a admins o testers específics
+      allow update: if request.auth != null;
+      
+      // Creació i eliminació restringida (només admins o scripts)
+      allow create, delete: if true; // Mantinc el "true" del catch-all per ara
+    }
+
     // 📦 Funcions auxiliars per validació de clips vistos
     function isValidWatchedClipCreate(data, clipId) {
       return data.keys().hasAll(['userId', 'videoId', 'watchedAt'])

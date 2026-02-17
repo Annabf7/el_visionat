@@ -76,7 +76,7 @@ class NeuroVisionatPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _NeuroHeroHeader(),
-          const SizedBox(height: 8),
+          const SizedBox(height: 38),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
@@ -157,7 +157,7 @@ class _NeuroWebLayout extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _NeuroHeroHeader(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 38),
                 NeuroPillarsSection(sections: neuroPillars),
                 const SizedBox(height: 32),
                 const NeuroVideoResourcesSection(),
@@ -395,39 +395,27 @@ class _NeuroHeroHeaderState extends State<_NeuroHeroHeader> {
     if (!_initialized) {
       return Container(
         height: 250,
-        decoration: BoxDecoration(
-          color: AppTheme.porpraFosc,
-          borderRadius: const BorderRadius.only(
-            bottomLeft: Radius.circular(32),
-            bottomRight: Radius.circular(32),
-          ),
-        ),
+        color: AppTheme.porpraFosc,
         child: Center(
           child: CircularProgressIndicator(color: AppTheme.mostassa),
         ),
       );
     }
 
+    // Determine screen width to adjust height for mobile
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 600;
+
+    // On mobile, we might want a different aspect ratio or height to ensure the clip fits better
+    final double headerHeight = isMobile ? screenWidth * (9 / 16) : 500;
+
     return Container(
       width: double.infinity,
-      height: 500, // Alçada ajustada a 500 per veure millor el contingut
-      decoration: BoxDecoration(
-        color: AppTheme.porpraFosc,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(32),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
+      height: headerHeight,
+      clipBehavior: Clip.hardEdge,
+      decoration: const BoxDecoration(color: AppTheme.porpraFosc),
       child: FittedBox(
-        fit: BoxFit.cover, // Això fa que ocupi tot l'ample sense deformar-se
+        fit: BoxFit.cover,
         child: SizedBox(
           width: _controller.value.size.width,
           height: _controller.value.size.height,

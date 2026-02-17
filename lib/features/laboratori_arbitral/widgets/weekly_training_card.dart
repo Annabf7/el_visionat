@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
+import 'package:el_visionat/features/laboratori_arbitral/pages/quiz_setup_page.dart';
 import 'laboratori_section_card.dart';
 
 class WeeklyTrainingCard extends StatelessWidget {
@@ -13,8 +14,9 @@ class WeeklyTrainingCard extends StatelessWidget {
       icon: Icons.calendar_today,
       color: AppTheme.porpraFosc.withValues(alpha: 0.95),
       onTap: () {
-        // TODO: Navegar a la pantalla de entrenament setmanal
-        debugPrint('TODO: Navigate to Weekly Training Page');
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => const QuizSetupPage()));
       },
     );
   }

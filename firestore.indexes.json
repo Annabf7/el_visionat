@@ -71,6 +71,22 @@
         { "fieldPath": "uid", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    {
+      "collectionGroup": "questions_stats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "totalAnswers", "order": "ASCENDING" },
+        { "fieldPath": "incorrectRate", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "quiz_questions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "active", "order": "ASCENDING" },
+        { "fieldPath": "source", "order": "ASCENDING" },
+        { "fieldPath": "randomId", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

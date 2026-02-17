@@ -60,11 +60,11 @@ class ProfileVisibility {
   }
 
   Map<String, dynamic> toMap() => {
-        'showYearsExperience': showYearsExperience,
-        'showAnalyzedMatches': showAnalyzedMatches,
-        'showPersonalNotes': showPersonalNotes,
-        'showSeasonGoals': showSeasonGoals,
-      };
+    'showYearsExperience': showYearsExperience,
+    'showAnalyzedMatches': showAnalyzedMatches,
+    'showPersonalNotes': showPersonalNotes,
+    'showSeasonGoals': showSeasonGoals,
+  };
 
   ProfileVisibility copyWith({
     bool? showYearsExperience,
@@ -89,6 +89,11 @@ class ProfileModel {
   final String? portraitImageUrl;
   final String? headerImageUrl;
   final String? gender; // 'male' | 'female'
+  final bool isMentor; // Indica si l'usuari és mentor
+
+  // Llista d'IDs d'àrbitres mentoritzats.
+  // Pot ser un UID d'usuari (si té compte) o un String JSON-like "license:12345:Nom Cognom"
+  final List<String> mentoredReferees;
 
   // Estadístiques
   final int analyzedMatches;
@@ -112,6 +117,8 @@ class ProfileModel {
     this.portraitImageUrl,
     this.headerImageUrl,
     this.gender,
+    this.isMentor = false,
+    this.mentoredReferees = const [],
     this.analyzedMatches = 0,
     this.personalNotesCount = 0,
     this.sharedClipsCount = 0,
@@ -124,8 +131,8 @@ class ProfileModel {
   String get displayNameSafe => (displayName?.trim().isNotEmpty == true)
       ? displayName!
       : (email?.trim().isNotEmpty == true)
-          ? email!
-          : 'Usuari';
+      ? email!
+      : 'Usuari';
 
   /// Getter segur per a la categoria
   String get categoriaSafe => (refereeCategory?.trim().isNotEmpty == true)
@@ -212,6 +219,12 @@ class ProfileModel {
       portraitImageUrl: data['portraitImageUrl'] as String?,
       headerImageUrl: data['headerImageUrl'] as String?,
       gender: data['gender'] as String?,
+      isMentor: data['isMentor'] as bool? ?? false,
+      mentoredReferees:
+          (data['mentoredReferees'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
       analyzedMatches: data['analyzedMatches'] as int? ?? 0,
       personalNotesCount: data['personalNotesCount'] as int? ?? 0,
       sharedClipsCount: data['sharedClipsCount'] as int? ?? 0,
@@ -222,7 +235,9 @@ class ProfileModel {
         data['seasonGoals'] as Map<String, dynamic>?,
       ),
       homeAddress: data['homeAddress'] != null
-          ? HomeAddress.fromFirestore(data['homeAddress'] as Map<String, dynamic>)
+          ? HomeAddress.fromFirestore(
+              data['homeAddress'] as Map<String, dynamic>,
+            )
           : null,
     );
   }

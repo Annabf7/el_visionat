@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:provider/provider.dart';
 import 'package:el_visionat/core/navigation/navigation_provider.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
+import 'package:el_visionat/features/auth/providers/auth_provider.dart';
 
 class SideNavigationMenu extends StatelessWidget {
   const SideNavigationMenu({super.key});
@@ -65,6 +66,8 @@ class SideNavigationMenu extends StatelessWidget {
             child: Builder(
               builder: (ctx) {
                 final current = ctx.watch<NavigationProvider>().currentRoute;
+                final authProvider = ctx.watch<AuthProvider>();
+                final isMentor = authProvider.userProfile?.isMentor ?? false;
 
                 bool isActive(String route) =>
                     current == route ||
@@ -114,7 +117,13 @@ class SideNavigationMenu extends StatelessWidget {
                     isSelected: isActive('/neurovisionat'),
                     onTap: () => Navigator.pushNamed(ctx, '/neurovisionat'),
                   ),
-                  _NavigationItem(icon: Icons.people, text: 'Mentoria'),
+                  if (isMentor)
+                    _NavigationItem(
+                      icon: Icons.people,
+                      text: 'Mentoria',
+                      isSelected: isActive('/mentoria'),
+                      onTap: () => Navigator.pushNamed(ctx, '/mentoria'),
+                    ),
                   _NavigationItem(
                     icon: Icons.checkroom,
                     text: 'El vestidor',

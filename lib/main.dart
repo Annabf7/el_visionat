@@ -12,6 +12,7 @@ import 'package:el_visionat/features/vestidor/index.dart';
 import 'package:el_visionat/features/gestiona_t/index.dart';
 import 'package:el_visionat/features/neurovisionat/pages/neurovisionat_page.dart';
 import 'package:el_visionat/features/laboratori_arbitral/pages/laboratori_arbitral_page.dart';
+import 'package:el_visionat/features/mentoria/pages/mentoria_page.dart';
 import 'package:el_visionat/features/notifications/providers/notification_provider.dart';
 import 'package:el_visionat/features/search/providers/search_provider.dart';
 import 'package:el_visionat/core/index.dart';
@@ -247,6 +248,7 @@ class MyApp extends StatelessWidget {
             RequireAuth(child: const LaboratoriArbitralPage()),
         '/neurovisionat': (context) =>
             RequireAuth(child: const NeuroVisionatPage()),
+        '/mentoria': (context) => RequireAuth(child: const MentoriaPage()),
         '/login': (context) => const LoginPage(),
         '/create-password': (context) => const CreatePasswordPage(),
       },

@@ -7,10 +7,12 @@ import '../models/search_result.dart';
 /// Overlay que mostra els resultats de cerca sota la barra de cerca
 class SearchResultsOverlay extends StatelessWidget {
   final VoidCallback onClose;
+  final Function(RefereeSearchResult)? onResultTap;
 
   const SearchResultsOverlay({
     super.key,
     required this.onClose,
+    this.onResultTap,
   });
 
   @override
@@ -60,10 +62,7 @@ class SearchResultsOverlay extends StatelessWidget {
               SizedBox(height: 12),
               Text(
                 'Carregant àrbitres...',
-                style: TextStyle(
-                  color: AppTheme.grisPistacho,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: AppTheme.grisPistacho, fontSize: 14),
               ),
             ],
           ),
@@ -81,15 +80,12 @@ class SearchResultsOverlay extends StatelessWidget {
             Icon(
               Icons.search,
               size: 48,
-              color: AppTheme.grisPistacho.withValues(alpha: 0.5),
+              color: AppTheme.porpraFosc.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 12),
             const Text(
               'Escriu almenys 2 caràcters per cercar',
-              style: TextStyle(
-                color: AppTheme.grisPistacho,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: AppTheme.porpraFosc, fontSize: 14),
             ),
           ],
         ),
@@ -141,6 +137,13 @@ class SearchResultsOverlay extends StatelessWidget {
   }
 
   void _onResultTap(BuildContext context, RefereeSearchResult result) {
+    if (onResultTap != null) {
+      context.read<SearchProvider>().closeSearch();
+      onClose();
+      onResultTap!(result);
+      return;
+    }
+
     // Tancar la cerca
     context.read<SearchProvider>().closeSearch();
     onClose();
@@ -148,24 +151,21 @@ class SearchResultsOverlay extends StatelessWidget {
     // Navegar al perfil
     if (result.hasAccount && result.userId != null) {
       // Té compte: navegar al perfil complet
-      Navigator.pushNamed(
-        context,
-        '/user-profile',
-        arguments: result.userId,
-      );
+      Navigator.pushNamed(context, '/user-profile', arguments: result.userId);
     } else {
       // No té compte: mostrar perfil bàsic del registre
       _showBasicProfileDialog(context, result);
     }
   }
 
-  void _showBasicProfileDialog(BuildContext context, RefereeSearchResult result) {
+  void _showBasicProfileDialog(
+    BuildContext context,
+    RefereeSearchResult result,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
             Container(
@@ -246,9 +246,7 @@ class SearchResultsOverlay extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(
-              foregroundColor: AppTheme.grisPistacho,
-            ),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.grisPistacho),
             child: const Text('Tancar'),
           ),
         ],
@@ -263,10 +261,7 @@ class SearchResultsOverlay extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: const TextStyle(
-            fontSize: 14,
-            color: AppTheme.grisPistacho,
-          ),
+          style: const TextStyle(fontSize: 14, color: AppTheme.grisPistacho),
         ),
         Text(
           value,
@@ -286,10 +281,7 @@ class _RefereeResultTile extends StatelessWidget {
   final RefereeSearchResult result;
   final VoidCallback onTap;
 
-  const _RefereeResultTile({
-    required this.result,
-    required this.onTap,
-  });
+  const _RefereeResultTile({required this.result, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -331,6 +323,8 @@ class _RefereeResultTile extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                       color: AppTheme.textBlackLow,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                   const SizedBox(height: 2),
                   Row(
@@ -350,11 +344,14 @@ class _RefereeResultTile extends StatelessWidget {
                             color: AppTheme.textBlackLow,
                           ),
                         ),
-                        Text(
-                          result.categoriaRrtt!,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppTheme.textBlackLow,
+                        Flexible(
+                          child: Text(
+                            result.categoriaRrtt!,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.textBlackLow,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -375,11 +372,7 @@ class _RefereeResultTile extends StatelessWidget {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.verified,
-                      size: 14,
-                      color: AppTheme.verdeEncert,
-                    ),
+                    Icon(Icons.verified, size: 14, color: AppTheme.verdeEncert),
                     SizedBox(width: 4),
                     Text(
                       'Perfil',

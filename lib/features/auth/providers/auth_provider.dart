@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../profile/models/profile_model.dart';
 import '../services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Importem per als codis d'error
 
@@ -27,7 +29,13 @@ class AuthProvider with ChangeNotifier {
     // when we receive the first event. This avoids flashing unauthorized
     // UI while the auth SDK warms up.
     _authStateSub = authService.authStateChanges.listen(
-      (_) {
+      (user) {
+        if (user != null) {
+          _subscribeToProfile(user.uid);
+        } else {
+          _unsubscribeFromProfile();
+        }
+
         if (!_hasReceivedAuthState) {
           _hasReceivedAuthState = true;
           notifyListeners();
@@ -43,10 +51,39 @@ class AuthProvider with ChangeNotifier {
     );
   }
 
+  /// Subscriu al perfil de l'usuari a Firestore per rebre actualitzacions en temps real
+  void _subscribeToProfile(String uid) {
+    _profileSubscription?.cancel();
+    _profileSubscription = authService.firestore
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .listen((snapshot) {
+          if (snapshot.exists) {
+            try {
+              _userProfile = ProfileModel.fromMap(snapshot.data());
+              notifyListeners();
+            } catch (e) {
+              debugPrint('Error parsing user profile: $e');
+            }
+          }
+        }, onError: (e) => debugPrint('Error listening to user profile: $e'));
+  }
+
+  void _unsubscribeFromProfile() {
+    _profileSubscription?.cancel();
+    _profileSubscription = null;
+    _userProfile = null;
+  }
+
   // --- Estats Generals ---
   bool _isLoading = false;
   String? _errorMessage;
   RegistrationStep _currentStep = RegistrationStep.initial;
+
+  // --- Perfil d'Usuari en Temps Real ---
+  ProfileModel? _userProfile;
+  StreamSubscription<DocumentSnapshot>? _profileSubscription;
 
   // --- Estats Específics del Registre ---
   Map<String, dynamic>? _verifiedLicenseData;
@@ -59,6 +96,7 @@ class AuthProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   RegistrationStep get currentStep => _currentStep;
+  ProfileModel? get userProfile => _userProfile;
   Map<String, dynamic>? get verifiedLicenseData => _verifiedLicenseData;
   String? get pendingLicenseId => _pendingLicenseId;
   String? get pendingEmail => _pendingEmail;
@@ -306,6 +344,20 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  /// Activa o desactiva l'estat de mentor al perfil de l'usuari
+  Future<void> toggleMentorStatus(bool value) async {
+    final user = authService.auth.currentUser;
+    if (user == null) return;
+    try {
+      await authService.firestore.collection('users').doc(user.uid).set({
+        'isMentor': value,
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Error toggling mentor status: $e');
+      rethrow;
+    }
+  }
+
   /// Tanca la sessió de l'usuari actual.
   Future<void> signOut() async {
     await authService.signOut();
@@ -352,6 +404,7 @@ class AuthProvider with ChangeNotifier {
     } catch (e) {
       debugPrint('Error cancelling authStateSub: $e');
     }
+    _unsubscribeFromProfile();
     super.dispose();
   }
 }

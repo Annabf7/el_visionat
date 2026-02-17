@@ -25,6 +25,10 @@ class ProfileHeaderWidget extends StatefulWidget {
   final VoidCallback? onChangeVisibility;
   final VoidCallback? onCompareProfileEvolution;
 
+  /// Callback per l'acció de mentoratge
+  final ValueChanged<bool>? onToggleMentor;
+  final bool isMentor;
+
   /// Altura del header (responsive)
   final double? height;
 
@@ -47,6 +51,8 @@ class ProfileHeaderWidget extends StatefulWidget {
     this.onChangeVisibility,
     this.onCompareProfileEvolution,
     this.height,
+    this.isMentor = false,
+    this.onToggleMentor,
     this.onImageOffsetChanged,
     this.showMenu = true,
     this.showImageAdjustButton = true,
@@ -466,6 +472,13 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
             Icons.compare_arrows_outlined,
             'Comparar amb fa 1 any',
           ),
+          const PopupMenuDivider(),
+          _buildPopupMenuItem(
+            'toggle_mentor',
+            widget.isMentor ? Icons.check_box : Icons.check_box_outline_blank,
+            'Mentoritzas?',
+            isActive: widget.isMentor,
+          ),
         ],
       ),
     );
@@ -504,13 +517,18 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
   PopupMenuItem<String> _buildPopupMenuItem(
     String value,
     IconData icon,
-    String text,
-  ) {
+    String text, {
+    bool isActive = false,
+  }) {
     return PopupMenuItem<String>(
       value: value,
       child: Row(
         children: [
-          Icon(icon, size: 20, color: AppTheme.porpraFosc),
+          Icon(
+            icon,
+            size: 20,
+            color: isActive ? AppTheme.verdeEncert : AppTheme.porpraFosc,
+          ),
           const SizedBox(width: 12),
           Text(
             text,
@@ -539,6 +557,10 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
       case 'compare_evolution':
         debugPrint('📊 Acció: Comparar evolució del perfil');
         widget.onCompareProfileEvolution?.call();
+        break;
+      case 'toggle_mentor':
+        debugPrint('🎓 Acció: Toggle mentor status');
+        widget.onToggleMentor?.call(!widget.isMentor);
         break;
       default:
         debugPrint('⚠️ Acció desconeguda: $action');

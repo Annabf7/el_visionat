@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:el_visionat/core/widgets/global_header.dart';
 import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:el_visionat/features/profile/widgets/edit_profile_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:el_visionat/features/visionat/providers/personal_analysis_provider.dart';
+import 'package:el_visionat/features/auth/providers/auth_provider.dart';
 import '../widgets/profile_header_widget.dart';
 import '../models/profile_model.dart';
 import '../widgets/profile_info_widget.dart';
@@ -158,6 +159,8 @@ class _ProfilePageState extends State<ProfilePage> {
                                 Positioned.fill(
                                   child: ProfileHeaderWidget(
                                     imageUrl: profile.resolvedHeaderUrl,
+                                    isMentor: profile.isMentor,
+                                    onToggleMentor: _handleToggleMentor,
                                     onEditProfile: () => _handleEditProfile(),
                                     onChangeVisibility: () =>
                                         _handleChangeVisibility(),
@@ -239,6 +242,8 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               ProfileHeaderWidget(
                 imageUrl: profile.resolvedHeaderUrl,
+                isMentor: profile.isMentor,
+                onToggleMentor: _handleToggleMentor,
                 onEditProfile: () => _handleEditProfile(),
                 onChangeVisibility: () => _handleChangeVisibility(),
                 onCompareProfileEvolution: () => _handleCompareEvolution(),
@@ -291,7 +296,9 @@ class _ProfilePageState extends State<ProfilePage> {
             child: AccountingSummaryWidget(
               profile: profile,
               onAddressUpdated: () {
-                debugPrint('🔄 Refrescant perfil després d\'actualitzar adreça...');
+                debugPrint(
+                  '🔄 Refrescant perfil després d\'actualitzar adreça...',
+                );
                 _refreshProfile();
               },
             ),
@@ -301,7 +308,9 @@ class _ProfilePageState extends State<ProfilePage> {
             flex: 6,
             child: Column(
               children: [
-                const MatchHistorySearchWidget(key: ValueKey('match_history_search')),
+                const MatchHistorySearchWidget(
+                  key: ValueKey('match_history_search'),
+                ),
                 const SizedBox(height: 24),
                 ProfileFootprintWidget(profile: profile),
               ],
@@ -316,7 +325,9 @@ class _ProfilePageState extends State<ProfilePage> {
           AccountingSummaryWidget(
             profile: profile,
             onAddressUpdated: () {
-              debugPrint('🔄 Refrescant perfil després d\'actualitzar adreça (mobile)...');
+              debugPrint(
+                '🔄 Refrescant perfil després d\'actualitzar adreça (mobile)...',
+              );
               _refreshProfile();
             },
           ),
@@ -358,6 +369,35 @@ class _ProfilePageState extends State<ProfilePage> {
         .get();
     if (!doc.exists) return null;
     return doc.data();
+  }
+
+  Future<void> _handleToggleMentor(bool value) async {
+    try {
+      await context.read<AuthProvider>().toggleMentorStatus(value);
+      // Wait a bit for snapshot to propagate if needed, but setState via refresh helps
+      if (mounted) {
+        _refreshProfile();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              value
+                  ? 'Mentoria activada! Ara veuràs la pestanya.'
+                  : 'Mentoria desactivada.',
+            ),
+            backgroundColor: value ? AppTheme.verdeEncert : AppTheme.porpraFosc,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al modificar l\'estat de mentor: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
   }
 
   void _handleEditProfile() async {

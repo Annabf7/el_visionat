@@ -68,3 +68,4 @@ firebase-debug.*.log
 /node_modules
 /functions/node_modules
 /functions/lib
+serviceAccountKey.json.bak

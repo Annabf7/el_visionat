@@ -1,0 +1,18 @@
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/app_icon_1024.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  background_color_ios: "#E5E7EB"
+
+  web:
+    generate: true
+    image_path: "assets/icons/app_icon_1024.png"
+    background_color: "#E5E7EB"
+    theme_color: "#E5E7EB"
+
+  # Adaptive icons per Android (opcional si vols mantenir els antics)
+  # Si vols fer servir només la icona gran, pots comentar aquestes dues línies
+  adaptive_icon_foreground: "assets/icons/foreground.png"
+  adaptive_icon_background: "assets/icons/background.png"

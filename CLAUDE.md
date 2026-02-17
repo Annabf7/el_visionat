@@ -116,6 +116,21 @@ optim, satisfactori, acceptable, millorable, noSatisfactori
 }
 ```
 
+### Estructura `voting_meta/current`
+```javascript
+{
+  activeJornada: 20,
+  weekendStart: "ISO",
+  weekendEnd: "ISO",
+  publishedAt: "ISO",
+  matchCount: 8,
+  // Camps opcionals (setmana de descans):
+  restWeek: true,
+  restWeekMessage: "La competició descansa...",
+  nextVotingDate: "ISO"  // pròxim dilluns 08:00
+}
+```
+
 ---
 
 ## Cloud Functions Principals
@@ -130,9 +145,15 @@ optim, satisfactori, acceptable, millorable, noSatisfactori
   - Especials: CAPACITAT D'AUTOCRÍTICA, VALORACIÓ ACTITUD, DIFICULTAT PARTIT, ERRADES DECISIVES
 
 ### `syncWeeklyVoting` (functions/src/fcbq/sync_weekly_voting.ts)
-- **Trigger**: Scheduler (dilluns 00:05)
+- **Trigger**: Scheduler (dilluns 08:00 Europe/Madrid)
 - **Funció**: Processa el guanyador de la votació setmanal
 - **Flux**: Detecta jornada → Obté guanyador → Scraping acta → Guarda refereeInfo
+- **Setmana de descans**: Quan no hi ha partits al cap de setmana, la function:
+  1. Tanca la votació de la jornada anterior
+  2. Processa el guanyador (`processVotingWinner`)
+  3. Marca `voting_meta/current` amb `restWeek: true`, `nextVotingDate`
+  4. El frontend mostra banner informatiu (JornadaHeader)
+- **Guard doble processament**: `saveVotingData` comprova `weekly_focus/current.jornada` abans de cridar `processVotingWinner` per evitar reprocessar
 
 ### `scrapeJornada` (functions/src/fcbq/scraper.ts)
 - Scraping de `basquetcatala.cat/competicions/resultats`
@@ -173,10 +194,16 @@ optim, satisfactori, acceptable, millorable, noSatisfactori
 ```
 1. Usuari vota partit → VotingProvider.vote()
 2. Firestore incrementa comptador → vote_counts/{jornada}
-3. Dilluns 00:05 → syncWeeklyVoting executa
+3. Dilluns 08:00 → syncWeeklyVoting executa
 4. Scraping acta FCBQ → Obté àrbitres
 5. Guarda a weekly_focus/current
 6. Home mostra "Equip Arbitral" i "Partit de la setmana"
+
+Cas especial - Setmana de descans:
+3b. No troba partits → Tanca votació anterior + processVotingWinner
+3c. Marca voting_meta/current amb restWeek: true
+3d. Frontend: JornadaHeader mostra banner mostassa "Setmana de descans"
+3e. VotingSection: amaga cards de partits, mostra banner
 ```
 
 ### 3. Scraping FCBQ
@@ -219,6 +246,9 @@ optim, satisfactori, acceptable, millorable, noSatisfactori
 3. **Gemini** - El prompt és crític, les escales de valoració són específiques
 4. **Firestore indexes** - Alguns queries compostos requereixen índexs
 5. **Límits Firebase** - Storage 10MB per PDF, Functions 60s timeout
+6. **Service Account Key** - `serviceAccountKey.json` eliminat del repo. Per scripts locals que necessitin Admin SDK, cal regenerar-lo des de Firebase Console (Project Settings > Service accounts). Les Cloud Functions desplegades funcionen amb les seves pròpies credencials
+7. **Callable functions (onCall)** - No es poden invocar fàcilment des de CLI. Per executar lògica manualment, crear un script Node.js dins `functions/` que usi Admin SDK + `gcloud auth application-default` credentials
+8. **`normalizeForSignature`** - Funció interna de `sync_weekly_voting.ts`, no exportada des de `scraper.ts`. Si cal fer matching d'equips des de scripts locals, implementar manualment o exportar-la
 
 ---
 
@@ -246,5 +276,7 @@ firebase functions:log --only processPdfOnUpload
 
 - **Informes PDF**: Prompt de Gemini actualitzat amb totes les escales de valoració
 - **Votacions**: Scraper arreglat per detectar actes amb matching d'equips
+- **Votacions - Setmana de descans**: Cloud Function gestiona automàticament setmanes sense partits (tanca votació, processa guanyador, informa usuaris)
 - **UI**: Resum de valoracions mostra SATISFACTORI (no ACCEPTABLE) per a valoració final
 - **UX**: Diàleg de processament mentre s'analitza el PDF amb IA
+- **Quiz**: Background images basades en gènere (home/dona) des de Firebase Storage

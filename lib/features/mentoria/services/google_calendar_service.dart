@@ -14,8 +14,28 @@ class GoogleCalendarService {
     try {
       // Check if already signed in
       var account = _googleSignIn.currentUser;
-      account ??= await _googleSignIn.signInSilently();
-      account ??= await _googleSignIn.signIn();
+      if (kIsWeb) {
+        // En web, sovint cal forçar signInSilently primer per recuperar
+        // l'estat d'autenticació complet, fins i tot si sembla que user no és null.
+        account = await _googleSignIn.signInSilently();
+      } else {
+        account ??= await _googleSignIn.signInSilently();
+      }
+
+      if (account == null) {
+        // Si no hi ha user, forcem el popup
+        account = await _googleSignIn.signIn();
+      }
+
+      // IMPORTME: En Web, verifiquem si tenim els permisos (scopes)
+      if (kIsWeb && account != null) {
+        final canAccess = await _googleSignIn.requestScopes(_scopes);
+        if (!canAccess) {
+          debugPrint('L\'usuari ha denegat els permisos de calendari.');
+          return null;
+        }
+      }
+
       return account;
     } catch (error) {
       debugPrint('Error signing in with Google: $error');
@@ -108,6 +128,31 @@ class GoogleCalendarService {
     } catch (e) {
       debugPrint('Error creating Google Calendar event: $e');
       return null;
+    }
+  }
+
+  /// Update a calendar event description.
+  Future<bool> updateEventDescription({
+    required String eventId,
+    required String description,
+  }) async {
+    try {
+      final googleUser = await signIn();
+      if (googleUser == null) return false;
+
+      final httpClient = await _googleSignIn.authenticatedClient();
+      if (httpClient == null) return false;
+
+      final calendarApi = calendar.CalendarApi(httpClient);
+
+      final event = await calendarApi.events.get('primary', eventId);
+      event.description = description;
+
+      await calendarApi.events.update(event, 'primary', eventId);
+      return true;
+    } catch (e) {
+      debugPrint('Error updating Google Calendar event: $e');
+      return false;
     }
   }
 }

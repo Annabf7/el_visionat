@@ -724,12 +724,23 @@ async function saveVotingData(
     console.log(`[saveVotingData] 🔒 Tancant votació de jornada ${previousJornada}`);
 
     // Processar el guanyador de la jornada anterior (fora del batch)
+    // Guard: comprovar si ja s'ha processat (p.ex. durant una setmana de descans)
     try {
-      await processVotingWinner(previousJornada);
+      const focusDoc = await db.collection("weekly_focus").doc("current").get();
+      if (!focusDoc.exists || focusDoc.data()?.jornada !== previousJornada) {
+        await processVotingWinner(previousJornada);
+      } else {
+        console.log(`[saveVotingData] ℹ️ Guanyador de jornada ${previousJornada} ja processat, saltant`);
+      }
     } catch (error) {
       console.error("[saveVotingData] ❌ Error processant guanyador:", error);
       // Continuem igualment amb la nova jornada
     }
+  }
+
+  // Netejar flags de setmana de descans (si n'hi havia)
+  if (currentMeta.exists && currentMeta.data()?.restWeek) {
+    console.log("[saveVotingData] 🧹 Netejant flags de setmana de descans");
   }
 
   // 3. Obrir la votació de la nova jornada
@@ -776,6 +787,46 @@ export const syncWeeklyVoting = onSchedule(
 
       if (!result) {
         console.log("[syncWeeklyVoting] ℹ️ No hi ha partits pel cap de setmana (vacances/descans?)");
+
+        // Igualment processar el guanyador de la jornada anterior
+        const metaRef = db.collection("voting_meta").doc("current");
+        const currentMeta = await metaRef.get();
+        const previousJornada = currentMeta.exists ? currentMeta.data()?.activeJornada : null;
+
+        if (previousJornada) {
+          console.log(`[syncWeeklyVoting] 🏆 Processant guanyador de jornada ${previousJornada} (setmana de descans)...`);
+
+          // Tancar votació de la jornada anterior
+          const prevVotingMetaRef = db.collection("voting_meta").doc(`jornada_${previousJornada}`);
+          await prevVotingMetaRef.set({
+            votingOpen: false,
+            closedAt: now.toISOString(),
+            closedReason: "Setmana de descans",
+          }, {merge: true});
+
+          // Processar guanyador
+          try {
+            await processVotingWinner(previousJornada);
+          } catch (error) {
+            console.error(`[syncWeeklyVoting] ❌ Error processant guanyador de jornada ${previousJornada}:`, error);
+          }
+
+          // Calcular data de la propera votació (proper dilluns 8:00)
+          const nextMonday = new Date(now);
+          nextMonday.setDate(nextMonday.getDate() + 7);
+          nextMonday.setHours(8, 0, 0, 0);
+
+          // Marcar setmana de descans a voting_meta/current
+          await metaRef.set({
+            ...currentMeta.data(),
+            restWeek: true,
+            restWeekMessage: "La competició descansa aquest cap de setmana. Les noves votacions s'obriran el proper dilluns.",
+            nextVotingDate: nextMonday.toISOString(),
+          }, {merge: true});
+
+          console.log(`[syncWeeklyVoting] ✅ Setmana de descans gestionada. Propera votació: ${nextMonday.toDateString()}`);
+        }
+
         return;
       }
 

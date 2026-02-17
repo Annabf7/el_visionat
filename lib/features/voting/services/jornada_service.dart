@@ -109,6 +109,9 @@ class VotingMetadata {
   final DateTime weekendEnd;
   final DateTime publishedAt;
   final int matchCount;
+  final bool restWeek;
+  final String? restWeekMessage;
+  final DateTime? nextVotingDate;
 
   VotingMetadata({
     required this.activeJornada,
@@ -116,6 +119,9 @@ class VotingMetadata {
     required this.weekendEnd,
     required this.publishedAt,
     required this.matchCount,
+    this.restWeek = false,
+    this.restWeekMessage,
+    this.nextVotingDate,
   });
 
   factory VotingMetadata.fromFirestore(Map<String, dynamic> data) {
@@ -125,6 +131,11 @@ class VotingMetadata {
       weekendEnd: _parseDateTime(data['weekendEnd']),
       publishedAt: _parseDateTime(data['publishedAt']),
       matchCount: data['matchCount'] as int? ?? 0,
+      restWeek: data['restWeek'] as bool? ?? false,
+      restWeekMessage: data['restWeekMessage'] as String?,
+      nextVotingDate: data['nextVotingDate'] != null
+          ? _parseDateTime(data['nextVotingDate'])
+          : null,
     );
   }
 
@@ -147,6 +158,9 @@ class JornadaData {
   final String source;
   final DateTime? weekendStart;
   final DateTime? weekendEnd;
+  final bool restWeek;
+  final String? restWeekMessage;
+  final DateTime? nextVotingDate;
 
   JornadaData({
     required this.jornada,
@@ -158,6 +172,9 @@ class JornadaData {
     required this.source,
     this.weekendStart,
     this.weekendEnd,
+    this.restWeek = false,
+    this.restWeekMessage,
+    this.nextVotingDate,
   });
 
   /// Crea un JornadaData buit (per a estats d'error o sense dades)
@@ -369,10 +386,45 @@ class JornadaService {
       final metadata = await getActiveVotingMetadata(forceRefresh: forceRefresh);
 
       // 2. Llegim el document de la jornada
-      final jornadaData = await fetchJornada(
-        metadata.activeJornada,
-        forceRefresh: forceRefresh,
-      );
+      JornadaData jornadaData;
+      try {
+        jornadaData = await fetchJornada(
+          metadata.activeJornada,
+          forceRefresh: forceRefresh,
+        );
+      } on JornadaNotFoundException {
+        // Si és setmana de descans i la jornada no existeix, retornem buit
+        if (metadata.restWeek) {
+          debugPrint(
+            '[JornadaService] Setmana de descans: jornada ${metadata.activeJornada} '
+            'no trobada, retornant JornadaData buit amb info de descans',
+          );
+          jornadaData = JornadaData.empty(
+            jornada: metadata.activeJornada,
+            reason: 'rest-week',
+          );
+        } else {
+          rethrow;
+        }
+      }
+
+      // 3. Propagar info de setmana de descans si cal
+      if (metadata.restWeek) {
+        jornadaData = JornadaData(
+          jornada: jornadaData.jornada,
+          competitionId: jornadaData.competitionId,
+          competitionName: jornadaData.competitionName,
+          partits: jornadaData.partits,
+          classificacio: jornadaData.classificacio,
+          fetchedAt: jornadaData.fetchedAt,
+          source: jornadaData.source,
+          weekendStart: jornadaData.weekendStart,
+          weekendEnd: jornadaData.weekendEnd,
+          restWeek: true,
+          restWeekMessage: metadata.restWeekMessage,
+          nextVotingDate: metadata.nextVotingDate,
+        );
+      }
 
       // Actualitzem cache
       _cachedJornada = jornadaData;

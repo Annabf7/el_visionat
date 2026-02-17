@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 // Authentication is handled centrally by RequireAuth / AuthProvider.
 
 import '../providers/vote_provider.dart';
@@ -270,6 +271,8 @@ class _VotingSectionState extends State<VotingSection> {
   final List<MatchSeed> _selected = [];
   bool _didPrecache = false;
   int _displayJornada = 14; // Jornada a mostrar (s'actualitza amb les dades)
+  bool _restWeek = false;
+  DateTime? _nextVotingDate;
 
   @override
   void initState() {
@@ -278,19 +281,22 @@ class _VotingSectionState extends State<VotingSection> {
   }
 
   Future<List<MatchSeed>> _loadMatches() async {
-    // Passem null per deixar que el service obtingui la jornada activa de Firestore
-    // Això evita el problema de getCurrentJornada() retornant 0 sense cache
-    final matches = await loadMatchesForJornada(null);
-    // Actualitzem la jornada mostrada segons les dades reals
-    if (matches.isNotEmpty && mounted) {
-      final newJornada = matches.first.jornada;
-      if (_displayJornada != newJornada) {
+    // Carreguem la jornada activa completa per obtenir info de descans
+    try {
+      final service = JornadaService();
+      final jornadaData = await service.fetchActiveJornada();
+      if (mounted) {
         setState(() {
-          _displayJornada = newJornada;
+          _displayJornada = jornadaData.jornada;
+          _restWeek = jornadaData.restWeek;
+          _nextVotingDate = jornadaData.nextVotingDate;
         });
       }
+      return jornadaData.partits;
+    } catch (e) {
+      debugPrint('[VotingSection] Error carregant jornada: $e');
+      return [];
     }
-    return matches;
   }
 
   // Instance helpers removed; use top-level loadMatchesFromAssets and formatDate
@@ -318,7 +324,12 @@ class _VotingSectionState extends State<VotingSection> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Reusable jornada header (shows jornada and voting status)
-          JornadaHeader(jornada: _displayJornada),
+          JornadaHeader(
+            jornada: _displayJornada,
+            isClosed: _restWeek ? true : null,
+            restWeek: _restWeek,
+            nextVotingDate: _nextVotingDate,
+          ),
           const SizedBox(height: 12),
 
           // Video clip
@@ -348,6 +359,52 @@ class _VotingSectionState extends State<VotingSection> {
 
               final all = snap.data ?? <MatchSeed>[];
               if (all.isEmpty) {
+                // Si és setmana de descans, mostrem la imatge de descans segons gènere
+                if (_restWeek) {
+                  final authProvider = Provider.of<AuthProvider>(
+                    context,
+                    listen: false,
+                  );
+                  final userGender = authProvider.userProfile?.gender;
+
+                  // URL imatges descans
+                  const grandadUrl =
+                      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/home_page%2Fgrandpa_descans.webp?alt=media&token=ab9bb17f-7c0f-48f7-afff-2cf1883b1f15';
+                  const grandmaUrl =
+                      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/home_page%2Fgrandma_decsans.webp?alt=media&token=df53fbbc-9dbf-414e-bd7f-5ea0de43d66d';
+
+                  final imageUrl = (userGender == 'female')
+                      ? grandmaUrl
+                      : grandadUrl;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 12.0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: SizedBox(
+                        height:
+                            580, // Calculated to fill 1000px container without scroll on 1080p screens
+                        width: double.infinity,
+                        child: CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: AppTheme.grisBody.withValues(alpha: 0.2),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: AppTheme.mostassa,
+                              ),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: AppTheme.grisBody.withValues(alpha: 0.2),
+                            child: const Icon(Icons.error, color: Colors.red),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }
                 return Center(child: Text('No hi ha enfrontaments'));
               }
 

@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:el_visionat/features/profile/models/profile_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:el_visionat/features/mentoria/widgets/mentoria_topics_panel.dart'; // Importació del panell
 import '../widgets/mentoria_calendar.dart';
 
 class MentoriaPage extends StatefulWidget {
@@ -24,6 +25,7 @@ class _MentoriaPageState extends State<MentoriaPage> {
   // Llista d'IDs locals. Poden ser UIDs de Firebase o Strings tipus "nom|llicencia|categoria"
   List<String> _mentoredIds = [];
   bool _isLoading = true;
+  Set<String> _selectedTopics = {}; // Estat dels temes seleccionats
 
   @override
   void initState() {
@@ -252,7 +254,38 @@ class _MentoriaPageState extends State<MentoriaPage> {
                         scaffoldKey: _scaffoldKey,
                         showMenuButton: false,
                       ),
-                      Expanded(child: _buildBody()),
+                      Expanded(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment
+                              .stretch, // Estirem verticalment per omplir l'espai
+                          children: [
+                            // Contingut principal amb scroll
+                            Expanded(
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.all(24),
+                                child: _buildBody(),
+                              ),
+                            ),
+                            // Panell lateral (alçada fixa o ampliada)
+                            Container(
+                              width: 350,
+                              padding: const EdgeInsets.only(
+                                top: 24,
+                                right: 24,
+                                bottom: 24,
+                              ),
+                              child: MentoriaTopicsPanel(
+                                selectedTopics: _selectedTopics,
+                                onTopicsChanged: (newTopics) {
+                                  setState(() {
+                                    _selectedTopics = newTopics;
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -267,7 +300,28 @@ class _MentoriaPageState extends State<MentoriaPage> {
             body: Column(
               children: [
                 GlobalHeader(scaffoldKey: _scaffoldKey, showMenuButton: true),
-                Expanded(child: _buildBody()),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        _buildBody(),
+                        const SizedBox(height: 32),
+                        SizedBox(
+                          height: 400, // Alçada fixa per mòbil
+                          child: MentoriaTopicsPanel(
+                            selectedTopics: _selectedTopics,
+                            onTopicsChanged: (newTopics) {
+                              setState(() {
+                                _selectedTopics = newTopics;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           );
@@ -277,63 +331,64 @@ class _MentoriaPageState extends State<MentoriaPage> {
   }
 
   Widget _buildBody() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Mentoria',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              color: AppTheme.porpraFosc,
-              fontWeight: FontWeight.bold,
-            ),
+    // Retornem el contingut sense scroll view, ja que el scroll el gestiona el pare
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Mentoria',
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            color: AppTheme.porpraFosc,
+            fontWeight: FontWeight.bold,
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Cerca i afegeix els àrbitres que mentoritzes per fer un seguiment.',
-            style: TextStyle(color: AppTheme.grisBody, fontSize: 16),
-          ),
-          const SizedBox(height: 32),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Cerca i afegeix els àrbitres que mentoritzes per fer un seguiment.',
+          style: TextStyle(color: AppTheme.grisBody, fontSize: 16),
+        ),
+        const SizedBox(height: 32),
 
-          // Barra de cerca
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: MentoriaSearchBar(onResultSelected: _addMentoredReferee),
+        // Barra de cerca
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: MentoriaSearchBar(onResultSelected: _addMentoredReferee),
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: TextButton.icon(
+            onPressed: _showManualAddDialog,
+            icon: const Icon(Icons.person_add_alt, size: 18),
+            label: const Text('No el trobes? Afegeix-lo manualment'),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.porpraFosc),
           ),
-          const SizedBox(height: 8),
-          Center(
-            child: TextButton.icon(
-              onPressed: _showManualAddDialog,
-              icon: const Icon(Icons.person_add_alt, size: 18),
-              label: const Text('No el trobes? Afegeix-lo manualment'),
-              style: TextButton.styleFrom(foregroundColor: AppTheme.porpraFosc),
-            ),
-          ),
+        ),
 
-          const SizedBox(height: 32),
-          Text(
-            'Els meus mentoritzats',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppTheme.porpraFosc,
-              fontWeight: FontWeight.bold,
-            ),
+        const SizedBox(height: 32),
+        Text(
+          'Els meus mentoritzats',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: AppTheme.porpraFosc,
+            fontWeight: FontWeight.bold,
           ),
-          const SizedBox(height: 16),
+        ),
+        const SizedBox(height: 16),
 
-          _isLoading
-              ? const CircularProgressIndicator(color: AppTheme.mostassa)
-              : _mentoredIds.isEmpty
-              ? _buildEmptyState()
-              : Column(
-                  children: [
-                    _buildMentoredList(),
-                    const SizedBox(height: 48),
-                    MentoriaCalendar(mentoredIds: _mentoredIds),
-                  ],
-                ),
-        ],
-      ),
+        _isLoading
+            ? const CircularProgressIndicator(color: AppTheme.mostassa)
+            : _mentoredIds.isEmpty
+            ? _buildEmptyState()
+            : Column(
+                children: [
+                  _buildMentoredList(),
+                  const SizedBox(height: 48),
+                  MentoriaCalendar(
+                    mentoredIds: _mentoredIds,
+                    selectedTopics: _selectedTopics,
+                  ),
+                ],
+              ),
+      ],
     );
   }
 

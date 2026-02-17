@@ -10,8 +10,13 @@ import '../services/google_calendar_service.dart';
 
 class MentoriaCalendar extends StatefulWidget {
   final List<String> mentoredIds;
+  final Set<String> selectedTopics;
 
-  const MentoriaCalendar({super.key, required this.mentoredIds});
+  const MentoriaCalendar({
+    super.key,
+    required this.mentoredIds,
+    this.selectedTopics = const {},
+  });
 
   @override
   State<MentoriaCalendar> createState() => _MentoriaCalendarState();
@@ -129,40 +134,43 @@ class _MentoriaCalendarState extends State<MentoriaCalendar> {
 
     String? selectedMenteeId = widget.mentoredIds.first;
     final notesController = TextEditingController();
-    // Default time: now
+
+    // Valors per defecte
+    DateTime selectedDate = _selectedDay ?? DateTime.now();
     TimeOfDay selectedTime = TimeOfDay.now();
+    Duration selectedDuration = const Duration(hours: 1);
     bool createMeet = false;
+    bool isSaving = false;
 
     await showDialog(
       context: context,
+      barrierDismissible: !isSaving,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
               title: const Text(
                 'Nova Sessió',
-                style: TextStyle(color: AppTheme.porpraFosc),
+                style: TextStyle(color: AppTheme.mostassa),
               ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'Programa una sessió de mentoria:',
-                      style: TextStyle(color: AppTheme.grisBody),
-                    ),
-                    const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       decoration: const InputDecoration(
                         labelText: 'Mentoritzat',
+                        prefixIcon: Icon(
+                          Icons.person,
+                          color: AppTheme.porpraFosc,
+                        ),
                         border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: 8,
+                          horizontal: 12,
+                        ),
                       ),
-                      // The 'value' property is deprecated in favor of 'initialValue' or internal state management.
-                      // Since we update `selectedMenteeId` via setState, we can rely on `value` if we want to force it,
-                      // but to respect the warning, we'll try setting initialValue and let the widget manage its state
-                      // internally, or just rebuild with a Key if we really need to force updates.
-                      // For this dialog, initialValue is sufficient.
-                      initialValue: selectedMenteeId,
+                      value: selectedMenteeId,
                       items: widget.mentoredIds.map((id) {
                         return DropdownMenuItem(
                           value: id,
@@ -183,154 +191,298 @@ class _MentoriaCalendarState extends State<MentoriaCalendar> {
                       controller: notesController,
                       decoration: const InputDecoration(
                         labelText: 'Tema / Notes',
+                        prefixIcon: Icon(
+                          Icons.edit_note,
+                          color: AppTheme.porpraFosc,
+                        ),
                         border: OutlineInputBorder(),
-                        hintText: 'Ex: Revisió de partit, objectius...',
+                        hintText: 'Ex: Revisió de partit...',
                       ),
                       maxLines: 2,
                     ),
                     const SizedBox(height: 16),
-                    ListTile(
-                      title: const Text('Hora'),
-                      trailing: Text(selectedTime.format(context)),
-                      onTap: () async {
-                        final time = await showTimePicker(
-                          context: context,
-                          initialTime: selectedTime,
-                        );
-                        if (time != null) {
-                          setState(() {
-                            selectedTime = time;
-                          });
-                        }
+                    // Fila Data i Hora
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: selectedDate,
+                                firstDate: DateTime.now().subtract(
+                                  const Duration(days: 365),
+                                ),
+                                lastDate: DateTime.now().add(
+                                  const Duration(days: 365),
+                                ),
+                                locale: const Locale('ca', 'ES'),
+                              );
+                              if (picked != null) {
+                                setState(() => selectedDate = picked);
+                              }
+                            },
+                            child: InputDecorator(
+                              decoration: const InputDecoration(
+                                labelText: 'Data',
+                                prefixIcon: Icon(
+                                  Icons.calendar_today,
+                                  size: 18,
+                                  color: AppTheme.porpraFosc,
+                                ),
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                  vertical: 8,
+                                  horizontal: 8,
+                                ),
+                              ),
+                              child: Text(
+                                DateFormat('dd/MM/yyyy').format(selectedDate),
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () async {
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: selectedTime,
+                              );
+                              if (picked != null) {
+                                setState(() => selectedTime = picked);
+                              }
+                            },
+                            child: InputDecorator(
+                              decoration: const InputDecoration(
+                                labelText: 'Hora',
+                                prefixIcon: Icon(
+                                  Icons.access_time,
+                                  size: 18,
+                                  color: AppTheme.porpraFosc,
+                                ),
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                  vertical: 8,
+                                  horizontal: 8,
+                                ),
+                              ),
+                              child: Text(
+                                selectedTime.format(context),
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Durada
+                    DropdownButtonFormField<Duration>(
+                      decoration: const InputDecoration(
+                        labelText: 'Durada estimada',
+                        prefixIcon: Icon(
+                          Icons.timer_outlined,
+                          color: AppTheme.porpraFosc,
+                        ),
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: 8,
+                          horizontal: 12,
+                        ),
+                      ),
+                      value: selectedDuration,
+                      items: [
+                        const DropdownMenuItem(
+                          value: Duration(minutes: 30),
+                          child: Text('30 min'),
+                        ),
+                        const DropdownMenuItem(
+                          value: Duration(minutes: 45),
+                          child: Text('45 min'),
+                        ),
+                        const DropdownMenuItem(
+                          value: Duration(hours: 1),
+                          child: Text('1 hora'),
+                        ),
+                        const DropdownMenuItem(
+                          value: Duration(hours: 1, minutes: 30),
+                          child: Text('1h 30min'),
+                        ),
+                        const DropdownMenuItem(
+                          value: Duration(hours: 2),
+                          child: Text('2 hores'),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => selectedDuration = val);
                       },
                     ),
-                    const SizedBox(height: 8),
-                    CheckboxListTile(
+                    const SizedBox(height: 12),
+                    SwitchListTile(
                       title: const Text(
-                        'Generar reunió de Google Meet',
-                        style: TextStyle(fontSize: 14),
+                        'Crear reunió de Google Meet',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      subtitle: const Text(
+                        'S\'afegirà al teu calendari i es guardarà l\'enllaç.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       value: createMeet,
                       activeColor: AppTheme.porpraFosc,
                       contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      dense: true,
-                      onChanged: (val) {
-                        setState(() {
-                          createMeet = val ?? false;
-                        });
-                      },
+                      onChanged: (val) => setState(() => createMeet = val),
                     ),
                   ],
                 ),
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
                   child: const Text(
                     'Cancel·lar',
-                    style: TextStyle(color: AppTheme.grisBody),
+                    style: TextStyle(color: Colors.grey),
                   ),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.porpraFosc,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AppTheme.mostassa, // Canviat a Mostassa
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  onPressed: () async {
-                    if (selectedMenteeId == null) return;
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          if (selectedMenteeId == null) return;
+                          setState(() => isSaving = true);
 
-                    final user = FirebaseAuth.instance.currentUser;
-                    if (user == null) return;
+                          final user = FirebaseAuth.instance.currentUser;
+                          if (user == null) {
+                            setState(() => isSaving = false);
+                            return;
+                          }
 
-                    // Combine selected day with selected time
-                    final DateTime baseDate = _selectedDay ?? DateTime.now();
-                    final DateTime finalDate = DateTime(
-                      baseDate.year,
-                      baseDate.month,
-                      baseDate.day,
-                      selectedTime.hour,
-                      selectedTime.minute,
-                    );
-
-                    try {
-                      // Variables to hold Meet info
-                      String? meetLink;
-                      String? googleEventId;
-
-                      if (createMeet) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Creant reunió de Google Meet...'),
-                            ),
+                          // Combinar data seleccionada i hora
+                          final DateTime finalStart = DateTime(
+                            selectedDate.year,
+                            selectedDate.month,
+                            selectedDate.day,
+                            selectedTime.hour,
+                            selectedTime.minute,
                           );
-                        }
+                          final DateTime finalEnd = finalStart.add(
+                            selectedDuration,
+                          );
 
-                        final result = await _calendarService.createMeetEvent(
-                          title:
-                              'Mentoria: ${namesMap[selectedMenteeId] ?? 'Mentee'}',
-                          description: notesController.text.trim().isEmpty
-                              ? 'Sessió de mentoria'
-                              : notesController.text.trim(),
-                          startTime: finalDate,
-                          endTime: finalDate.add(const Duration(hours: 1)),
-                        );
+                          try {
+                            String? meetLink;
+                            String? googleEventId;
 
-                        if (result != null) {
-                          meetLink = result['meetLink'];
-                          googleEventId = result['eventId'];
-                        }
-                      }
+                            if (createMeet) {
+                              try {
+                                final result = await _calendarService
+                                    .createMeetEvent(
+                                      title:
+                                          'Mentoria: ${namesMap[selectedMenteeId] ?? 'Mentee'}',
+                                      description:
+                                          notesController.text.trim().isEmpty
+                                          ? 'Sessió de mentoria'
+                                          : notesController.text.trim(),
+                                      startTime: finalStart,
+                                      endTime: finalEnd,
+                                    );
 
-                      final newSession = {
-                        'mentorId': user.uid,
-                        'menteeId': selectedMenteeId,
-                        'menteeName':
-                            namesMap[selectedMenteeId!] ?? 'Desconegut',
-                        'date': Timestamp.fromDate(finalDate),
-                        'notes': notesController.text.trim(),
-                        'isCompleted': false,
-                        'meetLink': meetLink,
-                        'googleEventId': googleEventId,
-                      };
+                                if (result != null) {
+                                  meetLink = result['meetLink'];
+                                  googleEventId = result['eventId'];
+                                } else {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'No s\'ha pogut connectar amb Google. Revisa popups/permisos.',
+                                        ),
+                                        backgroundColor: AppTheme.mostassa,
+                                      ),
+                                    );
+                                  }
+                                }
+                              } catch (e) {
+                                debugPrint('Error Google: $e');
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Error tècnic creant Meet. Es guardarà sense reunió.',
+                                      ),
+                                      backgroundColor: AppTheme.mostassa,
+                                    ),
+                                  );
+                                }
+                              }
+                            }
 
-                      await FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(user.uid)
-                          .collection('mentorship_sessions')
-                          .add(newSession);
+                            final newSession = {
+                              'mentorId': user.uid,
+                              'menteeId': selectedMenteeId,
+                              'menteeName':
+                                  namesMap[selectedMenteeId!] ?? 'Desconegut',
+                              'date': Timestamp.fromDate(finalStart),
+                              'notes': notesController.text.trim(),
+                              'isCompleted': false,
+                              'meetLink': meetLink,
+                              'googleEventId': googleEventId,
+                            };
 
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                      }
-                      await _fetchSessions(); // Refresh
+                            await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(user.uid)
+                                .collection('mentorship_sessions')
+                                .add(newSession);
 
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              meetLink != null
-                                  ? 'Sessió i Meet creats correctament!'
-                                  : 'Sessió programada correctament!',
-                            ),
-                            backgroundColor: AppTheme.verdeEncert,
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    meetLink != null
+                                        ? 'Sessió i Meet creats correctament!'
+                                        : 'Sessió programada correctament!',
+                                  ),
+                                  backgroundColor: AppTheme.verdeEncert,
+                                ),
+                              );
+                            }
+                            await _fetchSessions();
+                          } catch (e) {
+                            debugPrint('Error adding session: $e');
+                            if (context.mounted) {
+                              setState(() => isSaving = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Error guardant sessió. Prova-ho més tard.',
+                                  ),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppTheme.mostassa,
                           ),
-                        );
-                      }
-                    } catch (e) {
-                      debugPrint('Error adding session: $e');
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error: $e'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  child: const Text('Guardar'),
+                        )
+                      : const Text('Guardar'),
                 ),
               ],
             );
@@ -492,13 +644,13 @@ class _MentoriaCalendarState extends State<MentoriaCalendar> {
                                   const Icon(
                                     Icons.video_camera_front,
                                     size: 18,
-                                    color: AppTheme.porpraFosc,
+                                    color: AppTheme.mostassa,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     'Unir-se a Google Meet',
                                     style: TextStyle(
-                                      color: AppTheme.porpraFosc,
+                                      color: AppTheme.mostassa,
                                       fontWeight: FontWeight.bold,
                                       decoration: TextDecoration.underline,
                                       fontSize: 13,
@@ -513,30 +665,198 @@ class _MentoriaCalendarState extends State<MentoriaCalendar> {
                             event.notes!,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppTheme.grisBody,
+                              fontSize: 12,
+                            ),
                           ),
                       ],
                     ),
-                    trailing: IconButton(
-                      icon: Icon(
-                        event.isCompleted
-                            ? Icons.undo
-                            : Icons.check_circle_outline,
-                        color: AppTheme.porpraFosc,
-                      ),
-                      onPressed: () async {
-                        // Toggle completion status
-                        final user = FirebaseAuth.instance.currentUser;
-                        if (user == null) return;
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.playlist_add,
+                            color: AppTheme.mostassa,
+                          ),
+                          tooltip: 'Afegir temes seleccionats',
+                          onPressed: () async {
+                            if (widget.selectedTopics.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Selecciona primer els temes del panell lateral.',
+                                  ),
+                                  backgroundColor: AppTheme.mostassa,
+                                ),
+                              );
+                              return;
+                            }
 
-                        await FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(user.uid)
-                            .collection('mentorship_sessions')
-                            .doc(event.id)
-                            .update({'isCompleted': !event.isCompleted});
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Afegir temes a la sessió?'),
+                                content: Text(
+                                  'S\'afegiran els següents temes a la sessió:\n\n- ${widget.selectedTopics.join('\n- ')}\n\nTambé s\'actualitzarà l\'esdeveniment de Google Calendar si existeix.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
+                                    child: const Text('Cancel·lar'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
+                                    child: const Text(
+                                      'Afegir',
+                                      style: TextStyle(
+                                        color: AppTheme.porpraFosc,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
 
-                        _fetchSessions();
-                      },
+                            if (confirm == true) {
+                              final user = FirebaseAuth.instance.currentUser;
+                              if (user == null) return;
+
+                              final currentNotes = event.notes ?? '';
+                              final newTopicsStr =
+                                  '\n\nTemes tractats:\n- ${widget.selectedTopics.join('\n- ')}';
+                              final updatedNotes = '$currentNotes$newTopicsStr'
+                                  .trim();
+
+                              // 1. Update Firestore
+                              await FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(user.uid)
+                                  .collection('mentorship_sessions')
+                                  .doc(event.id)
+                                  .update({'notes': updatedNotes});
+
+                              // 2. Update Google Calendar
+                              if (event.googleEventId != null) {
+                                final success = await _calendarService
+                                    .updateEventDescription(
+                                      eventId: event.googleEventId!,
+                                      description: updatedNotes,
+                                    );
+                                if (!success && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'No s\'ha pogut actualitzar Google Calendar, però s\'ha guardat a l\'app.',
+                                      ),
+                                      backgroundColor: AppTheme.mostassa,
+                                    ),
+                                  );
+                                }
+                              }
+
+                              _fetchSessions();
+
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Temes afegits correctament!',
+                                    ),
+                                    backgroundColor: AppTheme.verdeEncert,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            event.isCompleted
+                                ? Icons.undo
+                                : Icons.check_circle_outline,
+                            color: event.isCompleted
+                                ? AppTheme.grisPistacho
+                                : AppTheme.mostassa,
+                          ),
+                          tooltip: event.isCompleted
+                              ? 'Marcar com pendent'
+                              : 'Marcar com completada',
+                          onPressed: () async {
+                            final user = FirebaseAuth.instance.currentUser;
+                            if (user == null) return;
+
+                            await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(user.uid)
+                                .collection('mentorship_sessions')
+                                .doc(event.id)
+                                .update({'isCompleted': !event.isCompleted});
+
+                            _fetchSessions();
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.redAccent,
+                          ),
+                          tooltip: 'Eliminar sessió',
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Eliminar sessió?'),
+                                content: const Text(
+                                  'Aquesta acció només elimina la sessió de l\'app. Si hi ha una reunió de Google Meet, l\'hauràs d\'esborrar manualment del teu calendari.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
+                                    child: const Text('Cancel·lar'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
+                                    child: const Text(
+                                      'Eliminar',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            if (confirm == true) {
+                              final user = FirebaseAuth.instance.currentUser;
+                              if (user == null) return;
+
+                              await FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(user.uid)
+                                  .collection('mentorship_sessions')
+                                  .doc(event.id)
+                                  .delete();
+
+                              _fetchSessions();
+
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Sessió eliminada'),
+                                    backgroundColor: Colors.orange,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 );

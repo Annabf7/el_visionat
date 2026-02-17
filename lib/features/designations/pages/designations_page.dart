@@ -166,16 +166,6 @@ class _DesignationsPageState extends State<DesignationsPage>
           matchData['locationAddress']!,
         );
 
-        print('==== DESIGNATION DEBUG ====');
-        print('Match #${matchData['matchNumber']}:');
-        print('  Category: "${matchData['category']}"');
-        print('  Role: "${matchData['role']}"');
-        print('  Date: $date');
-        print('  Time: ${matchData['time']}');
-        print('  User home address: "$userHomeAddress"');
-        print('  Venue address (original): "${matchData['locationAddress']}"');
-        print('  Venue address (cleaned): "$venueAddress"');
-
         // Comprovar si ja s'ha cobrat desplaçament per aquest pavelló
         final originalVenueAddress = matchData['locationAddress']!;
         final bool shouldChargeTravel = !venuesWithTravelPaid.containsKey(
@@ -193,20 +183,13 @@ class _DesignationsPageState extends State<DesignationsPage>
             // Multiplicar per 2 per incloure anada i tornada
             kilometers = oneWayKm * 2;
 
-            print('  Distance (one way): $oneWayKm km');
-            print('  Distance (round trip): $kilometers km');
-
             // Marcar que ja s'ha cobrat desplaçament per aquest pavelló
             venuesWithTravelPaid[originalVenueAddress] = true;
           } else {
             // Aquest pavelló ja ha tingut un partit amb desplaçament cobrat
-            print(
-              '  ⚠️ Travel already charged for this venue - setting kilometers to 0',
-            );
             kilometers = 0.0;
           }
         } else {
-          print('  ⚠️ Skipping distance calculation (missing address)');
         }
 
         // Calcular ingressos amb quilometratge calculat
@@ -217,13 +200,6 @@ class _DesignationsPageState extends State<DesignationsPage>
           matchDate: date,
           matchTime: matchData['time']!,
         );
-
-        print('  EARNINGS CALCULATED:');
-        print('    Rights: ${earnings.rights}€');
-        print('    Kilometers amount: ${earnings.kilometersAmount}€');
-        print('    Allowance: ${earnings.allowance}€');
-        print('    TOTAL: ${earnings.total}€');
-        print('==========================');
 
         // Crear designació
         final designation = DesignationModel(

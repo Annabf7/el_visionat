@@ -102,7 +102,6 @@ class PdfParserService {
             // vol dir que és l'hora del SEGÜENT partit
             // En aquest cas, guardem el partit actual abans de canviar l'hora
             if (currentTime != null && detectedTime != currentTime && currentMatchNumber != null) {
-              print('⏰ PDF PARSER: Detected new time $detectedTime - this belongs to next match. Saving current match #$currentMatchNumber first.');
 
               // Guardar el partit actual abans de canviar l'hora
               if (currentDate != null &&
@@ -110,7 +109,6 @@ class PdfParserService {
                   currentVisitant != null &&
                   currentCategory != null &&
                   currentRole != null) {
-                print('🔴 PDF PARSER: Saving match #$currentMatchNumber (triggered by time change) with ${currentAllMembers?.length ?? 0} members');
                 _saveMatch(
                   matches,
                   currentDate,
@@ -140,7 +138,6 @@ class PdfParserService {
 
             currentDate = dateTimeMatch.group(1);
             currentTime = detectedTime;
-            print('⏰ PDF PARSER: Set time to $currentTime for match #$currentMatchNumber');
             developer.log('Found date and time (format 2): $currentDate at $currentTime', name: 'PdfParserService');
           } else {
             // Si no té hora, només extreure la data
@@ -163,7 +160,6 @@ class PdfParserService {
           if (summaryLocation != null) {
             currentLocation = summaryLocation;
             currentLocationAddress = summaryLocationAddress ?? summaryLocation;
-            print('📍 PDF PARSER: Venue from summary: $summaryLocation ($summaryLocationAddress)');
           }
         } else if (!_isDate(line) &&
             !upperLineVenue.contains('TOTAL PARTITS') &&
@@ -176,10 +172,8 @@ class PdfParserService {
           // Detectar adreça (té codi postal de 5 dígits)
           if (RegExp(r'\d{5}').hasMatch(line)) {
             summaryLocationAddress = line;
-            print('📍 PDF PARSER: Found venue address in summary: $line');
           } else if (summaryLocation == null) {
             summaryLocation = line;
-            print('📍 PDF PARSER: Found venue name in summary: $line');
           }
         }
       }
@@ -189,7 +183,6 @@ class PdfParserService {
         final match = RegExp(r'(\d{4,})').firstMatch(line);
         if (match != null) {
           lastSummaryMatchNumber = match.group(1);
-          print('📋 PDF PARSER: Summary match number: $lastSummaryMatchNumber');
         }
       }
 
@@ -197,10 +190,8 @@ class PdfParserService {
       if (line.contains('ÀRBITRE') && lastSummaryMatchNumber != null && !line.contains('DADES') && !line.contains('COMPANYS')) {
         if (line.contains('AUXILIAR')) {
           rolesByMatchNumber[lastSummaryMatchNumber] = 'auxiliar';
-          print('📋 PDF PARSER: Summary role AUXILIAR for match #$lastSummaryMatchNumber');
         } else if (line.contains('PRINCIPAL')) {
           rolesByMatchNumber[lastSummaryMatchNumber] = 'principal';
-          print('📋 PDF PARSER: Summary role PRINCIPAL for match #$lastSummaryMatchNumber');
         }
       }
 
@@ -219,7 +210,6 @@ class PdfParserService {
               currentCategory != null &&
               currentRole != null) {
 
-            print('🔴 PDF PARSER: Saving match #$currentMatchNumber with ${currentAllMembers?.length ?? 0} members');
             _saveMatch(
               matches,
               currentDate,
@@ -238,7 +228,6 @@ class PdfParserService {
           }
 
           currentMatchNumber = newMatchNumber;
-          print('🟠 PDF PARSER: Starting new match #$currentMatchNumber (from DADES PARTIT)');
           developer.log('Found match number: $currentMatchNumber', name: 'PdfParserService');
 
           // Reset variables per al nou partit
@@ -252,7 +241,6 @@ class PdfParserService {
           // Assignar rol del resum si existeix (cada partit pot tenir rol diferent)
           if (rolesByMatchNumber.containsKey(currentMatchNumber)) {
             currentRole = rolesByMatchNumber[currentMatchNumber];
-            print('🔵 PDF PARSER: Role from summary for match #$currentMatchNumber: $currentRole');
           }
         }
       }
@@ -419,11 +407,9 @@ class PdfParserService {
           currentMatchNumber != null && !line.contains('COMPANYS')) {
         if (line.contains('AUXILIAR')) {
           currentRole = 'auxiliar';
-          print('🔵 PDF PARSER: Found role AUXILIAR (fallback) for match #$currentMatchNumber');
           developer.log('Found role: auxiliar', name: 'PdfParserService');
         } else if (line.contains('PRINCIPAL')) {
           currentRole = 'principal';
-          print('🔵 PDF PARSER: Found role PRINCIPAL (fallback) for match #$currentMatchNumber');
           developer.log('Found role: principal', name: 'PdfParserService');
         }
       }
@@ -451,7 +437,6 @@ class PdfParserService {
       if (isLocationLine) {
         currentLocation = line;
         currentLocationAddress = line; // La línia ja conté l'adreça completa
-        print('📍 PDF PARSER: Found location: $currentLocation');
         developer.log('Found location: $currentLocation', name: 'PdfParserService');
         // Buscar adreça addicional a la línia següent (si existeix)
         if (i + 1 < lines.length) {
@@ -465,7 +450,6 @@ class PdfParserService {
             // Concatenar amb la localització si sembla una adreça
             if (nextLine.contains(',') || RegExp(r'\d{5}').hasMatch(nextLine)) {
               currentLocationAddress = '$line, $nextLine';
-              print('📍 PDF PARSER: Extended address: $currentLocationAddress');
               developer.log('Found extended address: $currentLocationAddress', name: 'PdfParserService');
             }
           }
@@ -479,7 +463,6 @@ class PdfParserService {
         // Llista de tots els membres (àrbitres i auxiliars de taula)
         List<Map<String, String>> allMembers = [];
 
-        print('🟢 PDF PARSER: Found DADES COMPANYS/ES for match #$currentMatchNumber (currentRole=$currentRole)');
         developer.log('Found DADES COMPANYS/ES section', name: 'PdfParserService');
 
         // Buscar tots els membres a les línies següents
@@ -523,7 +506,6 @@ class PdfParserService {
                       'name': cleanName,
                       if (phone != null) 'phone': phone,
                     });
-                    print('🟡 PDF PARSER: Found referee $role: $cleanName${phone != null ? ' (tel: $phone)' : ''} (match #$currentMatchNumber)');
                     developer.log('Found referee $role: $cleanName', name: 'PdfParserService');
                     break;
                   }
@@ -622,7 +604,6 @@ class PdfParserService {
 
         // Emmagatzemar els membres per processar-los després (quan tinguem currentRole)
         currentAllMembers = allMembers;
-        print('🟣 PDF PARSER: Stored ${allMembers.length} members for match #$currentMatchNumber');
         developer.log('Stored ${allMembers.length} members for later processing', name: 'PdfParserService');
       }
 
@@ -636,7 +617,6 @@ class PdfParserService {
         currentVisitant != null &&
         currentCategory != null &&
         currentRole != null) {
-      print('🔴 PDF PARSER: Saving LAST match #$currentMatchNumber with ${currentAllMembers?.length ?? 0} members');
       _saveMatch(
         matches,
         currentDate,
@@ -684,8 +664,6 @@ class PdfParserService {
     if (currentAllMembers != null && currentAllMembers.isNotEmpty) {
       List<String> partners = [];
 
-      print('⚪ PDF PARSER: Processing ${currentAllMembers.length} members for match #$currentMatchNumber with role: $currentRole');
-      print('   Members: ${currentAllMembers.map((m) => "${m['name']} (${m['role']})").join(", ")}');
       developer.log('Processing ${currentAllMembers.length} members with role: $currentRole', name: 'PdfParserService');
 
       if (currentRole == 'principal' || currentRole == 'auxiliar') {
@@ -696,7 +674,6 @@ class PdfParserService {
             String roleLabel = member['role'] == 'principal' ? 'Principal' : 'Auxiliar';
             partners.add('${member['name']} ($roleLabel)');
             partnerPhone = member['phone'];
-            print('   ✅ Added referee partner: ${member['name']} ($roleLabel)${partnerPhone != null ? ' tel: $partnerPhone' : ''}');
             developer.log('Added referee partner: ${member['name']} ($roleLabel)', name: 'PdfParserService');
           }
         }
@@ -718,13 +695,10 @@ class PdfParserService {
 
       if (partners.isNotEmpty) {
         finalRefereePartner = partners.join(', ');
-        print('   🎯 Final partners for match #$currentMatchNumber: $finalRefereePartner');
         developer.log('Final partners: $finalRefereePartner', name: 'PdfParserService');
       } else {
-        print('   ❌ No partners found for match #$currentMatchNumber');
       }
     } else {
-      print('   ⚠️ No members to process for match #$currentMatchNumber');
     }
 
     // Determinar si és arbitratge individual o a dobles
@@ -737,11 +711,9 @@ class PdfParserService {
       // Només és arbitratge a dobles si hi ha TOTS DOS rols
       isDoubleReferee = hasPrincipal && hasAuxiliar;
 
-      print('   📊 Referee type: ${isDoubleReferee ? "DOUBLE (principal + auxiliar)" : "INDIVIDUAL (only $currentRole)"}');
       developer.log('Referee type: ${isDoubleReferee ? "double" : "individual"}', name: 'PdfParserService');
     } else {
       // Si no hi ha membres, és arbitratge individual
-      print('   �� Referee type: INDIVIDUAL (no members list)');
       developer.log('Referee type: individual (no members)', name: 'PdfParserService');
     }
 

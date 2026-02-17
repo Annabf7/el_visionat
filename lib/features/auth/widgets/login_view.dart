@@ -350,9 +350,8 @@ class _LoginViewState extends State<LoginView> {
                     elevation: 0,
                   ),
                   onPressed: () async {
-                    debugPrint('🔵 Forgot password button pressed');
+                    // Capture ScaffoldMessenger before async gap
 
-                    // Capture ScaffoldMessenger before async gap (professional pattern)
                     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
                     scaffoldMessenger.showSnackBar(
@@ -364,10 +363,7 @@ class _LoginViewState extends State<LoginView> {
                         context,
                         context.read<AuthProvider>(),
                       );
-                      debugPrint('🔵 Dialog result: $result');
-
                       if (result && mounted) {
-                        debugPrint('🔵 Showing success SnackBar');
                         scaffoldMessenger.showSnackBar(
                           const SnackBar(
                             content: Text(
@@ -379,7 +375,6 @@ class _LoginViewState extends State<LoginView> {
                         );
                       }
                     } catch (error) {
-                      debugPrint('🔴 Error: $error');
                       if (mounted) {
                         scaffoldMessenger.showSnackBar(
                           SnackBar(

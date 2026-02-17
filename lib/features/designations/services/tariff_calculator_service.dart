@@ -84,8 +84,6 @@ class TariffCalculatorService {
     final cat = normalizedCategory;
     final isFemeni = cat.contains('FEMEN');
 
-    print('TariffCalculator: "$category" → "$cat" | Rol: $role | Femení: $isFemeni');
-
     // ── SUPER COPA ──
     if (cat.contains('SUPER COPA')) {
       return isFemeni ? 90.00 : 110.00;
@@ -193,7 +191,6 @@ class TariffCalculatorService {
     }
 
     // Categoria no reconeguda
-    print('TariffCalculator: ⚠️ Categoria no reconeguda: "$cat"');
     return 0.0;
   }
 

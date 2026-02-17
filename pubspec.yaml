@@ -51,7 +51,7 @@ dependencies:
   path_provider: ^2.0.15
   shared_preferences: 2.5.3
   http: ^1.1.0
-  url_launcher: ^6.2.1
+  url_launcher: ^6.3.2
   video_player: ^2.10.1
   # Profile & Image handling dependencies
   image_picker: ^1.0.4
@@ -76,6 +76,9 @@ dependencies:
   # Stripe per pagaments
   flutter_stripe: ^11.3.0
   webview_flutter: ^4.13.1
+  google_sign_in: ^6.2.2
+  googleapis: ^16.0.0
+  extension_google_sign_in_as_googleapis_auth: ^2.0.12
 
 dev_dependencies:
   flutter_test:

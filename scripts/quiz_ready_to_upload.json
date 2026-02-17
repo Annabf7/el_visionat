@@ -1,0 +1,189 @@
+[
+  {
+    "id": "17-2",
+    "category": "reglament",
+    "question": "Al tercer quart, es concedeix un servei a l'equip A a la seva pista del darrere. Mentre el jugador A1 efectua el servei, B1 mou les mans per sobre de la línia limítrof per interferir, però sense tocar la pilota ni el jugador. Quina és la sanció correcta?",
+    "options": [
+      "No és infracció. El joc continua.",
+      "Violació per retardar el joc. Avís verbal a B1 i al seu entrenador. Es repeteix el servei.",
+      "Falta tècnica a B1 directament.",
+      "Falta antiesportiva a B1."
+    ],
+    "correctOptionIndex": 1,
+    "explanation": "B1 va interferir amb el servei i, per tant, va retardar el partit. L'àrbitre sancionarà una violació per retardar el joc. A més es donarà un avís verbal a B1 i se li comunicarà a l'entrenador de l'equip B. Aquest avís es farà extensible a tots els jugadors de l'equip B pel que resti de partit.",
+    "reference": "Int. 17-2",
+    "active": true,
+    "difficulty": 2,
+    "tags": ["servei", "violacio", "retard"]
+  },
+  {
+    "id": "16-5",
+    "category": "reglament",
+    "question": "A1 passa la pilota des de la seva pista del darrere (zona de 2 punts). La pilota entra directament a la cistella contrària sense tocar ningú. Quants punts val?",
+    "options": [
+      "2 punts.",
+      "3 punts.",
+      "La cistella és anul·lada, servei per l'equip B.",
+      "La cistella és vàlida, però compta 1 punt."
+    ],
+    "correctOptionIndex": 1,
+    "explanation": "Si la pilota entra a la cistella dels oponents, el valor de la cistella es defineix pel lloc de la pista des d'on la pilota va ser llançada. Encara que no sigui un tir (sinó una passada), si es llança des de més enllà de la línia de 3 punts (inclosa la pista del darrere), val 3 punts.",
+    "reference": "Int. 16-5 / Art. 16",
+    "active": true,
+    "difficulty": 1,
+    "tags": ["cistella", "puntuacio"]
+  },
+  {
+    "id": "8-2-B",
+    "category": "interpretacions",
+    "question": "A1 està en acció de tir quan B1 fa falta a un altre atacant (A2). La falta es produeix ABANS que soni la botzina de final de quart. A1 encistella de 2 punts. B1 estava en penalització (5a falta d'equip). Què passa?",
+    "options": [
+      "Cistella vàlida. A2 tira 2 tirs lliures.",
+      "Cistella anul·lada. A2 tira 2 tirs lliures.",
+      "Cistella vàlida. Servei de banda per l'equip A.",
+      "Cistella anul·lada. Servei de banda per l'equip A."
+    ],
+    "correctOptionIndex": 0,
+    "explanation": "La cistella d'A1 és vàlida perquè l'acció de tir havia començat abans de la falta. Com que la falta és la 5a de l'equip, A2 disposarà de 2 tirs lliures. El rellotge es corregeix al moment de la falta.",
+    "reference": "Int. 8-2 / 10-2",
+    "active": true,
+    "difficulty": 3,
+    "tags": ["final de quart", "pilota viva", "penalitzacio"]
+  },
+  {
+    "id": "25-X",
+    "category": "reglament",
+    "question": "Un jugador (A1) cau a terra i rellisca mentre sosté la pilota amb les dues mans. És violació?",
+    "options": [
+      "Sí, sempre és passses.",
+      "No, caure i relliscar és legal. Aixecar-se o rodolar seria violació.",
+      "Sí, si rellisca més d'un metre.",
+      "Depèn de si guanya avantatge."
+    ],
+    "correctOptionIndex": 1,
+    "explanation": "És legal que un jugador caigui a terra i rellisqui mentre sosté la pilota. Però si roda o intenta aixecar-se mentre sosté la pilota, llavors sí que és una violació d'avançament il·legal.",
+    "reference": "Art. 25.2.3",
+    "active": true,
+    "difficulty": 1,
+    "tags": ["passes", "terra"]
+  },
+  {
+    "id": "37-C1",
+    "category": "reglament",
+    "question": "Quin criteri defineix una Falta Antiesportiva C1?",
+    "options": [
+      "Contacte excessiu i violent.",
+      "Contacte per l'esquena o lateral en un contraatac.",
+      "No fer cap intent legítim de jugar la pilota dins l'esperit i intenció de les regles.",
+      "Contacte innecessari per aturar el rellotge al final de partit."
+    ],
+    "correctOptionIndex": 2,
+    "explanation": "Criteri C1: No fer cap esforç legítim de jugar directament la pilota dins de l'esperit i la intenció de les regles.",
+    "reference": "Art. 37.1.1",
+    "active": true,
+    "difficulty": 1,
+    "tags": ["antiesportiva", "criteris"]
+  },
+  {
+    "id": "MEC-3PO",
+    "category": "mecanica",
+    "question": "En mecànica de 3 àrbitres (3PO), qui és el responsable principal de xiular faltes en el costat feble (Weak Side)?",
+    "options": [
+      "L'àrbitre de Centre (C).",
+      "L'àrbitre de Cua (T).",
+      "L'àrbitre de Cap (L).",
+      "Tots per igual."
+    ],
+    "correctOptionIndex": 0,
+    "explanation": "En 3PO, l'àrbitre de Centre (C) té la responsabilitat principal de la cobertura del costat feble (Weak Side) i de les situacions sense pilota en aquella zona.",
+    "reference": "Mecànica 3PO",
+    "active": true,
+    "difficulty": 2,
+    "tags": ["mecanica 3po", "cobertura"]
+  },
+  {
+    "id": "15-5",
+    "category": "interpretacions",
+    "question": "A1 salta per fer un tir de 3 punts. B1 li fa falta a l'aire. A1 deixa anar la pilota i després cau a terra. La pilota no entra. A1 estava en acció de tir?",
+    "options": [
+      "Sí, sempre.",
+      "No, perquè ha caigut després de tirar.",
+      "Sí, l'acció de tir continua fins que el llançador cau amb tots dos peus a terra.",
+      "Només si el tir entrava o tocava anella."
+    ],
+    "correctOptionIndex": 2,
+    "explanation": "El jugador es considera en acció de tir fins que ha finalitzat el llançament i ha retornat a terra amb els dos peus. Per tant, la falta és de tir i A1 disposarà de 3 tirs lliures.",
+    "reference": "Int. 15-5",
+    "active": true,
+    "difficulty": 1,
+    "tags": ["actio de tir", "faltes"]
+  },
+  {
+    "id": "36-3",
+    "category": "interpretacions",
+    "question": "Mentre A1 està llançant, B1 crida fort o pica de peus per desconcentrar-lo. El tir NO entra. Quina és la sanció?",
+    "options": [
+      "Avís a B1. Es repeteix el tir o servei.",
+      "Falta tècnica a B1.",
+      "Falta personal a B1.",
+      "No es sanciona res, és part del joc."
+    ],
+    "correctOptionIndex": 1,
+    "explanation": "S'ha de sancionar falta tècnica a B1 per comportament antiesportiu (desconcertar al llançador). Si el tir hagués entrat, es comptaria la cistella i només es donaria un avís (si no és reincident).",
+    "reference": "Int. 36-3/36-4",
+    "active": true,
+    "difficulty": 2,
+    "tags": ["tecnica", "conducta"]
+  },
+  {
+    "id": "3-2",
+    "category": "reglament",
+    "question": "Quina distància màxima hi pot haver entre les línies de delimitació de la pista i els espectadors o tanques publicitàries?",
+    "options": [
+      "1 metre.",
+      "2 metres.",
+      "No hi ha mínim.",
+      "5 metres."
+    ],
+    "correctOptionIndex": 1,
+    "explanation": "Hi ha d'haver una distància mínima de 2 metres lliure d'obstacles al voltant de la pista.",
+    "reference": "Art. 2.1",
+    "active": true,
+    "difficulty": 1,
+    "tags": ["pista", "equipament"]
+  },
+  {
+    "id": "31-2",
+    "category": "reglament",
+    "question": "Quan es considera que s'ha comès una interferència (Goaltending) d'atac?",
+    "options": [
+      "Quan un atacant toca la pilota dins la cistella.",
+      "Quan un atacant toca la pilota quan aquesta està completament per sobre del nivell de l'anella i baixant cap a cistella.",
+      "Quan un atacant toca el tauler mentre la pilota està en l'aire.",
+      "Totes les anteriors."
+    ],
+    "correctOptionIndex": 1,
+    "explanation": "Interferència es produeix quan es toca la pilota en trajectòria descendent completament per sobre del nivell de l'anella i amb possibilitats d'entrar.",
+    "reference": "Art. 31.2.1",
+    "active": true,
+    "difficulty": 2,
+    "tags": ["interferencia", "il·legal"]
+  },
+  {
+    "id": "18-3",
+    "category": "reglament",
+    "question": "Es concedeix un temps mort a l'equip A. Quan pot tornar a entrar l'equip a pista després del temps mort?",
+    "options": [
+      "Quan sona la botzina de 50 segons.",
+      "Quan l'àrbitre ho indica.",
+      "Quan acaba el minut sencer.",
+      "Immediatament."
+    ],
+    "correctOptionIndex": 1,
+    "explanation": "Els jugadors poden tornar a la pista només quan l'àrbitre els fa el senyal de retornar-hi, normalment després del senyal sonor final del temps mort.",
+    "reference": "Art. 18",
+    "active": true,
+    "difficulty": 1,
+    "tags": ["tems morts"]
+  }
+]

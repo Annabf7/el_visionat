@@ -8,6 +8,8 @@ class MentorshipSession {
   final DateTime date;
   final String? notes;
   final bool isCompleted;
+  final String? meetLink;
+  final String? googleEventId;
 
   MentorshipSession({
     required this.id,
@@ -17,6 +19,8 @@ class MentorshipSession {
     required this.date,
     this.notes,
     this.isCompleted = false,
+    this.meetLink,
+    this.googleEventId,
   });
 
   factory MentorshipSession.fromMap(Map<String, dynamic> data, String id) {
@@ -28,6 +32,8 @@ class MentorshipSession {
       date: (data['date'] as Timestamp).toDate(),
       notes: data['notes'],
       isCompleted: data['isCompleted'] ?? false,
+      meetLink: data['meetLink'],
+      googleEventId: data['googleEventId'],
     );
   }
 
@@ -39,6 +45,8 @@ class MentorshipSession {
       'date': Timestamp.fromDate(date),
       'notes': notes,
       'isCompleted': isCompleted,
+      'meetLink': meetLink,
+      'googleEventId': googleEventId,
     };
   }
 

@@ -4,7 +4,9 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/mentorship_session.dart';
+import '../services/google_calendar_service.dart';
 
 class MentoriaCalendar extends StatefulWidget {
   final List<String> mentoredIds;
@@ -21,6 +23,7 @@ class _MentoriaCalendarState extends State<MentoriaCalendar> {
   DateTime? _selectedDay;
   Map<DateTime, List<MentorshipSession>> _events = {};
   bool _isLoading = true;
+  final GoogleCalendarService _calendarService = GoogleCalendarService();
 
   @override
   void initState() {
@@ -128,6 +131,7 @@ class _MentoriaCalendarState extends State<MentoriaCalendar> {
     final notesController = TextEditingController();
     // Default time: now
     TimeOfDay selectedTime = TimeOfDay.now();
+    bool createMeet = false;
 
     await showDialog(
       context: context,
@@ -200,6 +204,23 @@ class _MentoriaCalendarState extends State<MentoriaCalendar> {
                         }
                       },
                     ),
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      title: const Text(
+                        'Generar reunió de Google Meet',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      value: createMeet,
+                      activeColor: AppTheme.porpraFosc,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      dense: true,
+                      onChanged: (val) {
+                        setState(() {
+                          createMeet = val ?? false;
+                        });
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -233,6 +254,35 @@ class _MentoriaCalendarState extends State<MentoriaCalendar> {
                     );
 
                     try {
+                      // Variables to hold Meet info
+                      String? meetLink;
+                      String? googleEventId;
+
+                      if (createMeet) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Creant reunió de Google Meet...'),
+                            ),
+                          );
+                        }
+
+                        final result = await _calendarService.createMeetEvent(
+                          title:
+                              'Mentoria: ${namesMap[selectedMenteeId] ?? 'Mentee'}',
+                          description: notesController.text.trim().isEmpty
+                              ? 'Sessió de mentoria'
+                              : notesController.text.trim(),
+                          startTime: finalDate,
+                          endTime: finalDate.add(const Duration(hours: 1)),
+                        );
+
+                        if (result != null) {
+                          meetLink = result['meetLink'];
+                          googleEventId = result['eventId'];
+                        }
+                      }
+
                       final newSession = {
                         'mentorId': user.uid,
                         'menteeId': selectedMenteeId,
@@ -241,6 +291,8 @@ class _MentoriaCalendarState extends State<MentoriaCalendar> {
                         'date': Timestamp.fromDate(finalDate),
                         'notes': notesController.text.trim(),
                         'isCompleted': false,
+                        'meetLink': meetLink,
+                        'googleEventId': googleEventId,
                       };
 
                       await FirebaseFirestore.instance
@@ -256,8 +308,12 @@ class _MentoriaCalendarState extends State<MentoriaCalendar> {
 
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Sessió programada correctament!'),
+                          SnackBar(
+                            content: Text(
+                              meetLink != null
+                                  ? 'Sessió i Meet creats correctament!'
+                                  : 'Sessió programada correctament!',
+                            ),
                             backgroundColor: AppTheme.verdeEncert,
                           ),
                         );
@@ -410,6 +466,48 @@ class _MentoriaCalendarState extends State<MentoriaCalendar> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(DateFormat('HH:mm').format(event.date)),
+                        if (event.meetLink != null)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              top: 4.0,
+                              bottom: 4.0,
+                            ),
+                            child: InkWell(
+                              onTap: () async {
+                                final uri = Uri.parse(event.meetLink!);
+                                try {
+                                  if (!await launchUrl(
+                                    uri,
+                                    mode: LaunchMode.externalApplication,
+                                  )) {
+                                    throw 'Could not launch $uri';
+                                  }
+                                } catch (e) {
+                                  debugPrint('Error launching URL: $e');
+                                }
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.video_camera_front,
+                                    size: 18,
+                                    color: AppTheme.porpraFosc,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Unir-se a Google Meet',
+                                    style: TextStyle(
+                                      color: AppTheme.porpraFosc,
+                                      fontWeight: FontWeight.bold,
+                                      decoration: TextDecoration.underline,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         if (event.notes != null && event.notes!.isNotEmpty)
                           Text(
                             event.notes!,

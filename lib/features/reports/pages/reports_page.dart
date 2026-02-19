@@ -38,18 +38,18 @@ class _ReportsPageState extends State<ReportsPage> {
     final uri = Uri.parse(_videoBgUrl);
     _videoReportsController = VideoPlayerController.networkUrl(uri)
       ..initialize().then((_) {
-          _videoReportsController.setLooping(true);
-          _videoReportsController.setVolume(0);
-          _videoReportsController.play();
-          if (mounted) setState(() => _videoReportsReady = true);
-        });
+        _videoReportsController.setLooping(true);
+        _videoReportsController.setVolume(0);
+        _videoReportsController.play();
+        if (mounted) setState(() => _videoReportsReady = true);
+      });
     _videoTestsController = VideoPlayerController.networkUrl(uri)
       ..initialize().then((_) {
-          _videoTestsController.setLooping(true);
-          _videoTestsController.setVolume(0);
-          _videoTestsController.play();
-          if (mounted) setState(() => _videoTestsReady = true);
-        });
+        _videoTestsController.setLooping(true);
+        _videoTestsController.setVolume(0);
+        _videoTestsController.play();
+        if (mounted) setState(() => _videoTestsReady = true);
+      });
 
     // Inicialitzar ReportsProvider després que el widget estigui creat
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -405,12 +405,14 @@ class _ReportsPageState extends State<ReportsPage> {
           // Fons: vídeo o color sòlid mentre carrega
           Positioned.fill(
             child: videoReady
-                ? FittedBox(
-                    fit: BoxFit.cover,
-                    child: SizedBox(
-                      width: videoController.value.size.width,
-                      height: videoController.value.size.height,
-                      child: VideoPlayer(videoController),
+                ? ClipRect(
+                    child: FittedBox(
+                      fit: BoxFit.fill,
+                      child: SizedBox(
+                        width: videoController.value.size.width,
+                        height: videoController.value.size.height,
+                        child: VideoPlayer(videoController),
+                      ),
                     ),
                   )
                 : Container(color: AppTheme.porpraFosc),
@@ -479,109 +481,105 @@ class _ReportsPageState extends State<ReportsPage> {
       subtitle: 'Punts de millora identificats pels informadors',
       badge: 'INFORMES',
       children: [
-              // Per FEB/ACB: mostrar NOMÉS el banner (no processem els seus PDFs)
-              if (isFebAcb && _userCategory.isNotEmpty) ...[
-                Expanded(child: _buildFebAcbReportsBanner(context)),
-              ] else ...[
-                // Llista d'informes (només per categories FCBQ)
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return SingleChildScrollView(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minHeight: constraints.maxHeight,
-                          ),
-                          child: provider.isLoadingReports
-                              ? const Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(32),
-                                    child: CircularProgressIndicator(),
+        // Per FEB/ACB: mostrar NOMÉS el banner (no processem els seus PDFs)
+        if (isFebAcb && _userCategory.isNotEmpty) ...[
+          Expanded(child: _buildFebAcbReportsBanner(context)),
+        ] else ...[
+          // Llista d'informes (només per categories FCBQ)
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: provider.isLoadingReports
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(32),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        : provider.recentReports.isEmpty
+                        ? _buildPlaceholder('No hi ha informes encara')
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Estadístiques d'informes (dins del scroll)
+                              if (provider.reports.isNotEmpty) ...[
+                                _buildReportStats(context, provider),
+                                const SizedBox(height: 16),
+                              ],
+                              // Llista d'informes
+                              ...provider.recentReports.asMap().entries.map((
+                                entry,
+                              ) {
+                                final index = entry.key;
+                                final report = entry.value;
+                                final isLast =
+                                    index == provider.recentReports.length - 1;
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: isLast ? 0 : 12,
                                   ),
-                                )
-                              : provider.recentReports.isEmpty
-                              ? _buildPlaceholder('No hi ha informes encara')
-                              : Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Estadístiques d'informes (dins del scroll)
-                                    if (provider.reports.isNotEmpty) ...[
-                                      _buildReportStats(context, provider),
-                                      const SizedBox(height: 16),
-                                    ],
-                                    // Llista d'informes
-                                    ...provider.recentReports.asMap().entries.map((
-                                      entry,
-                                    ) {
-                                      final index = entry.key;
-                                      final report = entry.value;
-                                      final isLast =
-                                          index ==
-                                          provider.recentReports.length - 1;
-                                      return Padding(
-                                        padding: EdgeInsets.only(
-                                          bottom: isLast ? 0 : 12,
-                                        ),
-                                        child: ReportCard(
-                                          report: report,
-                                          onTap: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) => ReportDetailPage(
-                                                  report: report,
-                                                  onDelete: () async {
-                                                    try {
-                                                      await provider
-                                                          .deleteReport(
-                                                            report.id,
-                                                          );
-                                                      if (context.mounted) {
-                                                        ScaffoldMessenger.of(
-                                                          context,
-                                                        ).showSnackBar(
-                                                          const SnackBar(
-                                                            content: Text(
-                                                              'Informe eliminat correctament',
-                                                            ),
-                                                            backgroundColor:
-                                                                AppTheme
-                                                                    .verdeEncert,
-                                                          ),
-                                                        );
-                                                      }
-                                                    } catch (e) {
-                                                      if (context.mounted) {
-                                                        ScaffoldMessenger.of(
-                                                          context,
-                                                        ).showSnackBar(
-                                                          SnackBar(
-                                                            content: Text(
-                                                              'Error eliminant informe: $e',
-                                                            ),
-                                                            backgroundColor:
-                                                                AppTheme
-                                                                    .mostassa,
-                                                          ),
-                                                        );
-                                                      }
-                                                    }
-                                                  },
-                                                ),
-                                              ),
-                                            );
-                                          },
+                                  child: ReportCard(
+                                    report: report,
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => ReportDetailPage(
+                                            report: report,
+                                            onDelete: () async {
+                                              try {
+                                                await provider.deleteReport(
+                                                  report.id,
+                                                );
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text(
+                                                        'Informe eliminat correctament',
+                                                      ),
+                                                      backgroundColor:
+                                                          AppTheme.verdeEncert,
+                                                    ),
+                                                  );
+                                                }
+                                              } catch (e) {
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'Error eliminant informe: $e',
+                                                      ),
+                                                      backgroundColor:
+                                                          AppTheme.mostassa,
+                                                    ),
+                                                  );
+                                                }
+                                              }
+                                            },
+                                          ),
                                         ),
                                       );
-                                    }),
-                                  ],
-                                ),
-                        ),
-                      );
-                    },
+                                    },
+                                  ),
+                                );
+                              }),
+                            ],
+                          ),
                   ),
-                ),
-              ],
+                );
+              },
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -600,114 +598,111 @@ class _ReportsPageState extends State<ReportsPage> {
           : 'Resultats segons normativa FCBQ',
       badge: 'TESTS',
       children: [
-              // Per FEB/ACB: mostrar NOMÉS el banner (no processem els seus PDFs)
-              if (isFebAcb && userCategory.isNotEmpty) ...[
-                Expanded(child: _buildFebAcbTestsBanner(context)),
-              ] else ...[
-                // Contingut amb scroll (estadístiques + llista)
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return SingleChildScrollView(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minHeight: constraints.maxHeight,
-                          ),
-                          child: provider.isLoadingTests
-                              ? const Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(32),
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                )
-                              : Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Estadístiques de tests (dins del scroll)
-                                    if (provider.tests.isNotEmpty) ...[
-                                      _buildTestStats(
-                                        context,
-                                        provider,
-                                        userCategory,
-                                      ),
-                                      const SizedBox(height: 16),
-                                    ],
-                                    // Llista de tests
-                                    if (provider.recentTests.isEmpty)
-                                      _buildPlaceholder('No hi ha tests encara')
-                                    else
-                                      ...provider.recentTests.asMap().entries.map((
-                                        entry,
-                                      ) {
-                                        final index = entry.key;
-                                        final test = entry.value;
-                                        final isLast =
-                                            index ==
-                                            provider.recentTests.length - 1;
-                                        return Padding(
-                                          padding: EdgeInsets.only(
-                                            bottom: isLast ? 0 : 12,
-                                          ),
-                                          child: TestCard(
-                                            test: test,
-                                            onTap: () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) => TestDetailPage(
-                                                    test: test,
-                                                    onDelete: () async {
-                                                      try {
-                                                        await provider
-                                                            .deleteTest(
-                                                              test.id,
-                                                            );
-                                                        if (context.mounted) {
-                                                          ScaffoldMessenger.of(
-                                                            context,
-                                                          ).showSnackBar(
-                                                            const SnackBar(
-                                                              content: Text(
-                                                                'Test eliminat correctament',
-                                                              ),
-                                                              backgroundColor:
-                                                                  AppTheme
-                                                                      .verdeEncert,
-                                                            ),
-                                                          );
-                                                        }
-                                                      } catch (e) {
-                                                        if (context.mounted) {
-                                                          ScaffoldMessenger.of(
-                                                            context,
-                                                          ).showSnackBar(
-                                                            SnackBar(
-                                                              content: Text(
-                                                                'Error eliminant test: $e',
-                                                              ),
-                                                              backgroundColor:
-                                                                  AppTheme
-                                                                      .mostassa,
-                                                            ),
-                                                          );
-                                                        }
-                                                      }
-                                                    },
-                                                  ),
-                                                ),
-                                              );
-                                            },
+        // Per FEB/ACB: mostrar NOMÉS el banner (no processem els seus PDFs)
+        if (isFebAcb && userCategory.isNotEmpty) ...[
+          Expanded(child: _buildFebAcbTestsBanner(context)),
+        ] else ...[
+          // Contingut amb scroll (estadístiques + llista)
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: provider.isLoadingTests
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(32),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Estadístiques de tests (dins del scroll)
+                              if (provider.tests.isNotEmpty) ...[
+                                _buildTestStats(
+                                  context,
+                                  provider,
+                                  userCategory,
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                              // Llista de tests
+                              if (provider.recentTests.isEmpty)
+                                _buildPlaceholder('No hi ha tests encara')
+                              else
+                                ...provider.recentTests.asMap().entries.map((
+                                  entry,
+                                ) {
+                                  final index = entry.key;
+                                  final test = entry.value;
+                                  final isLast =
+                                      index == provider.recentTests.length - 1;
+                                  return Padding(
+                                    padding: EdgeInsets.only(
+                                      bottom: isLast ? 0 : 12,
+                                    ),
+                                    child: TestCard(
+                                      test: test,
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => TestDetailPage(
+                                              test: test,
+                                              onDelete: () async {
+                                                try {
+                                                  await provider.deleteTest(
+                                                    test.id,
+                                                  );
+                                                  if (context.mounted) {
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text(
+                                                          'Test eliminat correctament',
+                                                        ),
+                                                        backgroundColor:
+                                                            AppTheme
+                                                                .verdeEncert,
+                                                      ),
+                                                    );
+                                                  }
+                                                } catch (e) {
+                                                  if (context.mounted) {
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          'Error eliminant test: $e',
+                                                        ),
+                                                        backgroundColor:
+                                                            AppTheme.mostassa,
+                                                      ),
+                                                    );
+                                                  }
+                                                }
+                                              },
+                                            ),
                                           ),
                                         );
-                                      }),
-                                  ],
-                                ),
-                        ),
-                      );
-                    },
+                                      },
+                                    ),
+                                  );
+                                }),
+                            ],
+                          ),
                   ),
-                ),
-              ],
+                );
+              },
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1260,7 +1255,11 @@ class _ReportsPageState extends State<ReportsPage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Center(
-                            child: Icon(icon, color: AppTheme.mostassa, size: 22),
+                            child: Icon(
+                              icon,
+                              color: AppTheme.mostassa,
+                              size: 22,
+                            ),
                           ),
                         ),
                         const Spacer(),

@@ -151,9 +151,46 @@ class _QuizSetupPageState extends State<QuizSetupPage> {
         constraints: const BoxConstraints(maxWidth: 600),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Column(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(255, 20, 25, 41).withValues(alpha: 0.65),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Botó tornar
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => Navigator.of(context).pop(),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.arrow_back_ios_rounded, size: 16, color: AppTheme.mostassa),
+                          SizedBox(width: 4),
+                          Text(
+                            'Tornar',
+                            style: TextStyle(
+                              fontFamily: 'Geist',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: AppTheme.mostassa,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               Text(
                 'Personalitza el teu entrenament',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -245,6 +282,7 @@ class _QuizSetupPageState extends State<QuizSetupPage> {
                 ),
               ),
             ],
+          ),
           ),
         ),
       ),

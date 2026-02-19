@@ -114,6 +114,10 @@ class _ClipCard extends StatelessWidget {
                     child: Image.network(
                       clip.getThumbnailUrl(defaultThumbnail),
                       fit: BoxFit.cover,
+                      // Optimització de memòria: redimensionem la imatge al tamany visible aproximat
+                      // El widget fa uns 280 d'ample i ~140 d'alt.
+                      // CacheWidth 400 és segur per pantalles d'alta densitat.
+                      cacheWidth: 400,
                       errorBuilder: (context, error, stackTrace) {
                         final url = clip.getThumbnailUrl(defaultThumbnail);
                         debugPrint('⚠️ Error loading thumbnail: $url');
@@ -126,6 +130,7 @@ class _ClipCard extends StatelessWidget {
                           return Image.network(
                             mqUrl,
                             fit: BoxFit.cover,
+                            cacheWidth: 400, // També a la imatge de fallback
                             errorBuilder: (_, __, ___) => Container(
                               color: AppTheme.porpraFosc,
                               child: const Center(

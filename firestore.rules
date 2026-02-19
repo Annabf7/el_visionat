@@ -565,6 +565,45 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Estadístiques de quiz per usuari (subcol·leccions dins users)
+    match /users/{uid}/quiz_history/{historyId} {
+      allow read, create: if isOwner(uid);
+      allow update, delete: if false;
+    }
+    match /users/{uid}/quiz_stats_by_article/{articleId} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid);
+      allow delete: if false;
+    }
+    match /users/{uid}/quiz_stats_global/{docId} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid);
+      allow delete: if false;
+    }
+
+    // Batalles mensuals de reglament
+    match /monthly_battles/{battleId} {
+      // Qualsevol autenticat pot llegir (veure batalla, rànquing)
+      allow read: if isAuth();
+      // Autenticats poden crear batalles (auto-creació si no n'hi ha)
+      allow create: if isAuth();
+      // Actualització per incrementar participantCount (via transacció)
+      allow update: if isAuth();
+      allow delete: if false;
+
+      // Resultats dels participants
+      match /results/{userId} {
+        // Qualsevol autenticat pot llegir (rànquing públic)
+        allow read: if isAuth();
+        // Només el propi usuari pot crear el seu resultat
+        allow create: if isAuth()
+          && request.auth.uid == userId
+          && request.resource.data.userId == request.auth.uid;
+        // No es pot modificar ni esborrar (un sol intent)
+        allow update, delete: if false;
+      }
+    }
+
     // ============================================================
     // 🛍️ COMANDES (Vestidor / Stripe)
     // ============================================================

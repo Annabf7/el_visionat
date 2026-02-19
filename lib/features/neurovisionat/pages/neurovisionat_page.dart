@@ -364,6 +364,8 @@ class _NeuroHeroHeader extends StatefulWidget {
 class _NeuroHeroHeaderState extends State<_NeuroHeroHeader> {
   late VideoPlayerController _controller;
   bool _initialized = false;
+  static const String _posterImage =
+      'https://firebasestorage.googleapis.com/v0/b/el-visionat.firebasestorage.app/o/EL%20laboratori%20arbitral%2Fneurovisionat_image.webp?alt=media&token=334d860b-bf1d-4908-872e-9bc9b0864021';
 
   @override
   void initState() {
@@ -392,16 +394,6 @@ class _NeuroHeroHeaderState extends State<_NeuroHeroHeader> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_initialized) {
-      return Container(
-        height: 250,
-        color: AppTheme.porpraFosc,
-        child: Center(
-          child: CircularProgressIndicator(color: AppTheme.mostassa),
-        ),
-      );
-    }
-
     // Determine screen width to adjust height for mobile
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 600;
@@ -414,13 +406,30 @@ class _NeuroHeroHeaderState extends State<_NeuroHeroHeader> {
       height: headerHeight,
       clipBehavior: Clip.hardEdge,
       decoration: const BoxDecoration(color: AppTheme.porpraFosc),
-      child: FittedBox(
-        fit: BoxFit.cover,
-        child: SizedBox(
-          width: _controller.value.size.width,
-          height: _controller.value.size.height,
-          child: VideoPlayer(_controller),
-        ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Capa 1: Imatge poster
+          // Simplement omplim el contenidor pare respectant l'aspect ratio de la imatge
+          Image.network(
+            _posterImage,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const Center(
+              child: CircularProgressIndicator(color: AppTheme.mostassa),
+            ),
+          ),
+
+          // Capa 2: Vídeo quan està llest
+          if (_initialized)
+            FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: _controller.value.size.width,
+                height: _controller.value.size.height,
+                child: VideoPlayer(_controller),
+              ),
+            ),
+        ],
       ),
     );
   }

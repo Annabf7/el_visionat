@@ -71,6 +71,15 @@
         { "fieldPath": "uid", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "results",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "score", "order": "DESCENDING" },
+        { "fieldPath": "totalTimeMs", "order": "ASCENDING" }
+      ]
+    },
     {
       "collectionGroup": "questions_stats",
       "queryScope": "COLLECTION",

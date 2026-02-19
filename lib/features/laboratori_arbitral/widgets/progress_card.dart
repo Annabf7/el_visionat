@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 import 'laboratori_section_card.dart';
+import '../pages/progress_page.dart';
 
 class ProgressCard extends StatelessWidget {
   const ProgressCard({super.key});
@@ -14,8 +15,9 @@ class ProgressCard extends StatelessWidget {
       color: AppTheme.mostassa,
       textColor: AppTheme.porpraFosc,
       onTap: () {
-        // TODO: Navegar a la pantalla de progrés
-        debugPrint('TODO: Navigate to Progress Page');
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const ProgressPage()),
+        );
       },
     );
   }

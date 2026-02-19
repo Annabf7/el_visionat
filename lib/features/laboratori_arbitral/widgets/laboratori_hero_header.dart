@@ -96,68 +96,66 @@ class _LaboratoriHeroHeaderState extends State<LaboratoriHeroHeader> {
   Widget build(BuildContext context) {
     final bool videoReady = _initialized && !_hasError && _controller != null;
 
-    // Ratio fix del clip: 1600×650
-    const double clipRatio = 1600 / 650;
+    // Alçada fixa estàndard per a un header global
+    const double headerHeight = 350.0;
 
-    return AspectRatio(
-      aspectRatio: clipRatio,
-      child: Container(
-        width: double.infinity,
-        clipBehavior: Clip.hardEdge,
-        decoration: const BoxDecoration(color: Colors.black),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Capa 1: Imatge poster (mateixa proporció que el clip → 0 diferència)
-            Positioned.fill(
-              child: Image.network(
-                widget.fallbackImageUrl,
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
-                errorBuilder: (_, __, ___) => const SizedBox(),
-              ),
+    return Container(
+      height: headerHeight,
+      width: double.infinity,
+      clipBehavior: Clip.hardEdge,
+      decoration: const BoxDecoration(color: Colors.black),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Capa 1: Imatge poster
+          Positioned.fill(
+            child: Image.network(
+              widget.fallbackImageUrl,
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+              errorBuilder: (_, __, ___) => const SizedBox(),
             ),
+          ),
 
-            // Capa 2: Vídeo amb crossfade suau
-            Positioned.fill(
-              child: AnimatedOpacity(
-                opacity: videoReady ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 600),
-                curve: Curves.easeIn,
-                child: videoReady
-                    ? FittedBox(
-                        fit: BoxFit.cover,
-                        alignment: Alignment.center,
-                        child: SizedBox(
-                          width: _controller!.value.size.width,
-                          height: _controller!.value.size.height,
-                          child: VideoPlayer(_controller!),
-                        ),
-                      )
-                    : const SizedBox(),
-              ),
+          // Capa 2: Vídeo amb crossfade suau
+          Positioned.fill(
+            child: AnimatedOpacity(
+              opacity: videoReady ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeIn,
+              child: videoReady
+                  ? FittedBox(
+                      fit: BoxFit.cover,
+                      alignment: Alignment.bottomCenter,
+                      child: SizedBox(
+                        width: _controller!.value.size.width,
+                        height: _controller!.value.size.height,
+                        child: VideoPlayer(_controller!),
+                      ),
+                    )
+                  : const SizedBox(),
             ),
+          ),
 
-            // Capa 3: Overlay gradient fosc
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.3),
-                      Colors.black.withValues(alpha: 0.9),
-                    ],
-                  ),
+          // Capa 3: Overlay gradient fosc
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.3),
+                    Colors.black.withValues(alpha: 0.9),
+                  ],
                 ),
               ),
             ),
+          ),
 
-            // Capa 4: Contingut text a sobre
-            Align(alignment: Alignment.bottomLeft, child: widget.child),
-          ],
-        ),
+          // Capa 4: Contingut text a sobre
+          Align(alignment: Alignment.bottomLeft, child: widget.child),
+        ],
       ),
     );
   }

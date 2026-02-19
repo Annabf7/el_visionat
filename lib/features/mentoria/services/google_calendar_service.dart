@@ -22,10 +22,8 @@ class GoogleCalendarService {
         account ??= await _googleSignIn.signInSilently();
       }
 
-      if (account == null) {
-        // Si no hi ha user, forcem el popup
-        account = await _googleSignIn.signIn();
-      }
+      // Si no hi ha user, forcem el popup
+      account ??= await _googleSignIn.signIn();
 
       // IMPORTME: En Web, verifiquem si tenim els permisos (scopes)
       if (kIsWeb && account != null) {

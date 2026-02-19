@@ -1016,11 +1016,10 @@ class _OrdersPageState extends State<OrdersPage> {
       parts.add(addr['address2'] as String);
     }
     final cityLine = <String>[];
-    if (addr['city'] != null) cityLine.add(addr['city'] as String);
-    if (addr['zip'] != null) cityLine.add(addr['zip'] as String);
-    if (addr['countryCode'] != null)
-      cityLine.add(addr['countryCode'] as String);
-    if (cityLine.isNotEmpty) parts.add(cityLine.join(', '));
+    if (addr['city'] != null) { cityLine.add(addr['city'] as String); }
+    if (addr['zip'] != null) { cityLine.add(addr['zip'] as String); }
+    if (addr['countryCode'] != null) { cityLine.add(addr['countryCode'] as String); }
+    if (cityLine.isNotEmpty) { parts.add(cityLine.join(', ')); }
     return parts.join('\n');
   }
 }

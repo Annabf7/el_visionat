@@ -407,21 +407,7 @@ class _ProfilePageState extends State<ProfilePage> {
       builder: (context) => EditProfileDialog(
         initialCategory: 'Categoria A2 - RT Girona',
         initialStartYear: 2015,
-        onSave: (category, startYear) {
-          debugPrint(
-            'Mock save: categoria=\x1B[33m$category\x1B[0m, startYear=\x1B[33m$startYear\x1B[0m',
-          ); // TODO: eliminar quan activem funcionalitat real
-        },
-        onChangeHeaderImage: () {
-          debugPrint(
-            'Mock change header image',
-          ); // TODO: eliminar quan activem funcionalitat real
-        },
-        onChangePortraitImage: () {
-          debugPrint(
-            'Mock change portrait image',
-          ); // TODO: eliminar quan activem funcionalitat real
-        },
+        onSave: (category, startYear) {},
       ),
     );
     if (!mounted) return;

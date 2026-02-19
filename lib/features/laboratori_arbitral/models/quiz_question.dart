@@ -3,8 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 enum QuizCategory {
   reglament, // Preguntes teòriques del llibre de regles
   interpretacions, // Situacions de joc del llibre d'interpretacions
-  reglament_base, // Base
-  reglament_jurisdiccional, // Jurisdiccional
+  reglamentBase, // Base
+  reglamentJurisdiccional, // Jurisdiccional
   general, // Altres (Legacy, preferible no usar)
   mecanica, // Legacy
 }

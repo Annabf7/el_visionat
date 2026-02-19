@@ -191,7 +191,7 @@ class _QuizSetupPageState extends State<QuizSetupPage> {
                 Text(
                   "Escriu el número (ex: 33) per practicar només aquest article.",
                   style: TextStyle(
-                    color: AppTheme.grisPistacho.withOpacity(0.7),
+                    color: AppTheme.grisPistacho.withValues(alpha:0.7),
                     fontSize: 12,
                   ),
                 ),
@@ -204,7 +204,7 @@ class _QuizSetupPageState extends State<QuizSetupPage> {
                   decoration: InputDecoration(
                     hintText: 'Ex: 17',
                     hintStyle: TextStyle(
-                      color: AppTheme.grisPistacho.withOpacity(0.5),
+                      color: AppTheme.grisPistacho.withValues(alpha:0.5),
                     ),
                     filled: true,
                     fillColor: AppTheme.porpraFosc,
@@ -332,7 +332,7 @@ class _QuizSetupPageState extends State<QuizSetupPage> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: isSelected
-                ? AppTheme.mostassa.withOpacity(0.1)
+                ? AppTheme.mostassa.withValues(alpha:0.1)
                 : AppTheme.porpraFosc,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(

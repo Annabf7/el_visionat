@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 import '../models/video_clip_model.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -504,16 +505,19 @@ class _ClipDetailDialogState extends State<ClipDetailDialog> {
   }
 
   void _handleEdit() {
+    // Capturar ScaffoldMessenger abans de tancar el diàleg
+    final messenger = ScaffoldMessenger.of(context);
+
     // Tancar el diàleg actual
     Navigator.pop(context);
 
-    // Obrir el diàleg d'edició (creat a continuació)
+    // Obrir el diàleg d'edició
     showDialog(
       context: context,
-      builder: (context) => EditClipDialog(clip: widget.clip),
+      builder: (ctx) => EditClipDialog(clip: widget.clip),
     ).then((result) {
-      if (result == 'success' && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      if (result == 'success') {
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('Clip actualitzat correctament!'),
             backgroundColor: Colors.green,
@@ -562,11 +566,15 @@ class _ClipDetailDialogState extends State<ClipDetailDialog> {
             .doc(widget.clip.id)
             .delete();
 
-        // TODO: Eliminar vídeo i thumbnail de Storage (opcional)
-        // await FirebaseStorage.instance.refFromURL(widget.clip.videoUrl).delete();
-        // if (widget.clip.thumbnailUrl != null) {
-        //   await FirebaseStorage.instance.refFromURL(widget.clip.thumbnailUrl!).delete();
-        // }
+        // Eliminar vídeo i thumbnail de Storage
+        try {
+          await FirebaseStorage.instance.refFromURL(widget.clip.videoUrl).delete();
+          if (widget.clip.thumbnailUrl != null) {
+            await FirebaseStorage.instance.refFromURL(widget.clip.thumbnailUrl!).delete();
+          }
+        } catch (_) {
+          // Si falla l'eliminació de Storage, no bloquegem l'operació
+        }
 
         // Actualitzar comptador si era públic
         if (widget.clip.isPublic) {

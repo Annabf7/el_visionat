@@ -13,6 +13,9 @@ class ReportsProvider extends ChangeNotifier {
   StreamSubscription<QuerySnapshot>? _testsSubscription;
   StreamSubscription<DocumentSnapshot>? _trackingSubscription;
 
+  // UserId per poder resubscriure quan canvii la temporada
+  String? _userId;
+
   // Reports
   List<RefereeReport> _reports = [];
   List<RefereeReport> get reports => _reports;
@@ -43,16 +46,30 @@ class ReportsProvider extends ChangeNotifier {
   String _selectedSeason = '2025-2026';
   String get selectedSeason => _selectedSeason;
 
+  /// Retorna les dates d'inici i fi d'una temporada (ex: '2025-2026' → 1 set 2025 - 30 jun 2026)
+  (DateTime, DateTime) _seasonDateRange(String season) {
+    final parts = season.split('-');
+    final startYear = int.parse(parts[0]);
+    final endYear = int.parse(parts[1]);
+    return (DateTime(startYear, 9, 1), DateTime(endYear, 6, 30, 23, 59, 59));
+  }
+
   /// Canvia la temporada seleccionada i recarrega les dades
   void selectSeason(String season) {
+    if (_selectedSeason == season) return;
     _selectedSeason = season;
     notifyListeners();
-    // Recarregar dades per la nova temporada
-    // TODO: Implementar filtre per temporada
+    if (_userId != null) {
+      _cancelSubscriptions();
+      _listenToReports(_userId!);
+      _listenToTests(_userId!);
+      _listenToTracking(_userId!);
+    }
   }
 
   /// Inicialitza el provider amb l'UID de l'usuari
   Future<void> initialize(String userId) async {
+    _userId = userId;
     // Cancel·lar subscripcions anteriors si n'hi ha
     _cancelSubscriptions();
 
@@ -80,11 +97,14 @@ class ReportsProvider extends ChangeNotifier {
     _isLoadingReports = true;
     notifyListeners();
 
+    final (seasonStart, seasonEnd) = _seasonDateRange(_selectedSeason);
+
     _reportsSubscription = _firestore
         .collection('reports')
         .where('userId', isEqualTo: userId)
+        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(seasonStart))
+        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(seasonEnd))
         .orderBy('date', descending: true)
-        .limit(20)
         .snapshots()
         .listen(
       (snapshot) {
@@ -110,11 +130,14 @@ class ReportsProvider extends ChangeNotifier {
     _isLoadingTests = true;
     notifyListeners();
 
+    final (seasonStart, seasonEnd) = _seasonDateRange(_selectedSeason);
+
     _testsSubscription = _firestore
         .collection('tests')
         .where('userId', isEqualTo: userId)
+        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(seasonStart))
+        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(seasonEnd))
         .orderBy('date', descending: true)
-        .limit(20)
         .snapshots()
         .listen(
       (snapshot) {

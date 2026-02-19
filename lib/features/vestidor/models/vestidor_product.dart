@@ -132,11 +132,11 @@ class VestidorVariant {
   String get colorCode => product.colorCode;
 
   /// Retorna la millor URL d'imatge personalitzada (mockup) per aquest variant.
-  /// Prioritza: mockup_url > previewUrl > url > thumbnailUrl dins de PrintfulFile amb type 'preview' o 'default'.
+  /// Prioritza: mockupUrl > previewUrl > url > thumbnailUrl dins de PrintfulFile amb type 'preview' o 'default'.
   String? get mockupUrl {
     for (final file in files) {
       if (file.type == 'preview' || file.type == 'default') {
-        if (file.mockup_url != null && file.mockup_url!.isNotEmpty) return file.mockup_url;
+        if (file.mockupUrl != null && file.mockupUrl!.isNotEmpty) return file.mockupUrl;
         if (file.previewUrl != null && file.previewUrl!.isNotEmpty) return file.previewUrl;
         if (file.url != null && file.url!.isNotEmpty) return file.url;
         if (file.thumbnailUrl != null && file.thumbnailUrl!.isNotEmpty) return file.thumbnailUrl;
@@ -144,7 +144,7 @@ class VestidorVariant {
     }
     // Si no hi ha cap file de tipus preview/default, retorna la millor URL de qualsevol file
     for (final file in files) {
-      if (file.mockup_url != null && file.mockup_url!.isNotEmpty) return file.mockup_url;
+      if (file.mockupUrl != null && file.mockupUrl!.isNotEmpty) return file.mockupUrl;
       if (file.previewUrl != null && file.previewUrl!.isNotEmpty) return file.previewUrl;
       if (file.url != null && file.url!.isNotEmpty) return file.url;
       if (file.thumbnailUrl != null && file.thumbnailUrl!.isNotEmpty) return file.thumbnailUrl;
@@ -207,7 +207,7 @@ class PrintfulFile {
   final int created;
   final String? thumbnailUrl;
   final String? previewUrl;
-  final String? mockup_url; // <-- CAMP AFEGIT
+  final String? mockupUrl; // <-- CAMP AFEGIT
   final bool visible;
   final bool isTemporary;
 
@@ -226,7 +226,7 @@ class PrintfulFile {
     required this.created,
     this.thumbnailUrl,
     this.previewUrl,
-    this.mockup_url, // <-- CAMP AFEGIT
+    this.mockupUrl, // <-- CAMP AFEGIT
     required this.visible,
     required this.isTemporary,
   });
@@ -247,14 +247,14 @@ class PrintfulFile {
       created: (map['created'] ?? 0) as int,
       thumbnailUrl: map['thumbnail_url'] as String?,
       previewUrl: map['preview_url'] as String?,
-      mockup_url: map['mockup_url'] as String?, // <-- CAMP AFEGIT
+      mockupUrl: map['mockup_url'] as String?, // Printful API retorna 'mockup_url'
       visible: (map['visible'] ?? false) as bool,
       isTemporary: (map['is_temporary'] ?? false) as bool,
     );
   }
 
   /// URL de millor qualitat disponible, prioritzant el mockup.
-  String? get bestUrl => mockup_url ?? previewUrl ?? url ?? thumbnailUrl;
+  String? get bestUrl => mockupUrl ?? previewUrl ?? url ?? thumbnailUrl;
 }
 
 /// Opció de configuració d'un variant

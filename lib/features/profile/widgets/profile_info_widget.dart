@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 import '../models/profile_model.dart';
@@ -215,29 +214,5 @@ class ProfileInfoWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(1),
       ),
     );
-  }
-}
-
-/// 🚀 FUNCIONS AUXILIARS PER FUTURES IMPLEMENTACIONS
-
-/// Comprova si la imatge existeix localment
-Future<bool> checkLocalImageExists(String path) async {
-  try {
-    // TODO: Implementar verificació d'assets
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-/// Optimitza i redimensiona la imatge seleccionada
-Future<String?> processSelectedImage(XFile image) async {
-  try {
-    // TODO: Implementar compressió i optimització
-    // TODO: Generar thumbnail
-    return image.path;
-  } catch (e) {
-    debugPrint('❌ Error processant imatge: $e');
-    return null;
   }
 }

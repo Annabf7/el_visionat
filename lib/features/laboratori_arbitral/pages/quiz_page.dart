@@ -651,15 +651,15 @@ class _OptionInputRow extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(top: 12),
-            child: Radio<int>(
-              value: index,
-              groupValue: isCorrect ? index : null, // Trick to show selected
-              activeColor: AppTheme.verdeEncert,
-              fillColor: WidgetStateProperty.resolveWith(
-                (states) =>
+            child: GestureDetector(
+              onTap: () => onCorrectChanged(index),
+              child: Icon(
+                isCorrect
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                color:
                     isCorrect ? AppTheme.verdeEncert : AppTheme.grisPistacho,
               ),
-              onChanged: (val) => onCorrectChanged(index),
             ),
           ),
           const SizedBox(width: 8),

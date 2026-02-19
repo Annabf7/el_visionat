@@ -12,9 +12,9 @@ class CartProvider extends ChangeNotifier {
   Timer? _syncTimer;
 
   List<CartItem> get items => List.unmodifiable(_items);
-  int get itemCount => _items.fold(0, (sum, item) => sum + item.quantity);
+  int get itemCount => _items.fold(0, (total, item) => total + item.quantity);
   bool get isEmpty => _items.isEmpty;
-  double get subtotal => _items.fold(0.0, (sum, item) => sum + item.totalPrice);
+  double get subtotal => _items.fold(0.0, (total, item) => total + item.totalPrice);
 
   /// Carrega el carretó des de Firestore quan l'usuari fa login
   Future<void> loadCart(String uid) async {

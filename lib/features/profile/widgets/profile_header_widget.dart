@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:el_visionat/core/theme/app_theme.dart';
 
@@ -627,36 +626,3 @@ class _ShimmerEffectState extends State<_ShimmerEffect>
 /// 🚀 FUNCIONS PLACEHOLDER PER FUTURES IMPLEMENTACIONS
 ///
 /// Aquestes funcions es poden implementar més endavant segons les necessitats:
-
-/// Obre el selector d'imatges per canviar la foto del perfil
-Future<void> pickProfileImage() async {
-  final ImagePicker picker = ImagePicker();
-  try {
-    final XFile? image = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1200,
-      maxHeight: 800,
-      imageQuality: 85,
-    );
-
-    if (image != null) {
-      debugPrint('📸 Imatge seleccionada: ${image.path}');
-      // TODO: Pujar imatge a Firebase Storage
-      // TODO: Actualitzar URL al perfil d'usuari
-    }
-  } catch (e) {
-    debugPrint('❌ Error seleccionant imatge: $e');
-  }
-}
-
-/// Mostra diàleg de configuració de visibilitat del perfil
-void showVisibilitySettings(BuildContext context) {
-  debugPrint('👁️ Mostrant configuració de visibilitat');
-  // TODO: Implementar diàleg amb opcions de privacitat
-}
-
-/// Mostra comparativa d'evolució del perfil amb fa 1 any
-void showProfileEvolution(BuildContext context) {
-  debugPrint('📊 Mostrant evolució del perfil');
-  // TODO: Implementar vista de comparativa temporal
-}

@@ -585,10 +585,10 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
                     // Hora inici
                     OutlinedButton(
                       onPressed: _selectStartTime,
-                      child: Text(timeFormat.format(_startAt)),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppTheme.grisPistacho,
                       ),
+                      child: Text(timeFormat.format(_startAt)),
                     ),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 8),
@@ -597,10 +597,10 @@ class _TimeblockEditorDialogState extends State<TimeblockEditorDialog> {
                     // Hora fi
                     OutlinedButton(
                       onPressed: _selectEndTime,
-                      child: Text(timeFormat.format(_endAt)),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppTheme.grisPistacho,
                       ),
+                      child: Text(timeFormat.format(_endAt)),
                     ),
                   ],
                 ),

@@ -170,7 +170,7 @@ class _MentoriaCalendarState extends State<MentoriaCalendar> {
                           horizontal: 12,
                         ),
                       ),
-                      value: selectedMenteeId,
+                      initialValue: selectedMenteeId,
                       items: widget.mentoredIds.map((id) {
                         return DropdownMenuItem(
                           value: id,
@@ -293,7 +293,7 @@ class _MentoriaCalendarState extends State<MentoriaCalendar> {
                           horizontal: 12,
                         ),
                       ),
-                      value: selectedDuration,
+                      initialValue: selectedDuration,
                       items: [
                         const DropdownMenuItem(
                           value: Duration(minutes: 30),
@@ -331,7 +331,7 @@ class _MentoriaCalendarState extends State<MentoriaCalendar> {
                         style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       value: createMeet,
-                      activeColor: AppTheme.porpraFosc,
+                      activeTrackColor: AppTheme.porpraFosc,
                       contentPadding: EdgeInsets.zero,
                       onChanged: (val) => setState(() => createMeet = val),
                     ),

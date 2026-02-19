@@ -94,13 +94,12 @@ class _CommentListState extends State<CommentList> {
 
     if (!auth.isAuthenticated) return;
 
-    // TODO: Obtenir categoria i nom d'usuari de Firestore
     await commentProvider.addComment(
       text: text,
       userName: auth.currentUserDisplayName ?? 'Anònim',
-      userCategory: 'Usuari', // TODO: Obtenir de Firestore
+      userCategory: auth.userProfile?.categoriaSafe ?? 'Usuari',
       userPhotoUrl: auth.currentUserPhotoUrl,
-      isOfficial: false, // TODO: Comprovar categoria
+      isOfficial: false, // TODO: usar isOfficialReferee quan s'implementi
     );
   }
 
@@ -116,9 +115,9 @@ class _CommentListState extends State<CommentList> {
       parentCommentId: _replyingToCommentId!,
       text: text,
       userName: auth.currentUserDisplayName ?? 'Anònim',
-      userCategory: 'Usuari',
+      userCategory: auth.userProfile?.categoriaSafe ?? 'Usuari',
       userPhotoUrl: auth.currentUserPhotoUrl,
-      isOfficial: false,
+      isOfficial: false, // TODO: usar isOfficialReferee quan s'implementi
     );
 
     _cancelReply();
@@ -218,8 +217,8 @@ class _CommentListState extends State<CommentList> {
 
     final comments = commentProvider.commentsWithReplies;
     final currentUserId = auth.currentUserUid;
-    final isACBReferee = false; // TODO: Obtenir categoria de Firestore
-
+    // TODO: Detectar àrbitres ACB/grup per permetre tancar debats amb aportació oficial
+    final isOfficialReferee = false;
     return Column(
       children: [
         // Header amb comptador
@@ -337,7 +336,7 @@ class _CommentListState extends State<CommentList> {
                           CommentInput(
                             parentCommentId: comment.id,
                             replyingToName: _replyingToUserName,
-                            isOfficial: isACBReferee,
+                            isOfficial: isOfficialReferee,
                             onSubmit: (text) => _submitReply(context, text),
                             onCancel: _cancelReply,
                           ),
@@ -356,7 +355,7 @@ class _CommentListState extends State<CommentList> {
         // Input per comentari nou
         if (_editingCommentId == null)
           CommentInput(
-            isOfficial: isACBReferee,
+            isOfficial: isOfficialReferee,
             onSubmit: (text) => _submitComment(context, text),
           ),
       ],

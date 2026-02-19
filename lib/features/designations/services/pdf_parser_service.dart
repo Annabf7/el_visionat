@@ -172,8 +172,8 @@ class PdfParserService {
           // Detectar adreça (té codi postal de 5 dígits)
           if (RegExp(r'\d{5}').hasMatch(line)) {
             summaryLocationAddress = line;
-          } else if (summaryLocation == null) {
-            summaryLocation = line;
+          } else {
+            summaryLocation ??= line;
           }
         }
       }

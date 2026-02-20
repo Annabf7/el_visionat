@@ -5,6 +5,8 @@ import '../pages/monthly_battle_page.dart';
 import '../services/monthly_battle_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import 'package:el_visionat/features/laboratori_arbitral/widgets/laboratori_section_card.dart';
+
 /// Card dinàmic de la batalla mensual que mostra l'estat actual
 class MonthlyBattleCard extends StatefulWidget {
   const MonthlyBattleCard({super.key});
@@ -60,113 +62,44 @@ class _MonthlyBattleCardState extends State<MonthlyBattleCard> {
   @override
   Widget build(BuildContext context) {
     final subtitle = _getSubtitle();
+    final badge = _getBadge();
 
-    return Card(
+    return LaboratoriSectionCard(
+      title: 'Batalla mensual',
+      subtitle: subtitle,
+      badge: badge,
+      icon: Icons.emoji_events,
       color: AppTheme.lilaMitja,
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const MonthlyBattlePage()),
-          );
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.porpraFosc.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.emoji_events,
-                  color: AppTheme.porpraFosc,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Batalla mensual',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: AppTheme.porpraFosc,
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    if (_isLoading)
-                      SizedBox(
-                        height: 14,
-                        width: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppTheme.porpraFosc.withValues(alpha: 0.5),
-                        ),
-                      )
-                    else
-                      Text(
-                        subtitle,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.porpraFosc.withValues(alpha: 0.8),
-                            ),
-                      ),
-                    // Badge si ja ha jugat
-                    if (_userResult != null) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.porpraFosc.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${_userResult!.score}/10 · ${_userResult!.formattedTime}${_userPosition != null ? ' · #$_userPosition' : ''}',
-                          style: const TextStyle(
-                            fontFamily: 'Geist',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.porpraFosc,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              Icon(
-                _userResult != null
-                    ? Icons.leaderboard_rounded
-                    : Icons.arrow_forward_ios,
-                color: AppTheme.porpraFosc,
-                size: 20,
-              ),
-            ],
-          ),
-        ),
-      ),
+      textColor: AppTheme.porpraFosc,
+      onTap: () {
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const MonthlyBattlePage()));
+      },
     );
   }
 
+  String _getBadge() {
+    if (_isLoading || _battle == null) return '...';
+    if (_userResult != null) {
+      if (_userPosition != null) return '#$_userPosition';
+      return '${_userResult!.score}/10';
+    }
+    if (_battle!.isActive) return 'OBERT';
+    return 'TANCAT';
+  }
+
   String _getSubtitle() {
+    if (_isLoading) return 'Carregant dades...';
     if (_battle == null) return 'Pròximament...';
 
     if (_userResult != null) {
-      return 'Ja has jugat · Veure rànquing';
+      return 'Rànquing complet disponible';
     }
 
     if (_battle!.isActive) {
       final dies = _battle!.daysRemaining;
-      return '10 casos sorpresa · $dies dies restants';
+      return '10 preguntes · $dies dies';
     }
 
     return 'Batalla finalitzada';

@@ -11,13 +11,14 @@ class ProgressCard extends StatelessWidget {
     return LaboratoriSectionCard(
       title: 'El meu progrés',
       subtitle: 'Puntuació i evolució',
+      badge: 'DADES',
       icon: Icons.show_chart,
       color: AppTheme.mostassa,
       textColor: AppTheme.porpraFosc,
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const ProgressPage()),
-        );
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const ProgressPage()));
       },
     );
   }

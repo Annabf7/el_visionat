@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -36,19 +37,80 @@ class FeaturedClipsSection extends StatelessWidget {
             color: AppTheme.grisPistacho.withValues(alpha: 0.8),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
+        // Indicador de scroll
+        Row(
+          children: [
+            Icon(
+              Icons.swipe_right_alt,
+              size: 14,
+              color: AppTheme.mostassa.withValues(alpha: 0.7),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Llisca per veure tots els clips',
+              style: TextStyle(
+                fontFamily: 'Geist',
+                fontSize: 11,
+                color: AppTheme.grisPistacho.withValues(alpha: 0.5),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
 
         // Carrusel de clips
         SizedBox(
-          height: 240, // Alçada suficient per la targeta + ombra
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: clips.length,
-            separatorBuilder: (ctx, i) => const SizedBox(width: 16),
-            itemBuilder: (context, index) {
-              final clip = clips[index];
-              return _ClipCard(clip: clip, defaultThumbnail: defaultThumbnail);
-            },
+          height: 240,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(
+                  dragDevices: {
+                    PointerDeviceKind.touch,
+                    PointerDeviceKind.mouse,
+                  },
+                ),
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: clips.length,
+                  separatorBuilder: (ctx, i) => const SizedBox(width: 16),
+                  itemBuilder: (context, index) {
+                    final clip = clips[index];
+                    return _ClipCard(
+                      clip: clip,
+                      defaultThumbnail: defaultThumbnail,
+                    );
+                  },
+                ),
+              ),
+              // Fletxa indicadora de scroll (sense degradat, només icona)
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 32,
+                    alignment: Alignment.center,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.grisBody.withValues(alpha: 0.8),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.chevron_right,
+                        color: AppTheme.mostassa,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],

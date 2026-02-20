@@ -11,8 +11,10 @@ class WeeklyTrainingCard extends StatelessWidget {
     return LaboratoriSectionCard(
       title: 'Entrenament setmanal',
       subtitle: 'Casos curts + reflexió',
+      badge: 'ACTIU',
       icon: Icons.calendar_today,
-      color: AppTheme.porpraFosc.withValues(alpha: 0.95),
+      color: AppTheme.porpraFosc,
+      textColor: AppTheme.grisPistacho,
       onTap: () {
         Navigator.of(
           context,

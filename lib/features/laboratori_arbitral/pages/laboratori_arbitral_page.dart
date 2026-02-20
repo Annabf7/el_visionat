@@ -7,6 +7,7 @@ import 'package:el_visionat/core/navigation/side_navigation_menu.dart';
 import 'package:el_visionat/features/profile/models/profile_model.dart';
 import '../models/clip_model.dart';
 import '../widgets/featured_clips_section.dart';
+import '../widgets/jugada_flash_section.dart';
 import '../widgets/laboratori_hero_header.dart';
 import '../widgets/progress_card.dart';
 import '../widgets/weekly_training_card.dart';
@@ -59,6 +60,123 @@ class _LaboratoriArbitralPageState extends State<LaboratoriArbitralPage> {
       title: "Àrbitres amb Micro: Playoff Final",
       subtitle: "Comunicació i gestió de partits d'alta tensió",
       url: 'https://youtu.be/P4_IoObf91E?si=o_wbwrSUgTx7KU4r',
+    ),
+    ClipModel(
+      title: 'Calling the Shots: The Anne Panther Story',
+      subtitle: 'The Insider Documentary · Euroleague Basketball',
+      url: 'https://youtu.be/cmiFlkJBTtQ?si=iIpRN8PAR7a0Q9QN',
+    ),
+  ];
+
+  // Jugades Flash FCBQ 2025-2026
+  static const List<ClipModel> _jugadesFlash = [
+    ClipModel(
+      title: 'Jugada Flash #1',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DPTnNAUCG3J/',
+      isInstagram: true,
+    ),
+    ClipModel(
+      title: 'Jugada Flash #2',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DPlVKxSCLaa/',
+      isInstagram: true,
+    ),
+    ClipModel(
+      title: 'Jugada Flash #3',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DP3UmW6CEXO/',
+      isInstagram: true,
+    ),
+    ClipModel(
+      title: 'Jugada Flash #4',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DQbnWXuCBE1/',
+      isInstagram: true,
+    ),
+    ClipModel(
+      title: 'Jugada Flash #5',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DQubHQ3iL3k/',
+      isInstagram: true,
+    ),
+    ClipModel(
+      title: 'Jugada Flash #6',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DQ__bAyiHmQ/',
+      isInstagram: true,
+    ),
+    ClipModel(
+      title: 'Jugada Flash #7',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DRR3FOHCPvW/',
+      isInstagram: true,
+    ),
+    ClipModel(
+      title: 'Jugada Flash #8',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DRj9MuhiOZl/',
+      isInstagram: true,
+    ),
+    ClipModel(
+      title: 'Jugada Flash #9',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DR16LctiPEK/',
+      isInstagram: true,
+    ),
+    ClipModel(
+      title: 'Jugada Flash #10',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DSH2lmeiF3k/',
+      isInstagram: true,
+    ),
+    ClipModel(
+      title: 'Jugada Flash #11',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DSanZewCNha/',
+      isInstagram: true,
+    ),
+    ClipModel(
+      title: 'Jugada Flash #12',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DTAreVHjOAM/',
+      isInstagram: true,
+    ),
+    ClipModel(
+      title: 'Jugada Flash #13',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DTQDjEAiM_1/',
+      isInstagram: true,
+    ),
+    ClipModel(
+      title: 'Jugada Flash #14',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DTikpnoCLvI/',
+      isInstagram: true,
+    ),
+    ClipModel(
+      title: 'Jugada Flash #15',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DT0VP0MiEzv/',
+      isInstagram: true,
+    ),
+    ClipModel(
+      title: 'Jugada Flash #16',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DUYwsO8iAcd/',
+      isInstagram: true,
+    ),
+    ClipModel(
+      title: 'Jugada Flash #17',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DUqmiPLCBBB/',
+      isInstagram: true,
+    ),
+    ClipModel(
+      title: 'Jugada Flash #18',
+      subtitle: 'Temporada 2025-2026',
+      url: 'https://www.instagram.com/p/DU8I_2XiACm/',
+      isInstagram: true,
     ),
   ];
 
@@ -181,7 +299,7 @@ class _LaboratoriArbitralPageState extends State<LaboratoriArbitralPage> {
                           'Laboratori Arbitral',
                           style: Theme.of(context).textTheme.headlineMedium
                               ?.copyWith(
-                                color: Colors.white,
+                                color: AppTheme.grisPistacho,
                                 fontWeight: FontWeight.bold,
                                 shadows: [
                                   Shadow(
@@ -197,7 +315,7 @@ class _LaboratoriArbitralPageState extends State<LaboratoriArbitralPage> {
                           'Formació reglamentària i anàlisi de clips i Reels rellevants del món arbitral.',
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.9),
+                                color: AppTheme.grisPistacho,
                                 fontWeight: FontWeight.w400,
                               ),
                         ),
@@ -210,36 +328,41 @@ class _LaboratoriArbitralPageState extends State<LaboratoriArbitralPage> {
                 // Contingut amb padding
                 Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            FeaturedClipsSection(
-                              clips: _clips,
-                              defaultThumbnail: _defaultThumbnail,
-                            ),
-                          ],
+                  child: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              FeaturedClipsSection(
+                                clips: _clips,
+                                defaultThumbnail: _defaultThumbnail,
+                              ),
+                              const SizedBox(height: 32),
+                              JugadaFlashSection(jugades: _jugadesFlash),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        flex: 1,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const ProgressCard(),
-                            const SizedBox(height: 16),
-                            const WeeklyTrainingCard(),
-                            const SizedBox(height: 16),
-                            const MonthlyBattleCard(),
-                          ],
+                        const SizedBox(width: 24),
+                        Expanded(
+                          flex: 1,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const ProgressCard(),
+                              const SizedBox(height: 16),
+                              const WeeklyTrainingCard(),
+                              const SizedBox(height: 16),
+                              const MonthlyBattleCard(),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -299,6 +422,8 @@ class _LaboratoriArbitralPageState extends State<LaboratoriArbitralPage> {
                       clips: _clips,
                       defaultThumbnail: _defaultThumbnail,
                     ),
+                    const SizedBox(height: 32),
+                    JugadaFlashSection(jugades: _jugadesFlash),
                     const SizedBox(height: 16),
                     const ProgressCard(),
                     const SizedBox(height: 16),
